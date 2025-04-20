@@ -9,6 +9,7 @@ An AI‑powered command‑line tool to scan your code and documentation, generat
 - Suggest documentation updates using AI
 - Automate application of suggestions via an agent
 - Inspect current configuration
+- Apply suggested documentation changes directly to files using the `--apply-change` flag in the `dope change-doc` command.
 
 ## Prerequisites
 
@@ -39,43 +40,68 @@ We provide a [VSCode Dev Container](.devcontainer/) configuration:
 
 ## Usage
 
-All commands are exposed under the `doc-updater` CLI entry point. Run:
+All commands are exposed under the `dope` CLI entry point. Run:
 ```bash
-doc-updater --help
+dope --help
 ```
 
 ### Scan Documentation
 
 ```bash
-doc-updater scan docs --root path/to/docs --show-diff
+dope scan docs --root path/to/docs --show-diff
 ```
 
 ### Scan Code Changes
 
 ```bash
-doc-updater scan code --root path/to/repo --show-diff
+dope scan code --root path/to/repo --show-diff
 ```
 
 ### Describe
 
 Generate structured summaries:
 ```bash
-doc-updater describe docs --root path/to/docs
+dope describe docs --root path/to/docs
 # or
-doc-updater describe code --root path/to/repo
+dope describe code --root path/to/repo
 ```
 
 ### Suggest Documentation Updates
 
 ```bash
-doc-updater suggest docs --show-output
+dope suggest docs --show-output
 ```
 
 ### View Current Configuration
 
 ```bash
-doc-updater config show
+dope config show
 ```
+
+### Apply/Print Suggested Changes
+
+```bash
+# Print suggested changes as JSON (existing behavior)
+dope change-doc path/to/file --output suggested_changes.json
+
+# Apply suggested changes directly to the file system; creates directories as needed (new)
+dope change docs path/to/file --apply-change
+```
+
+You can also combine flags if you want both behaviors. Some example usages:
+
+- To preview changes:
+  ```bash
+  dope change docs --output
+  ```
+- To apply changes directly to files:
+  ```bash
+  dope change docs --apply-change
+  ```
+- To both print and apply changes:
+  ```bash
+  dope change docs --apply-change --output
+  ```
 
 ## Configuration
 
@@ -89,7 +115,7 @@ The application can be configured using environment variables or by editing the 
 
 You can view all current configuration settings with:
 ```bash
-doc-updater config show
+dope config show
 ```
 
 ## Testing

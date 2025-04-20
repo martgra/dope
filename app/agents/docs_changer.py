@@ -52,7 +52,6 @@ def get_code_file_content(ctx: RunContext[Deps], code_filepath: str) -> str:
     if not Path(code_filepath).is_file():
         raise FileNotFoundError(code_filepath)
     content = ctx.deps.git_consumer.get_full_content(file_path=code_filepath)
-    print(content)
     return content
 
 
