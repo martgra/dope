@@ -1,0 +1,35 @@
+{
+  // Editor settings for Python
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "always",
+      "source.organizeImports": "always"
+    },
+    "editor.rulers": [100],
+    "files.trimTrailingWhitespace": true
+  },
+  // Editor settings for YAML
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2,
+    "editor.autoIndent": "keep",
+    "gitlens.codeLens.scopes": ["document"],
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    }
+  },
+  "python.languageServer": "Default",
+  // Extension(s) settings
+  "python.testing.pytestEnabled": true,
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.testing.pytestArgs": ["tests"],
+  "pylint.importStrategy": "useBundled",
+  "pylint.args": ["--rcfile", "${workspaceFolder}/pyproject.toml"],
+  "python.testing.unittestEnabled": false
+}

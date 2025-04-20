@@ -1,0 +1,42 @@
+{
+  "name": "Python 3",
+  "dockerComposeFile": ["docker-compose.yaml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "notebook.formatOnSave.enabled": true,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": { "path": "/usr/bin/zsh" }
+        }
+      },
+      "extensions": [
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "Gruntfuggly.todo-tree",
+        "esbenp.prettier-vscode",
+        "ms-vscode-remote.remote-containers",
+        "ms-python.python",
+        "ms-python.pylint",
+        "charliermarsh.ruff",
+        "njpwerner.autodocstring",
+        "davidanson.vscode-markdownlint",
+        "streetsidesoftware.code-spell-checker",
+        "streetsidesoftware.code-spell-checker-norwegian-bokmal",
+        "shd101wyy.markdown-preview-enhanced",
+        "unifiedjs.vscode-mdx"
+      ]
+    }
+  },
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [8888],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "remoteUser": "vscode",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin:/home/vscode/.bun/bin"
+  },
+  "postStartCommand": "bash .devcontainer/postStartCommand.sh",
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
+}
