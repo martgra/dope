@@ -36,7 +36,7 @@ class GitConsumer(BaseConsumer):
 
     def get_content(self, file_path):
         """Return content of changed file."""
-        diff = self.repo.git.diff(self.base_branch, "--", str(file_path))
+        diff = self.repo.git.diff(self.base_branch, f"--unified={5}", "--", str(file_path))
         return diff
 
     def get_full_content(self, file_path):

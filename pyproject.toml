@@ -34,7 +34,7 @@ default-groups = [
 ]
 
 [project.scripts]
-po = "app.cli.main:run_cli"
+dope = "app.cli.main:run_cli"
 
 [tool.hatch.build.targets.sdist]
 include = ["app"]
