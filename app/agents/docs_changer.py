@@ -3,6 +3,7 @@ from pathlib import Path
 
 from pydantic_ai import Agent, RunContext
 
+from app import settings
 from app.agents.model_factory import get_model
 from app.consumers.git_consumer import GitConsumer
 
@@ -32,7 +33,7 @@ class Deps:
     git_consumer: GitConsumer
 
 
-model = get_model("gpt-4.1")
+model = get_model(settings.agent.provider, "gpt-4.1")
 
 
 agent = Agent(model=model)

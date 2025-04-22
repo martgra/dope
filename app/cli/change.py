@@ -7,6 +7,7 @@ from app import settings
 from app.agents.docs_changer import agent
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.models.constants import SUGGESTION_STATE_FILENAME
 from app.services.doc_changer_service import DocsChanger
 from app.services.suggester import DocChangeSuggester
 
@@ -31,7 +32,11 @@ def change():
 
 @change.command(name="docs")
 @click.option(
-    "--output", is_flag=True, show_default=True, default=False, help="Output the diff to console."
+    "--output",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Output the changes to console.",
 )
 @click.option(
     "--apply-change", is_flag=True, show_default=True, default=False, help="Apply the changes."
@@ -48,7 +53,7 @@ def change_doc(output, apply_change):
     )
 
     suggestor = DocChangeSuggester(
-        agent=None, suggestion_state_path=settings.suggestion.state_filepath
+        agent=None, suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
     )
 
     suggest_state = suggestor.get_state()

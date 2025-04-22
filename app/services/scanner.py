@@ -34,6 +34,7 @@ class Scanner:
 
     def _save_state(self, state: dict):
         self.state_filepath.parent.mkdir(parents=True, exist_ok=True)
+        print(self.state_filepath.parent)
         with self.state_filepath.open("w") as f:
             json.dump(state, f, ensure_ascii=False, indent=4)
 
@@ -70,8 +71,7 @@ class Scanner:
                     )
                     try:
                         data["summary"] = self.agent.run_sync(user_prompt=prompt).data.model_dump()
-                    except Exception as exec:
-                        print(exec)
+                    except Exception:
                         data["summary"] = None
         finally:
             self._save_state(state)

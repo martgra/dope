@@ -1,5 +1,6 @@
 from pydantic_ai import Agent, RunContext
 
+from app import settings
 from app.agents.model_factory import get_model
 from app.models.domain import DocSummary
 
@@ -14,7 +15,7 @@ file content
 </Content>
 """
 
-model = get_model("gpt-4.1-mini")
+model = get_model(settings.agent.provider, "gpt-4.1-mini")
 
 
 doc_summarization_agent = Agent(model=model, output_type=DocSummary)

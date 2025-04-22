@@ -306,7 +306,7 @@ wheels = [
 ]
 
 [[package]]
-name = "doc-updater"
+name = "dope"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -316,6 +316,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
+    { name = "pyyaml" },
     { name = "tqdm" },
 ]
 
@@ -341,6 +342,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.3" },
     { name = "pydantic-ai", specifier = ">=0.1.2" },
     { name = "pydantic-settings", specifier = ">=2.9.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 

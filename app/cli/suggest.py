@@ -5,6 +5,11 @@ from app.agents.docs_change_suggester import agent
 from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.models.constants import (
+    DESCRIBE_CODE_STATE_FILENAME,
+    DESCRIBE_DOCS_STATE_FILENAME,
+    SUGGESTION_STATE_FILENAME,
+)
 from app.services.scanner import Scanner
 from app.services.suggester import DocChangeSuggester
 
@@ -20,12 +25,12 @@ def suggest():
 )
 def suggest_code_change(output):
     suggestor = DocChangeSuggester(
-        agent=agent, suggestion_state_path=settings.suggestion.state_filepath
+        agent=agent, suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
     )
     code_scanner = Scanner(
         GitConsumer(".", settings.git.default_branch),
         None,
-        state_filepath=settings.git.state_filepath,
+        state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
     doc_scanner = Scanner(
         DocConsumer(
@@ -34,7 +39,7 @@ def suggest_code_change(output):
             exclude_dirs=settings.docs.exclude_dirs,
         ),
         None,
-        state_filepath=settings.docs.state_filepath,
+        state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
     doc_state = doc_scanner.get_state()
     code_state = code_scanner.get_state()
