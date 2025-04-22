@@ -1,4 +1,6 @@
-# Dope
+![Alt](resources/banner.png)
+
+# Getting started with dope
 
 An AI‑powered command‑line tool to scan your code and documentation, generate structured summaries, and suggest or apply documentation updates based on code changes.
 
