@@ -1,5 +1,6 @@
 from pydantic_ai import Agent
 
+from app import settings
 from app.agents.model_factory import get_model
 from app.models.domain import CodeChanges
 
@@ -9,7 +10,7 @@ be updated based on a git diff. The description needs to be detailed enough to u
 and why it is important.
 """  # noqa: E501
 
-model = get_model("gpt-4.1-mini")
+model = get_model(settings.agent.provider, "gpt-4.1-mini")
 
 code_change_agent = Agent(model=model, output_type=CodeChanges)
 

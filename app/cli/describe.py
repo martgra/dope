@@ -8,6 +8,7 @@ from app.agents.docs_analyzer import doc_summarization_agent
 from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
 from app.services.scanner import Scanner
 
 
@@ -29,7 +30,7 @@ def describe_docs(docs_root, output):
             exclude_dirs=settings.docs.exclude_dirs,
         ),
         doc_summarization_agent,
-        state_filepath=settings.docs.state_filepath,
+        state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
     describe_data = doc_scanner.describe()
     show_full_output(describe_data, output)
@@ -44,7 +45,7 @@ def describe_code_changes(repo_root, output):
     code_scanner = Scanner(
         GitConsumer(repo_root, settings.git.default_branch),
         code_change_agent,
-        state_filepath=settings.git.state_filepath,
+        state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
     describe_data = code_scanner.describe()
     show_full_output(describe_data, output)

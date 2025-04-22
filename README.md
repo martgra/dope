@@ -1,4 +1,4 @@
-# doc-updater
+# Dope
 
 An AI‑powered command‑line tool to scan your code and documentation, generate structured summaries, and suggest or apply documentation updates based on code changes.
 
@@ -10,6 +10,7 @@ An AI‑powered command‑line tool to scan your code and documentation, generat
 - Automate application of suggestions via an agent
 - Inspect current configuration
 - Apply suggested documentation changes directly to files using the `--apply-change` flag in the `dope change-doc` command.
+- **Initialize or re-create the application YAML configuration file with `dope config init` (includes options to force overwrite, initialize all defaults, and select an LLM provider).**
 
 ## Prerequisites
 
@@ -78,14 +79,20 @@ dope suggest docs --show-output
 dope config show
 ```
 
+### Initialize or Re-create Configuration
+
+```bash
+# Initialize a local config file with default settings
+dope config init
+
+# Force overwrite existing config
+dope config init --force
+```
+
 ### Apply/Print Suggested Changes
 
 ```bash
-# Print suggested changes as JSON (existing behavior)
-dope change-doc path/to/file --output suggested_changes.json
-
-# Apply suggested changes directly to the file system; creates directories as needed (new)
-dope change docs path/to/file --apply-change
+dope change docs --apply-change
 ```
 
 You can also combine flags if you want both behaviors. Some example usages:
@@ -105,18 +112,31 @@ You can also combine flags if you want both behaviors. Some example usages:
 
 ## Configuration
 
-The application can be configured using environment variables or by editing the `.env` file in the project root. Main configurable options include:
+You can configure Dope using a YAML configuration file or environment variables.
 
-- **API Token**: Set via `AGENT_TOKEN` or `OPENAI_API_KEY`
-- **Default Documentation Types**: By default, `.md` and `.mdx` are scanned
-- **Directories to Exclude**: By default, excludes `node_modules`, `.venv`, `.pytest_cache`
-- **Default Git Branch**: Defaults to `main`
-- **Internal State Filepaths**: Caches scanned states in your platform's user cache directory
+- **YAML configuration file**: Place a `.doperc.yaml` file in your project root or in a global config location (e.g. `~/.config/dope/.doperc.yaml`). Generate or overwrite this file using:
+  ```bash
+  dope config init
+  ```
+- **Supported settings include**:
+  - `agent.provider`: LLM provider (`OPENAI` or `AZURE`)
+  - `agent.base_url`: Required if provider is `AZURE`
+  - `agent.api_version`: API version string for Azure/OpenAI
+  - Other agent, scan, and configuration options
+
+- **Environment variables**: The application will use `agent___TOKEN` (recommended for API tokens)
+- **Default behaviors**:
+  - **Default Documentation Types**: By default, `.md` and `.mdx` are scanned
+  - **Directories to Exclude**: By default, excludes `node_modules`, `.venv`, `.pytest_cache`
+  - **Default Git Branch**: Defaults to `main`
+  - **State files** (scan, describe, suggestion caches): Stored under your platform’s user cache directory (e.g., `~/.cache/dope/`).
 
 You can view all current configuration settings with:
 ```bash
 dope config show
 ```
+
+> **Note:** `.doperc.yaml` (and the `.dope/` cache directory) are user- and project-specific and are included in `.gitignore` by default.
 
 ## Testing
 

@@ -6,6 +6,7 @@ from app import settings
 from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
 from app.services.scanner import Scanner
 
 
@@ -27,7 +28,7 @@ def doc_scan(docs_root, output):
             exclude_dirs=settings.docs.exclude_dirs,
         ),
         None,
-        state_filepath=settings.docs.state_filepath,
+        state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
     scan_data = scanner.scan()
 
@@ -43,7 +44,7 @@ def git_scan(repo_root, output):
     scanner = Scanner(
         GitConsumer(repo_root, settings.git.default_branch),
         None,
-        state_filepath=settings.git.state_filepath,
+        state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
 
     scan_data = scanner.scan()
