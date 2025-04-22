@@ -22,8 +22,8 @@ An AI‑powered command‑line tool to scan your code and documentation, generat
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/doc-updater.git
-cd doc-updater
+git clone https://github.com/martgra/dope.git
+cd dope
 
 # Create a virtual environment
 python -m venv .venv
