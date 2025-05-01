@@ -3,13 +3,12 @@ from pathlib import Path
 import click
 
 from app import settings
-from app.agents.code_change_analyzer import code_change_agent
-from app.agents.docs_analyzer import doc_summarization_agent
 from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
-from app.services.scanner import Scanner
+from app.services.describer.describer_agents import code_change_agent, doc_summarization_agent
+from app.services.describer.describer_service import Scanner
 
 
 @click.group(name="describe")
@@ -41,9 +40,12 @@ def describe_docs(docs_root, output):
 @click.option(
     "--output", is_flag=True, show_default=True, default=False, help="Output the diff to console."
 )
-def describe_code_changes(repo_root, output):
+@click.option(
+    "--branch", default=settings.git.default_branch, help="Branch to find changes against."
+)
+def describe_code_changes(repo_root, output, branch: str):
     code_scanner = Scanner(
-        GitConsumer(repo_root, settings.git.default_branch),
+        GitConsumer(repo_root, branch),
         code_change_agent,
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )

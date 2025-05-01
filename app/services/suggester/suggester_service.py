@@ -4,25 +4,16 @@ from pathlib import Path
 
 from pydantic.json import pydantic_encoder
 
-from app.agents.prompts import SUGGESTION_PROMPT
-from app.models.domain import DocSuggestions
-
-template = """
-
-<{file_path}>
-file_path: {file_path}
-
-summary:
-{summary}
-</{file_path}>
-"""
+from app.models.domain.doc import DocSuggestions
+from app.services.suggester.prompts import FILE_SUMMARY_PROMPT, SUGGESTION_PROMPT
+from app.services.suggester.suggester_agents import suggester_agent
 
 
 class DocChangeSuggester:
     """DocChangeSuggestor class."""
 
-    def __init__(self, *, agent, suggestion_state_path: Path):
-        self.agent = agent
+    def __init__(self, *, suggestion_state_path: Path):
+        self.agent = suggester_agent
         self.suggestion_state_path = Path(suggestion_state_path)
 
     @staticmethod
@@ -30,7 +21,7 @@ class DocChangeSuggester:
         formatted_prompt = ""
 
         for filepath, data in state_dict.items():
-            formatted_prompt += template.format(
+            formatted_prompt += FILE_SUMMARY_PROMPT.format(
                 file_path=filepath,
                 summary=json.dumps(
                     data.get("summary"), indent=2, ensure_ascii=False, default=pydantic_encoder
@@ -62,12 +53,13 @@ class DocChangeSuggester:
         with self.suggestion_state_path.open("w") as file:
             json.dump(state, file, ensure_ascii=False, indent=True)
 
-    def get_suggestions(self, *, docs_change, code_change):
+    def get_suggestions(self, *, docs_change, code_change, scope):
         """Get suggestions how to update doc.
 
         Args:
             docs_change (_type_): _description_
             code_change (_type_): _description_
+            scope (_type_): _description_
 
         Returns:
             _type_: _description_
@@ -77,6 +69,7 @@ class DocChangeSuggester:
         if not suggestion_state:
             suggestion_state["hash"] = state_hash
             prompt = SUGGESTION_PROMPT.format(
+                scope=scope,
                 documentation=self._prompt_formatter(docs_change),
                 code_changes=self._prompt_formatter(code_change),
             )

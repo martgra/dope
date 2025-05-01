@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import click
+import yaml
 
 from app import settings
-from app.agents.docs_change_suggester import agent
 from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
@@ -10,8 +12,9 @@ from app.models.constants import (
     DESCRIBE_DOCS_STATE_FILENAME,
     SUGGESTION_STATE_FILENAME,
 )
-from app.services.scanner import Scanner
-from app.services.suggester import DocChangeSuggester
+from app.models.domain.scope_template import ScopeTemplate
+from app.services.describer.describer_service import Scanner
+from app.services.suggester.suggester_service import DocChangeSuggester
 
 
 @click.group(name="suggest")
@@ -23,12 +26,15 @@ def suggest():
 @click.option(
     "--output", is_flag=True, show_default=True, default=False, help="Output the diff to console."
 )
-def suggest_code_change(output):
+@click.option(
+    "--branch", default=settings.git.default_branch, help="Branch to find changes against."
+)
+def suggest_code_change(output, branch: str):
     suggestor = DocChangeSuggester(
-        agent=agent, suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
+        suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME,
     )
     code_scanner = Scanner(
-        GitConsumer(".", settings.git.default_branch),
+        GitConsumer(".", branch),
         None,
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
@@ -44,6 +50,14 @@ def suggest_code_change(output):
     doc_state = doc_scanner.get_state()
     code_state = code_scanner.get_state()
 
-    show_full_output(
-        suggestor.get_suggestions(docs_change=doc_state, code_change=code_state), output
+    scope_path = Path(settings.state_directory / "scope.yaml")
+    if scope_path.is_file():
+        with scope_path.open() as file:
+            scope = ScopeTemplate(**yaml.safe_load(file)).model_dump_json(indent=2)
+
+    else:
+        scope = ""
+    suggestions = (
+        suggestor.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state),
     )
+    show_full_output(suggestions, output)
