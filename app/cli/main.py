@@ -22,3 +22,7 @@ def run_cli():
     cli.add_command(scope)
 
     cli()
+
+
+if __name__ == "__main__":
+    run_cli()

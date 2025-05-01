@@ -33,30 +33,37 @@ scope into one file if you think that it is needed. This could be due to factors
 user input about the scope.
 """
 ALIGN_DOC_PROMPT = """
-Your task is to implement the structure from the provided scope and section definitions to a file.
-You are not allowed to add new information. Your are not allowed to remove information. You are only allowed
-to restructure based on the provided section definitons. You can suggest to move, remove or reformulate information adding TODOS.
+Your task is to carefully review the provided file to check if it aligns with the provided scope.
 
-You are never allowed to remove information from a file. Your only allowed actions are:
-1. Add section placeholder if missing
-2. Move content under a newly created section.
-3. Indicate that existion content should be moved, reformulated or removed adding a "TODO" and justification of your suggestion.
-These todos must be alligned with the overall provided scope.
+You can:
+1. Modify the file in place. The output should be the full file content.
+2. Suggest that parts are out of scope are moved to other files that are better suited for the content
+3. Parts that are added for moving to other files can be removed from the original file.
 """
+
 CHANGE_FILE_PROMPT = """
 Here is the full scope of our documentation. This is just for reference and to
 add TODOs if you belive content of the file is in the wrong file.
+<scope>
 {scope}
+</scope>
+
+Here is the filepath to the file we are changing.
+<filepath>
+{filepath}
+<filepath>
 
 Here is the content of the file. If the file is empty its fine. Just add section headers as
 placeholders. Else reoder the content of the file.
-{file_content}
 
-Here is the section definition for the file we are creating:
-{section_definition}
+<file_content>
+{file_content}
+</file_content>
 
 Remember to only output the content that is to be written to the new file. We will use your output in place.
-You are never allowed to remove information from a file. Only add a TODO: if you believe its out of scope or in the wrong place.
+You are allowed to remove information from a file IF you add it for move to another file.
+If you want to remove information and don't find a suitable place to move it to based on the provided scope,
+you can add a TODO with instructions for manual review.
 """
 PROMPT = """
 repo metadata:
@@ -65,4 +72,22 @@ repo metadata:
 repo structure:
 {structure}
 
+"""
+MOVE_CONTENT_PROMPT = """
+You are moving content to this file as it did not align with the scope of the file it was found in.
+Based on the instructions and the provided content to modify the file with, do changes in place in the
+provided doc file.
+
+The instructions provided based on reviewing the scope is:
+<instructions>
+{instructions}
+</instructions>
+
+<content to add>
+{content}
+</content to add>
+
+<file content>
+{doc_content}
+</file content>
 """

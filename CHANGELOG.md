@@ -1,6 +1,5 @@
 # Unreleased
 
-## [Unreleased]
 - Added `dope scope` command group with `create` subcommand for interactive documentation‑scope generation
 - Introduced `ScopeService`, `DocScope`, and AI agents for scope definition
 - Added `get_structure` and repository metadata features (anytree)

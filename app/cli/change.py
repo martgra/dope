@@ -7,7 +7,6 @@ from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.models.constants import SUGGESTION_STATE_FILENAME
-from app.services.changer.changer_agents import changer_agent
 from app.services.changer.changer_service import DocsChanger
 from app.services.suggester.suggester_service import DocChangeSuggester
 
@@ -44,7 +43,6 @@ def change():
 )
 def change_doc(output, apply, branch: str):
     docs_changer = DocsChanger(
-        agent=changer_agent,
         docs_consumer=DocConsumer(
             ".",
             file_type_filter=settings.docs.doc_filetypes,
@@ -54,7 +52,7 @@ def change_doc(output, apply, branch: str):
     )
 
     suggestor = DocChangeSuggester(
-        agent=None, suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
+        suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
     )
 
     suggest_state = suggestor.get_state()

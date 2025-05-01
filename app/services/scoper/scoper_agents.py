@@ -2,7 +2,7 @@ from pydantic_ai import Agent
 
 from app import settings
 from app.llms.model_factory import get_model
-from app.models.domain.scope_template import ProjectTier
+from app.models.domain.scope_template import AlignedScope, ProjectTier
 from app.services.scoper.prompts import (
     ALIGN_DOC_PROMPT,
     COMPLEXITY_DETERMINATION,
@@ -29,7 +29,9 @@ def _add_scope_creator_prompt() -> str:
     return CREATE_SCOPE_PROMPT
 
 
-doc_aligner_agent = Agent(model=get_model(settings.agent.provider, "gpt-4.1"), output_type=str)
+doc_aligner_agent = Agent(
+    model=get_model(settings.agent.provider, "gpt-4.1"), output_type=AlignedScope
+)
 
 
 @doc_aligner_agent.system_prompt

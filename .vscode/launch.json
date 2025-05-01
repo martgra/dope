@@ -2,15 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "FastAPI Debug",
+      "name": "Run app.cli (scope create)",
       "type": "debugpy",
       "request": "launch",
-      "module": "uvicorn",
+      "module": "app.cli.main",
       "args": [
-        "app.cli:run_cli"
+        "scope", "create"
       ],
-      "console": "integratedTerminal",
-      "justMyCode": false
+      "console": "integratedTerminal", // so you can interact
+      "justMyCode": true
     }
   ]
 }

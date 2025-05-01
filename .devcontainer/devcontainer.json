@@ -38,5 +38,6 @@
     "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin:/home/vscode/.bun/bin"
   },
   "postStartCommand": "bash .devcontainer/postStartCommand.sh",
-  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
+  "initializeCommand": "find ~/.ssh/ -type f -exec grep -l 'PRIVATE' {} \\; | xargs ssh-add" // https://github.com/microsoft/vscode-remote-release/issues/4024#issuecomment-1781885370
 }

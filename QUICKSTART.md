@@ -5,7 +5,6 @@
 - Python 3.12+
 - Git
 - OpenAI or Azure API key set in environment variables (e.g., `OPENAI_API_KEY`)
-- (Installed automatically) `anytree` and `questionary` via pip
 
 ## Installation
 
@@ -23,7 +22,7 @@ pip install .
 To scan your documentation files:
 
 ```bash
-dope scan docs [--branch <branch-name>]
+dope scan docs --branch main
 ```
 
 _Expected:_ Lists documentation files.
@@ -33,7 +32,7 @@ _Expected:_ Lists documentation files.
 To describe the code structure:
 
 ```bash
-dope describe code [--branch <branch-name>]
+dope describe code --branch main
 ```
 
 _Expected:_ Summary of code structure.
@@ -44,19 +43,25 @@ Explore the main CLI commands— all support the `--branch <branch-name>` option
 
 ```bash
 # Scan documentation files
-dope scan docs [--branch <branch-name>]
+dope scan docs --branch <branch-name>
 
 # Describe the code structure
-dope describe code [--branch <branch-name>]
+dope describe code --branch <branch-name>
 
 # Suggest documentation updates (optionally on a branch)
-dope suggest docs [--branch <branch-name>]
+dope suggest docs --branch <branch-name>
 
 # Apply suggested documentation changes
-dope change docs --apply [--branch <branch-name>]
+dope change docs --apply --branch <branch-name>
 
-# Create a documentation scope based on branch changes
-dope scope create [--branch <branch-name>]
+# Create a documentation scope interactively
+dope scope create --branch <branch-name>
+
+# Create a documentation scope with project size and output file
+dope scope create --project-size medium --output scope.yml --branch <branch-name>
+
+# Apply a documentation scope from file
+dope scope apply --scope-file scope.yml --branch <branch-name>
 ```
 
 - Read `CONTRIBUTING.md` to learn how to contribute

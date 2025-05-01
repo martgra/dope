@@ -74,9 +74,6 @@ class DocSectionTemplate(BaseModel):
     roles: list[SectionAudience] | None = Field(
         None, description="Roles which whom the section is relevant for", exclude=True
     )
-    implemented_in_path: str | None = Field(
-        None, description="Path to the implementation of the section"
-    )
 
 
 class DocTemplate(BaseModel):
@@ -84,6 +81,9 @@ class DocTemplate(BaseModel):
 
     tiers: list[ProjectTier] | None = Field(
         None, description="Tier the doc is suited for.", exclude=True
+    )
+    implemented_in_path: str | None = Field(
+        None, description="Path to the implementation of the documentation."
     )
     description: str = Field(
         ..., description="Functional description of the documentation and expected content."
@@ -105,13 +105,25 @@ class ScopeTemplate(BaseModel):
         ..., description="The set of documentation sections to include"
     )
 
-    def get_all_sections(self) -> list[tuple[DocTemplateKey, str, DocSectionTemplate]]:
+    def get_all_documents(self) -> set[DocTemplateKey]:
         """Returns a list of all sections across all documents in the documentation structure.
 
         Returns:
             List of tuples containing (doc_key, section_name, section_object)
         """
-        all_sections = []
-        for _, doc in self.documentation_structure.items():
-            all_sections.extend(doc.sections.keys())
-        return all_sections
+        return self.documentation_structure.keys()
+
+
+class SuggestedChange(BaseModel):
+    """Changes suggested based on reviewing  doc file."""
+
+    filepath: str = Field(..., description="Path to doc file to apply the suggested change to.")
+    instructions: str = Field(..., description="Instructions on what has to change in the file.")
+    content: str = Field(..., description="Content to add or implement in another file.")
+
+
+class AlignedScope(BaseModel):
+    """Result of aligning scope."""
+
+    content: str = Field(..., description="Markdown content of the modified file.")
+    changes_in_other_files: list[SuggestedChange]
