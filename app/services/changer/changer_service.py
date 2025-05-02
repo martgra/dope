@@ -3,15 +3,15 @@ import json
 from pydantic.json import pydantic_encoder
 from tqdm import tqdm
 
-from app.agents.docs_changer import Deps
-from app.agents.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
-from app.models.domain import SuggestedChange
+from app.models.domain.doc import SuggestedChange
+from app.services.changer.changer_agents import Deps, changer_agent
+from app.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
 
 
 class DocsChanger:
     """DocChanger class."""
 
-    def __init__(self, *, agent, docs_consumer, git_consumer):
+    def __init__(self, *, docs_consumer, git_consumer):
         """Initialize DocChanger.
 
         Args:
@@ -21,7 +21,7 @@ class DocsChanger:
         """
         self.docs_consumer = docs_consumer
         self.git_consumer = git_consumer
-        self.agent = agent
+        self.agent = changer_agent
 
     def _change_prompt(self, docs_content: str, suggested_change: SuggestedChange):
         return CHANGE_DOC_USER_PROMPT.format(

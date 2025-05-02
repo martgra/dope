@@ -4,12 +4,11 @@ from pathlib import Path
 import click
 
 from app import settings
-from app.agents.docs_changer import agent
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.models.constants import SUGGESTION_STATE_FILENAME
-from app.services.doc_changer_service import DocsChanger
-from app.services.suggester import DocChangeSuggester
+from app.services.changer.changer_service import DocsChanger
+from app.services.suggester.suggester_service import DocChangeSuggester
 
 
 def _apply_change(changes: dict[str, str]) -> None:
@@ -38,22 +37,22 @@ def change():
     default=False,
     help="Output the changes to console.",
 )
+@click.option("--apply", is_flag=True, show_default=True, default=False, help="Apply the changes.")
 @click.option(
-    "--apply-change", is_flag=True, show_default=True, default=False, help="Apply the changes."
+    "--branch", default=settings.git.default_branch, help="Branch to find changes against."
 )
-def change_doc(output, apply_change):
+def change_doc(output, apply, branch: str):
     docs_changer = DocsChanger(
-        agent=agent,
         docs_consumer=DocConsumer(
             ".",
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        git_consumer=GitConsumer(".", settings.git.default_branch),
+        git_consumer=GitConsumer(".", branch),
     )
 
     suggestor = DocChangeSuggester(
-        agent=None, suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
+        suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME
     )
 
     suggest_state = suggestor.get_state()
@@ -62,5 +61,5 @@ def change_doc(output, apply_change):
     if output:
         print(json.dumps(changes))
 
-    if apply_change:
+    if apply:
         _apply_change(changes)

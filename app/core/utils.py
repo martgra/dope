@@ -109,3 +109,39 @@ def load_settings_from_yaml(config_filepath: Path):
     """
     with config_filepath.open() as file:
         return yaml.safe_load(file)
+
+
+def get_graphical_repo_tree(repo_path: str) -> str:
+    """Return repo structure.
+
+    Args:
+        repo_path (str): Path to repo.
+
+    Returns:
+        str: File structure of repo.
+    """
+    repo = Repo(repo_path)
+    tree = repo.head.commit.tree
+
+    def traverse(tree, prefix=""):
+        entries = list(tree)
+        lines = []
+        for i, item in enumerate(entries):
+            is_last = i == len(entries) - 1
+            branch = "└── " if is_last else "├── "
+            line = f"{prefix}{branch}{item.name}"
+            lines.append(line)
+            if item.type == "tree":
+                extension = "    " if is_last else "│   "
+                lines.extend(traverse(item, prefix + extension))
+        return lines
+
+    tree_lines = []
+    for item in tree:
+        if item.type == "tree":
+            tree_lines.append(f"{item.name}/")
+            tree_lines.extend(traverse(item, prefix=""))
+        else:
+            tree_lines.append(item.name)
+
+    return "\n".join(tree_lines)

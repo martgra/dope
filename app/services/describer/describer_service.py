@@ -4,8 +4,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from app.agents.prompts import SUMMARIZATION_TEMPLATE
 from app.consumers.base import BaseConsumer
+from app.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
 
 class Scanner:
