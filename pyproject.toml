@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "anytree>=2.13.0",
-    "click>=8.1.8",
     "gitpython>=3.1.44",
     "platformdirs>=4.3.7",
     "pydantic>=2.11.3",
@@ -14,7 +13,9 @@ dependencies = [
     "pydantic-settings>=2.9.0",
     "pyyaml>=6.0.2",
     "questionary>=2.1.0",
+    "rich>=14.0.0",
     "tqdm>=4.67.1",
+    "typer>=0.15.3",
 ]
 
 [project.urls]

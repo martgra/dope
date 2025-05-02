@@ -1,10 +1,10 @@
 from pathlib import Path
+from typing import Annotated
 
-import click
+import typer
 import yaml
 
 from app import settings
-from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.models.constants import (
@@ -16,20 +16,15 @@ from app.models.domain.scope_template import ScopeTemplate
 from app.services.describer.describer_service import Scanner
 from app.services.suggester.suggester_service import DocChangeSuggester
 
-
-@click.group(name="suggest")
-def suggest():
-    pass
+app = typer.Typer()
 
 
-@suggest.command(name="docs")
-@click.option(
-    "--output", is_flag=True, show_default=True, default=False, help="Output the diff to console."
-)
-@click.option(
-    "--branch", default=settings.git.default_branch, help="Branch to find changes against."
-)
-def suggest_code_change(output, branch: str):
+@app.command()
+def suggest(
+    branch: Annotated[
+        str, typer.Option("--branch", help="Branch to run againt")
+    ] = settings.git.default_branch,
+):
     suggestor = DocChangeSuggester(
         suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME,
     )
@@ -57,7 +52,5 @@ def suggest_code_change(output, branch: str):
 
     else:
         scope = ""
-    suggestions = (
-        suggestor.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state),
-    )
-    show_full_output(suggestions, output)
+
+    suggestor.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)

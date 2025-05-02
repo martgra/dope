@@ -1,27 +1,22 @@
 from pathlib import Path
+from typing import Annotated
 
-import click
+import typer
 
 from app import settings
-from app.cli.utils import show_full_output
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
 from app.services.describer.describer_agents import code_change_agent, doc_summarization_agent
 from app.services.describer.describer_service import Scanner
 
-
-@click.group(name="describe")
-def describe():
-    pass
+app = typer.Typer()
 
 
-@describe.command(name="docs")
-@click.option("--docs-root", default=Path("."))
-@click.option(
-    "--output", is_flag=True, show_default=True, default=False, help="Output the diff to console."
-)
-def describe_docs(docs_root, output):
+@app.command()
+def docs(
+    docs_root: Annotated[Path, typer.Option("--root", help="Root of doc structure")] = Path("."),
+):
     doc_scanner = Scanner(
         DocConsumer(
             docs_root,
@@ -31,23 +26,21 @@ def describe_docs(docs_root, output):
         doc_summarization_agent,
         state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
-    describe_data = doc_scanner.describe()
-    show_full_output(describe_data, output)
+    doc_scanner.scan()
+    doc_scanner.describe()
 
 
-@describe.command(name="code")
-@click.option("--repo-root", default=Path("."))
-@click.option(
-    "--output", is_flag=True, show_default=True, default=False, help="Output the diff to console."
-)
-@click.option(
-    "--branch", default=settings.git.default_branch, help="Branch to find changes against."
-)
-def describe_code_changes(repo_root, output, branch: str):
+@app.command()
+def code(
+    repo_root: Annotated[Path, typer.Option("--root", help="Root of code repo")] = Path("."),
+    branch: Annotated[
+        str, typer.Option("--branch", help="Branch to run againt")
+    ] = settings.git.default_branch,
+):
     code_scanner = Scanner(
         GitConsumer(repo_root, branch),
         code_change_agent,
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
-    describe_data = code_scanner.describe()
-    show_full_output(describe_data, output)
+    code_scanner.scan()
+    code_scanner.describe()
