@@ -6,6 +6,7 @@ import typer
 from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.core.context import UsageContext
 from app.core.progress import track
 from app.models.constants import SUGGESTION_STATE_FILENAME
 from app.services.changer.changer_service import DocsChanger
@@ -48,3 +49,4 @@ def change(
     ):
         path, content = docs_changer.apply_suggestion(suggested_change)
         _apply_change(path, content)
+    UsageContext().log_usage()

@@ -1,10 +1,9 @@
 import functools
 from pathlib import Path
 
-from pydantic_ai.usage import Usage
-
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.core.context import UsageContext
 from app.core.progress import track
 from app.models.domain.scope_template import ScopeTemplate, SuggestedChange
 from app.services.scoper.prompts import CHANGE_FILE_PROMPT, MOVE_CONTENT_PROMPT, PROMPT
@@ -27,7 +26,6 @@ class ScopeService:
         """
         self.doc_consumer = doc_consumer
         self.git_consumer = git_consumer
-        self.usage = Usage()
 
     @staticmethod
     def _log_name(func):
@@ -100,7 +98,7 @@ class ScopeService:
         """
         complexity = project_complexity_agent.run_sync(
             user_prompt=PROMPT.format(structure=repo_structure, metadata=repo_metadata),
-            usage=self.usage,
+            usage=UsageContext().usage,
         ).output
         return complexity
 
@@ -132,7 +130,10 @@ class ScopeService:
         existing paths in the implemented doc structure to documents to relevant documents in
         the structure.
         """
-        result = scope_creator_agent.run_sync(user_prompt=prompt, usage=self.usage).output
+        result = scope_creator_agent.run_sync(
+            user_prompt=prompt,
+            usage=UsageContext().usage,
+        ).output
         self._map_paths_to_sections(scope, result)
         return scope
 
@@ -164,7 +165,10 @@ class ScopeService:
                 filepath=str(doc.implemented_in_path),
                 file_content=content,
             )
-            response = doc_aligner_agent.run_sync(user_prompt=prompt, usage=self.usage)
+            response = doc_aligner_agent.run_sync(
+                user_prompt=prompt,
+                usage=UsageContext().usage,
+            )
             suggested_structure = response.output
             self._create_file_and_path(doc.implemented_in_path, suggested_structure.content)
             changes_to_other_files.extend(suggested_structure.changes_in_other_files)
@@ -179,7 +183,7 @@ class ScopeService:
                     content=change.content,
                     doc_content=doc_content,
                 ),
-                usage=self.usage,
+                usage=UsageContext().usage,
             )
             aligned_doc = response.output
             self._create_file_and_path(change.filepath, aligned_doc.content)

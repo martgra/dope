@@ -10,6 +10,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.core.context import UsageContext
 from app.models.domain.scope_template import (
     DocTemplate,
     DocTemplateKey,
@@ -172,6 +173,7 @@ def create(
         scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
     _save_state(scope_template, state_path)
     print(f"Scope created at {str(state_path)}")
+    UsageContext().log_usage()
 
 
 @app.command()
@@ -197,7 +199,4 @@ def apply(
         print(f"Error applying scope: {e}")
         raise typer.Abort() from e
     print("Applied the structure.")
-
-
-if __name__ == "__main__":
-    app()
+    UsageContext().log_usage()

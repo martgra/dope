@@ -2,6 +2,7 @@ import json
 
 from pydantic.json import pydantic_encoder
 
+from app.core.context import UsageContext
 from app.models.domain.doc import SuggestedChange
 from app.services.changer.changer_agents import Deps, changer_agent
 from app.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
@@ -60,5 +61,6 @@ class DocsChanger:
         content = self.agent.run_sync(
             user_prompt=prompt,
             deps=Deps(git_consumer=self.git_consumer),
+            usage=UsageContext().usage,
         ).output
         return suggested_change.documentation_file_path, content
