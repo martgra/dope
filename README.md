@@ -39,16 +39,6 @@ dope --help
 Note: Many commands accept an optional `--branch <branch-name>` parameter (defaulting to your configured default branch).
 
 ```
-# Scan documentation on current branch
-dope scan docs
-# Or on a specific branch
-dope scan docs --branch <branch-name>
-
-# Scan code changes on current branch
-dope scan code
-# Or on a specific branch
-dope scan code --branch <branch-name>
-
 # Describe documentation on a branch
 dope describe docs --branch <branch-name>
 
@@ -56,38 +46,23 @@ dope describe docs --branch <branch-name>
 dope describe code --branch <branch-name>
 
 # Suggest documentation updates against a branch
-dope suggest docs --branch <branch-name>
+dope suggest --branch <branch-name>
 
 # Apply suggested changes on a branch
-dope change docs --apply --branch <branch-name>
+dope change --branch <branch-name>
 
 # Generate documentation scope interactively on a branch
 dope scope create --branch <branch-name>
 ```
 
-You can also combine flags if you want both behaviors. Example usages:
-
-- To preview changes:
-  ```bash
-  dope change docs --output
-  ```
-- To apply changes directly to files:
-  ```bash
-  dope change docs --apply
-  ```
-- To both print and apply changes:
-  ```bash
-  dope change docs --apply --output
-  ```
-
 ## Key Features
 
-- Scan documentation files (`.md`, `.rst`, etc.) and code diffs in Git
+- Scan documentation files (`.md`, `.rst`, etc.) and code diffs in Git via `describe docs` and `describe code`
 - Generate human‑readable summaries of docs and code changes
 - Suggest documentation updates using AI
 - Automate application of suggestions via an agent
 - Inspect current configuration
-- Apply suggested documentation changes directly to files using the `--apply` flag in the `dope change docs` command.
+- Apply suggested documentation changes directly to files using the `dope change` command (changes are applied directly; previous `--apply` and `--output` flags are deprecated)
 - **Interactive documentation scope generation with `dope scope create` (requires questionary library)**
 - **Tree‑based file structure visualization via anytree in the new `get_structure` and `get_graphical_repo_tree` features**
 - **Initialize or re-create the application YAML configuration file with `dope config init` (includes options to force overwrite, initialize all defaults, and select an LLM provider).**
@@ -96,18 +71,22 @@ You can also combine flags if you want both behaviors. Example usages:
 
 For the following commands, you can provide a `--branch <branch>` option to specify which Git branch to compare changes against. It defaults to your repository's default branch if omitted.
 
-- `dope scan code --branch <branch>`  
-  > Scan for code changes against the specified branch.
 - `dope describe code --branch <branch>`  
   > Describe code changes against the specified branch.
-- `dope suggest docs --branch <branch>`  
+- `dope describe docs --branch <branch>`  
+  > Describe documentation changes against the specified branch.
+- `dope suggest --branch <branch>`  
   > Suggest documentation updates considering code/doc differences on the given branch.
-- `dope change docs --apply --branch <branch>`  
+- `dope change --branch <branch>`  
   > Apply suggested documentation updates with respect to the specified branch.
+- `dope scope <subcommand> --branch <branch>`
+  > Scope generation and application relative to a branch.
+- `dope config <subcommand> --branch <branch>`
+  > Configuration actions relative to a branch.
 
 Example:
 ```bash
-dope scan code --branch develop
+dope describe code --branch develop
 ```
 
 #### Option:

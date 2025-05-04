@@ -1,4 +1,7 @@
-import click
+from typing import Annotated
+
+import typer
+from rich import print
 
 from app import settings
 from app.core.settings import Settings
@@ -8,25 +11,24 @@ from app.core.utils import (
     locate_local_config_file,
 )
 from app.models.constants import CONFIG_FILENAME
+from app.models.enums import Provider
+
+app = typer.Typer()
 
 
-@click.group(name="config")
-def config():
-    pass
+@app.command()
+def show():
+    print(settings.model_dump(mode="json"))
 
 
-@config.command(name="show")
-def config_show():
-    click.echo(settings.model_dump_json(indent=2))
-
-
-@config.command("init")
-@click.option("--yes", "all_default", is_flag=True, help="Init config with all defaults")
-@click.option("--force", "force", is_flag=True, help="Override existing config")
-@click.option(
-    "--provider", type=click.Choice(["openai", "azure"], case_sensitive=False), default="openai"
-)
-def init_config(all_default: bool, provider: str, force: bool):
+@app.command()
+def init(
+    all_default: Annotated[bool, typer.Option("--yes", help="All default values")] = True,
+    force: Annotated[bool, typer.Option("--force", help="Override existing config")] = False,
+    provider: Annotated[
+        Provider, typer.Option(help="Choose LLM provider to use")
+    ] = Provider.OPENAI,
+):
     """Initialize a YAML config file for Dope CLI."""
     local_config_path = locate_local_config_file(CONFIG_FILENAME)
     if not local_config_path or force:

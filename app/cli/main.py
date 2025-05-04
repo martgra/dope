@@ -1,28 +1,14 @@
-import click
+import typer
 
-from app.cli.change import change
-from app.cli.config import config
-from app.cli.describe import describe
-from app.cli.scan import scan
-from app.cli.scope import scope
-from app.cli.suggest import suggest
-
-
-@click.group
-def cli():
-    pass
+from app.cli import change, config, describe, scope, suggest
 
 
 def run_cli():
-    cli.add_command(scan)
-    cli.add_command(describe)
-    cli.add_command(config)
-    cli.add_command(suggest)
-    cli.add_command(change)
-    cli.add_command(scope)
+    app = typer.Typer(no_args_is_help=True)
+    app.add_typer(scope.app, name="scope")
+    app.add_typer(config.app, name="config")
+    app.add_typer(change.app)
+    app.add_typer(describe.app, name="describe")
+    app.add_typer(suggest.app)
 
-    cli()
-
-
-if __name__ == "__main__":
-    run_cli()
+    app()
