@@ -2,8 +2,6 @@ import hashlib
 import json
 from pathlib import Path
 
-from tqdm import tqdm
-
 from app.consumers.base import BaseConsumer
 from app.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
@@ -26,15 +24,16 @@ class Scanner:
             file_hashes[str(file_path)] = {"hash": file_hash}
         return file_hashes
 
-    def _load_state(self) -> dict:
+    def load_state(self) -> dict:
+        """Load the scanner state."""
         if self.state_filepath.exists():
             with self.state_filepath.open("r") as f:
                 return json.load(f)
         return {}
 
-    def _save_state(self, state: dict):
+    def save_state(self, state: dict):
+        """Save the state of the scanner."""
         self.state_filepath.parent.mkdir(parents=True, exist_ok=True)
-        print(self.state_filepath.parent)
         with self.state_filepath.open("w") as f:
             json.dump(state, f, ensure_ascii=False, indent=4)
 
@@ -49,30 +48,23 @@ class Scanner:
 
     def scan(self) -> dict:
         """Perform scanning by updating the state based on discovered files and their hashes."""
-        old_state = self._load_state()
+        old_state = self.load_state()
         new_items = self._scan_files()
         updated_state = self._update_state(new_items, old_state)
-        self._save_state(updated_state)
+        self.save_state(updated_state)
         return updated_state
 
     def get_state(self) -> dict:
         """Return state."""
-        return self._load_state()
+        return self.load_state()
 
-    def describe(self) -> dict:
+    def describe(self, file_path, state_item) -> dict:
         """For each file with a missing summary, generate one using the agent."""
-        state = self._load_state()
-        try:
-            for file_identifier, data in tqdm(state.items(), desc="Generating summaries"):
-                if not data["summary"]:
-                    content = self.consumer.get_content(self.consumer.root_path / file_identifier)
-                    prompt = SUMMARIZATION_TEMPLATE.format(
-                        file_path=file_identifier, content=content
-                    )
-                    try:
-                        data["summary"] = self.agent.run_sync(user_prompt=prompt).data.model_dump()
-                    except Exception:
-                        data["summary"] = None
-        finally:
-            self._save_state(state)
-        return state
+        if not state_item["summary"]:
+            content = self.consumer.get_content(self.consumer.root_path / file_path)
+            prompt = SUMMARIZATION_TEMPLATE.format(file_path=file_path, content=content)
+            try:
+                state_item["summary"] = self.agent.run_sync(user_prompt=prompt).data.model_dump()
+            except Exception:
+                state_item["summary"] = None
+        return state_item

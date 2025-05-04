@@ -5,6 +5,7 @@ import questionary
 import typer
 import yaml
 from rich import print
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from app import settings
 from app.consumers.doc_consumer import DocConsumer
@@ -117,7 +118,13 @@ def _determine_project_size(
     if size_enum is None:
         code_structure = service.get_code_overview()
         code_metadata = service.get_metadata()
-        size_enum = service.get_complexity(code_structure, code_metadata)
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task(description="Determining project size...", total=None)
+            size_enum = service.get_complexity(code_structure, code_metadata)
     return size_enum
 
 
@@ -155,8 +162,14 @@ def create(
         size=size_enum,
         documentation_structure=doc_sections,
     )
-    scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
 
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Generating suggestion scope...", total=None)
+        scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
     _save_state(scope_template, state_path)
     print(f"Scope created at {str(state_path)}")
 

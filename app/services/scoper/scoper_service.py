@@ -2,10 +2,10 @@ import functools
 from pathlib import Path
 
 from pydantic_ai.usage import Usage
-from tqdm import tqdm
 
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.core.progress import track
 from app.models.domain.scope_template import ScopeTemplate, SuggestedChange
 from app.services.scoper.prompts import CHANGE_FILE_PROMPT, MOVE_CONTENT_PROMPT, PROMPT
 from app.services.scoper.scoper_agents import (
@@ -154,8 +154,9 @@ class ScopeService:
 
     def _modify_or_create_doc(self, scope: ScopeTemplate):
         changes_to_other_files: list[SuggestedChange] = []
-        for _, doc in tqdm(
-            scope.documentation_structure.items(), desc="Aligning changes to current doc structure"
+        for _, doc in track(
+            scope.documentation_structure.items(),
+            description="Aligning changes to current doc structure",
         ):
             content = self._check_and_read_doc(doc.implemented_in_path)
             prompt = CHANGE_FILE_PROMPT.format(
@@ -170,7 +171,7 @@ class ScopeService:
         return changes_to_other_files
 
     def _implement_changes(self, changes_to_other_files: list[SuggestedChange]):
-        for change in tqdm(changes_to_other_files, desc="Moving content between files."):
+        for change in track(changes_to_other_files, description="Moving content between files."):
             doc_content = self._check_and_read_doc(change.filepath)
             response = doc_aligner_agent.run_sync(
                 user_prompt=MOVE_CONTENT_PROMPT.format(
