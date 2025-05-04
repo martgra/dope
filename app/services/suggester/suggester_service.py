@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pydantic.json import pydantic_encoder
 
+from app.core.context import UsageContext
 from app.models.domain.doc import DocSuggestions
 from app.services.suggester.prompts import FILE_SUMMARY_PROMPT, SUGGESTION_PROMPT
 from app.services.suggester.suggester_agents import suggester_agent
@@ -73,7 +74,10 @@ class DocChangeSuggester:
                 documentation=self._prompt_formatter(docs_change),
                 code_changes=self._prompt_formatter(code_change),
             )
-            suggestion = self.agent.run_sync(user_prompt=prompt).output
+            suggestion = self.agent.run_sync(
+                user_prompt=prompt,
+                usage=UsageContext().usage,
+            ).output
             suggestion_state["suggestion"] = suggestion.model_dump()
             self._save_state(suggestion_state)
         else:

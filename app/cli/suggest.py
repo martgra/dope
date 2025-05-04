@@ -3,10 +3,12 @@ from typing import Annotated
 
 import typer
 import yaml
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
+from app.core.context import UsageContext
 from app.models.constants import (
     DESCRIBE_CODE_STATE_FILENAME,
     DESCRIBE_DOCS_STATE_FILENAME,
@@ -53,4 +55,11 @@ def suggest(
     else:
         scope = ""
 
-    suggestor.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Creating suggestions...", total=None)
+        suggestor.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)
+    UsageContext().log_usage()

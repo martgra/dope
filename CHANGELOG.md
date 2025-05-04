@@ -13,6 +13,8 @@
   - `dope suggest docs`
   - `dope change docs --apply`
   - `dope scope create`
+- **Telemetry & Usage Tracking**: Added `UsageContext().log_usage()` calls to CLI commands (`describe`, `change`, `suggest`, and `scope`) and passed `usage=UsageContext().usage` into all agent `run_sync` calls to enable centralized usage tracking and analytics. (app/cli/describe.py, app/cli/change.py, app/cli/scope.py, app/cli/suggest.py, app/services/changer/changer_service.py, app/services/describer/describer_service.py, app/services/scoper/scoper_service.py, app/services/suggester/suggester_service.py)
+- **CI Workflow**: Added a new GitHub Actions workflow (`.github/workflows/ci_backend.yaml`) to run on pull requests to `main` and manual dispatch, performing code checkout, dependency install (with `uv` caching), linting via Ruff, and static analysis using Pylint (fail threshold 9). (.github/workflows/ci_backend.yaml)
 
 # Version History
 

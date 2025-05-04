@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from app.consumers.base import BaseConsumer
+from app.core.context import UsageContext
 from app.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
 
@@ -64,7 +65,10 @@ class Scanner:
             content = self.consumer.get_content(self.consumer.root_path / file_path)
             prompt = SUMMARIZATION_TEMPLATE.format(file_path=file_path, content=content)
             try:
-                state_item["summary"] = self.agent.run_sync(user_prompt=prompt).data.model_dump()
+                state_item["summary"] = self.agent.run_sync(
+                    user_prompt=prompt,
+                    usage=UsageContext().usage,
+                ).data.model_dump()
             except Exception:
                 state_item["summary"] = None
         return state_item
