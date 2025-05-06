@@ -4,14 +4,14 @@ from pathlib import Path
 
 from app.consumers.base import BaseConsumer
 from app.core.context import UsageContext
+from app.services.describer.describer_agents import Deps, code_change_agent, doc_summarization_agent
 from app.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
 
-class Scanner:
+class DescriberService:
     """Scanner service."""
 
-    def __init__(self, consumer: BaseConsumer, agent, state_filepath: Path = None):
-        self.agent = agent
+    def __init__(self, consumer: BaseConsumer, state_filepath: Path = None):
         self.consumer = consumer
         self.state_filepath = state_filepath
 
@@ -59,16 +59,30 @@ class Scanner:
         """Return state."""
         return self.load_state()
 
+    def _run_agent(self, prompt):
+        return doc_summarization_agent.run_sync(
+            user_prompt=prompt,
+            usage=UsageContext().usage,
+        ).output.model_dump()
+
     def describe(self, file_path, state_item) -> dict:
         """For each file with a missing summary, generate one using the agent."""
         if not state_item["summary"]:
             content = self.consumer.get_content(self.consumer.root_path / file_path)
             prompt = SUMMARIZATION_TEMPLATE.format(file_path=file_path, content=content)
             try:
-                state_item["summary"] = self.agent.run_sync(
-                    user_prompt=prompt,
-                    usage=UsageContext().usage,
-                ).data.model_dump()
+                state_item["summary"] = self._run_agent(prompt=prompt)
             except Exception:
                 state_item["summary"] = None
         return state_item
+
+
+class CodeDescriberService(DescriberService):
+    """Code describer service."""
+
+    def _run_agent(self, prompt):
+        return code_change_agent.run_sync(
+            user_prompt=prompt,
+            deps=Deps(consumer=self.consumer),
+            usage=UsageContext().usage,
+        ).output.model_dump()
