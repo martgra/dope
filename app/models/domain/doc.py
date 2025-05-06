@@ -9,37 +9,20 @@ class DocSection(BaseModel):
     section_name: str = Field(..., description="Name of the section")
     summary: str | None = Field(
         ...,
-        description="A Summary of the section describing current content. Not to fill if the "
-        "section is empty.",
+        description="A detailed description of the section describing current content in the file."
+        " Be specific about names, commands or variables in the text. This is intended as a summary"
+        "for someone who knows the codebase well.",
     )
-    code_references: list[str] | None = Field(
-        None,
-        description="List of specific code modules, functions, classes, or APIs mentioned in the "
-        "section.",
-    )
-    configuration_details: list[str] | None = Field(
-        None,
-        description="Instructions or parameters related to configuration, setup, or dependencies in"
-        " the section.",
-    )
-    usage_examples: list[str] | None = Field(
-        None, description="Any usage examples, commands, or code snippets in the section."
-    )
-
-    dependencies: list[str] | None = Field(
-        None, description="Libraries, frameworks, or services referenced in the section."
+    references: list[str] = Field(
+        ...,
+        description="References to code in the text such as commands,"
+        "config values, libraries files etc.",
     )
 
 
 class DocSummary(BaseModel):
     """Summary of a doc."""
 
-    purpose: str | None = Field(
-        ..., description="A brief description of what the document is intended to cover"
-    )
-    scope: str | None = Field(
-        None, description="The main topics and functionalities the document addresses"
-    )
     sections: list[DocSection] | None = Field(
         ...,
         description="List of major headings or sections (e.g., Introduction, Setup, API, Examples)",

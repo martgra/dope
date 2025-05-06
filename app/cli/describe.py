@@ -9,8 +9,7 @@ from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
 from app.core.progress import track
 from app.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
-from app.services.describer.describer_agents import code_change_agent, doc_summarization_agent
-from app.services.describer.describer_service import Scanner
+from app.services.describer.describer_base import CodeDescriberService, DescriberService
 
 app = typer.Typer()
 
@@ -19,13 +18,12 @@ app = typer.Typer()
 def docs(
     docs_root: Annotated[Path, typer.Option("--root", help="Root of doc structure")] = Path("."),
 ):
-    doc_scanner = Scanner(
+    doc_scanner = DescriberService(
         DocConsumer(
             docs_root,
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        doc_summarization_agent,
         state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
     doc_state = doc_scanner.scan()
@@ -44,9 +42,8 @@ def code(
         str, typer.Option("--branch", help="Branch to run againt")
     ] = settings.git.default_branch,
 ):
-    code_scanner = Scanner(
+    code_scanner = CodeDescriberService(
         GitConsumer(repo_root, branch),
-        code_change_agent,
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
     code_state = code_scanner.scan()

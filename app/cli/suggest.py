@@ -15,7 +15,7 @@ from app.models.constants import (
     SUGGESTION_STATE_FILENAME,
 )
 from app.models.domain.scope_template import ScopeTemplate
-from app.services.describer.describer_service import Scanner
+from app.services.describer.describer_base import DescriberService
 from app.services.suggester.suggester_service import DocChangeSuggester
 
 app = typer.Typer()
@@ -30,12 +30,12 @@ def suggest(
     suggestor = DocChangeSuggester(
         suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME,
     )
-    code_scanner = Scanner(
+    code_scanner = DescriberService(
         GitConsumer(".", branch),
         None,
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
-    doc_scanner = Scanner(
+    doc_scanner = DescriberService(
         DocConsumer(
             ".",
             file_type_filter=settings.docs.doc_filetypes,

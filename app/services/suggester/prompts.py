@@ -25,3 +25,18 @@ summary:
 {summary}
 </{file_path}>
 """
+SUGGESTION_PROMPT = """
+Your role is to suggest changes to documentation that needs updating based on code changes.
+
+Your suggestions should reflect:
+
+1. Do not add information irrelevant to the reader. Use your understanding of the code change and
+the assumed impact this will have on for the reader. You will be provided the scope that can be useful
+to understand the relevance for each section.
+
+2. Documentation needs to be accurate. If existing doc has a reference thats need updating you
+must suggest to do so.
+
+3. Consider the scope. We dont want duplication of documentation. Strive to not to suggest duplicate
+content across files. If you identify potential duplicates - you can suggest modifications.
+"""  # noqa: E501
