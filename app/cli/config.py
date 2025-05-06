@@ -148,6 +148,19 @@ def _add_cache_dir_to_git():
     return questionary.confirm("Add cache dir to git?").ask()
 
 
+def _verify_provider(provider: Provider, base_url: str | None) -> bool:
+    if provider == Provider.AZURE:
+        if not base_url:
+            raise typer.BadParameter(
+                f"Missing base url when provider is set to '{Provider.AZURE.value}'"
+            )
+        try:
+            base_url = HttpUrl(base_url)
+        except ValidationError as err:
+            raise typer.BadParameter(f"{base_url} not valid url") from err
+    return True
+
+
 @app.command()
 def show():
     print(settings.model_dump(mode="json"))
@@ -165,15 +178,7 @@ def init(
     ] = None,
 ):
     """Initialize a YAML config file for Dope CLI."""
-    if provider == Provider.AZURE and not base_url:
-        raise typer.BadParameter(
-            f"Missing base url when provider is set to '{Provider.AZURE.value}'"
-        )
-    try:
-        if base_url:
-            base_url = HttpUrl(base_url)
-    except ValidationError as err:
-        raise typer.BadParameter(f"Base-url not valid '{base_url}'") from err
+    _verify_provider(provider=provider, base_url=base_url)
 
     local_config_path = locate_local_config_file(CONFIG_FILENAME)
     cache_dir = generate_local_cache()
