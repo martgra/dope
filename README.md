@@ -55,6 +55,12 @@ dope change --branch <branch-name>
 dope scope create --branch <branch-name>
 ```
 
+# Initialize the application with interactive prompts
+dope init
+
+# Force overwrite an existing configuration
+dope init --force
+
 ## Key Features
 
 - Scan documentation files (`.md`, `.rst`, etc.) and code diffs in Git via `describe docs` and `describe code`
@@ -66,6 +72,7 @@ dope scope create --branch <branch-name>
 - **Interactive documentation scope generation with `dope scope create` (requires questionary library)**
 - **Tree‑based file structure visualization via anytree in the new `get_structure` and `get_graphical_repo_tree` features**
 - **Initialize or re-create the application YAML configuration file with `dope config init` (includes options to force overwrite, initialize all defaults, and select an LLM provider).**
+- Interactive `init` command to configure state directory, code repository root, documentation root, excluded folders, document file types, LLM provider, Azure deployment endpoint, and token, with URL validation and graceful prompt cancellation.
 
 ### Branch Option for Advanced Commands
 

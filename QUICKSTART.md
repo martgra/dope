@@ -17,6 +17,22 @@ pip install -r requirements.txt
 pip install .
 ```
 
+## Initialize Configuration
+
+After installing, run:
+
+```bash
+dope init
+```
+
+This will walk you through interactive prompts for setting up the state directory, code repo root, docs root, excludes, file types, LLM provider, endpoint, and token.
+
+You can force overwrite an existing configuration with:
+
+```bash
+dope init --force
+```
+
 ## First Run
 
 To scan your documentation files:

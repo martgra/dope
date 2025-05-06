@@ -12,3 +12,7 @@ def run_cli():
     app.add_typer(suggest.app)
 
     app()
+
+
+if __name__ == "__main__":
+    run_cli()

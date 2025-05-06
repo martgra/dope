@@ -4,6 +4,7 @@ from platformdirs import user_cache_dir
 from pydantic import BaseModel, Field, HttpUrl, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.models.constants import DEFAULT_BRANCH, DOC_SUFFIX, EXCLUDE_DIRS
 from app.models.enums import Provider
 from app.models.internal import FileSuffix
 
@@ -11,12 +12,14 @@ APP_NAME = "dope"
 
 
 class DocSettings(BaseModel):
-    doc_filetypes: set[FileSuffix] = {".md", ".mdx"}
-    exclude_dirs: set[str] = {"node_modules", ".venv", ".pytest_cache"}
+    doc_filetypes: set[FileSuffix] = DOC_SUFFIX
+    exclude_dirs: set[str] = EXCLUDE_DIRS
+    docs_root: Path | None = None
 
 
-class GitSettings(BaseModel):
-    default_branch: str = "main"
+class CodeRepoSettings(BaseModel):
+    default_branch: str = DEFAULT_BRANCH
+    code_repo_root: Path | None = None
 
 
 class AgentSettings(BaseModel):
@@ -35,6 +38,6 @@ class AgentSettings(BaseModel):
 class Settings(BaseSettings):
     state_directory: Path = Path(user_cache_dir(appname=APP_NAME))
     docs: DocSettings = DocSettings()
-    git: GitSettings = GitSettings()
+    git: CodeRepoSettings = CodeRepoSettings()
     agent: AgentSettings
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
