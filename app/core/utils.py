@@ -84,17 +84,27 @@ def generate_local_config_file(config_filename, settings_to_write: BaseSettings)
     dope_local_config_path = base_path / Path(config_filename)
 
     with open(dope_local_config_path, "w", encoding="utf-8") as file:
-        yaml.safe_dump(settings_to_write.model_dump(mode="json"), file, sort_keys=False)
+        yaml.safe_dump(
+            settings_to_write.model_dump(mode="json", exclude_none=True), file, sort_keys=False
+        )
 
 
-def generate_local_cache():
+def generate_local_cache(cache_dir_path=None, add_to_git=False):
     """Generate local cache folder.
 
     Returns:
         Path: Path to local cache dir.
     """
-    cache_dir_path = Path.cwd() / Path(f".{APP_NAME}")
+    if not cache_dir_path:
+        cache_dir_path = Path.cwd() / Path(f".{APP_NAME}")
+
     cache_dir_path.mkdir(exist_ok=True)
+
+    if not add_to_git:
+        gitignore_path = cache_dir_path / ".gitignore"
+        with gitignore_path.open("w") as file:
+            file.write("*")
+
     return cache_dir_path
 
 
