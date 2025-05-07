@@ -35,7 +35,7 @@ def get_code_file_content(_ctx: RunContext[Deps], code_filepath: str) -> str:
     """Return content of a code file.
 
     Args:
-        code_filepath (str): Path to file.
+        code_filepath (str): Path to a codefile in the repository.
 
     Returns:
         str: Content of code file.
