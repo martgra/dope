@@ -150,7 +150,7 @@ def create(
     ] = settings.git.default_branch,
 ):
     """Create or suggest a documentation scope and save it to state file."""
-    state_path: Path = settings.state_directory
+    state_path: Path = settings.state_directory / "scope.yaml"
     service = _init_scope_service(branch=branch)
 
     size_enum = _determine_project_size(interactive, project_size, service)

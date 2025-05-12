@@ -1,4 +1,3 @@
-import functools
 from pathlib import Path
 
 from app.consumers.doc_consumer import DocConsumer
@@ -26,17 +25,6 @@ class ScopeService:
         """
         self.doc_consumer = doc_consumer
         self.git_consumer = git_consumer
-
-    @staticmethod
-    def _log_name(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            tokens_before = self.usage.total_tokens or 0
-            result = func(self, *args, **kwargs)
-            print(f"{func.__name__} tokens used: {self.usage.total_tokens - tokens_before}")
-            return result
-
-        return wrapper
 
     @staticmethod
     def _map_paths_to_sections(doc_scope: ScopeTemplate, section_paths: dict[str, str]) -> None:
@@ -85,7 +73,6 @@ class ScopeService:
         paths = self.git_consumer.discover_files(mode="all")
         return self.git_consumer.get_structure(paths)
 
-    @_log_name
     def get_complexity(self, repo_structure, repo_metadata):
         """Evaluates the complexity of the project based on structure and metadata.
 
@@ -102,7 +89,6 @@ class ScopeService:
         ).output
         return complexity
 
-    @_log_name
     def suggest_structure(self, scope: ScopeTemplate, doc_structure: str, code_structure: str):
         """Suggests a documentation structure based on code and existing docs.
 
@@ -188,7 +174,6 @@ class ScopeService:
             aligned_doc = response.output
             self._create_file_and_path(change.filepath, aligned_doc.content)
 
-    @_log_name
     def apply_scope(self, scope: ScopeTemplate):
         """Applies the scope to the documentation structure.
 
