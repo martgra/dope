@@ -1,13 +1,13 @@
 from pydantic_ai import Agent
 
-from app import settings
+from app import get_settings
 from app.llms.model_factory import get_model
 from app.models.domain.doc import DocSuggestions
 from app.services.suggester.prompts import SUGGESTION_PROMPT
 
+settings = get_settings()
+
 model = get_model(settings.agent.provider, "o4-mini")
-
-
 suggester_agent = Agent(model=model, output_type=DocSuggestions)
 
 

@@ -7,7 +7,7 @@ import yaml
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from app import settings
+from app import get_settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
@@ -25,11 +25,14 @@ app = typer.Typer()
 
 def _init_scope_service(
     repo_path: Path = Path("."),
-    branch: str = settings.git.default_branch,
+    branch: str = None,
     file_type_filter=None,
     exclude_dirs=None,
 ) -> ScopeService:
     """Initialize and return a ScopeService with configured DocConsumer and GitConsumer."""
+    settings = get_settings()
+    if not branch:
+        branch = settings.git.default_branch
     if file_type_filter is None:
         file_type_filter = settings.docs.doc_filetypes
     if exclude_dirs is None:
@@ -145,12 +148,11 @@ def create(
     project_size: Annotated[
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
-    branch: Annotated[
-        str, typer.Option(help="Default branch to run create scope against")
-    ] = settings.git.default_branch,
+    branch: Annotated[str, typer.Option(help="Default branch to run create scope against")] = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
-    state_path: Path = settings.state_directory / "scope.yaml"
+    settings = get_settings()
+    state_path: Path = settings.state_directory
     service = _init_scope_service(branch=branch)
 
     size_enum = _determine_project_size(interactive, project_size, service)
@@ -181,9 +183,10 @@ def apply(
     branch: Annotated[
         str,
         typer.Option(help="Branch to run scope creator against"),
-    ] = settings.git.default_branch,
+    ] = None,
 ):
     """Apply the previously created documentation scope."""
+    settings = get_settings()
     state_path: Path = settings.state_directory / "scope.yaml"
     if not state_path.is_file():
         print(f"State file not found at {state_path}. Please run 'scope create' first.")
@@ -200,3 +203,8 @@ def apply(
         raise typer.Abort() from e
     print("Applied the structure.")
     UsageContext().log_usage()
+
+
+@app.command()
+def ensure(ctx: typer.Context):
+    print(ctx.obj.settings)

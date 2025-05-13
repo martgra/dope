@@ -3,10 +3,12 @@ from pathlib import Path
 
 from pydantic_ai import Agent, RunContext
 
-from app import settings
+from app import get_settings
 from app.consumers.git_consumer import GitConsumer
 from app.llms.model_factory import get_model
 from app.services.changer.prompts import CHANGE_DOC_PROMPT
+
+settings = get_settings()
 
 
 @dataclass
