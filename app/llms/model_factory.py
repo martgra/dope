@@ -5,12 +5,13 @@ from pydantic_ai.models.openai import OpenAIModel, OpenAIModelName
 from pydantic_ai.providers.azure import AzureProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from app import settings
+from app import get_settings
 from app.models.enums import Provider
 
 
 @lru_cache
 def _get_openai_provider(provider):
+    settings = get_settings()
     if provider == Provider.AZURE:
         return AzureProvider(
             azure_endpoint=settings.agent.base_url.unicode_string(),

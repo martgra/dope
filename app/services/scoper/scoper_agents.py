@@ -1,6 +1,6 @@
 from pydantic_ai import Agent
 
-from app import settings
+from app import get_settings
 from app.llms.model_factory import get_model
 from app.models.domain.scope_template import AlignedScope, ProjectTier
 from app.services.scoper.prompts import (
@@ -9,6 +9,7 @@ from app.services.scoper.prompts import (
     CREATE_SCOPE_PROMPT,
 )
 
+settings = get_settings()
 project_complexity_agent = Agent(
     model=get_model(settings.agent.provider, "gpt-4.1-mini"), output_type=ProjectTier
 )

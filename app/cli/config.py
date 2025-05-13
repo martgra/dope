@@ -10,7 +10,7 @@ from pydantic import HttpUrl, SecretStr, ValidationError
 from questionary import Choice
 from rich import print
 
-from app import settings
+from app import get_settings
 from app.core.settings import Settings
 from app.core.utils import (
     generate_local_cache,
@@ -163,6 +163,7 @@ def _verify_provider(provider: Provider, base_url: str | None) -> bool:
 
 @app.command()
 def show():
+    settings = get_settings()
     print(settings.model_dump(mode="json"))
 
 

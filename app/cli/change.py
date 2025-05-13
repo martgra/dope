@@ -3,7 +3,7 @@ from typing import Annotated
 
 import typer
 
-from app import settings
+from app import get_settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
@@ -28,15 +28,16 @@ app = typer.Typer()
 
 @app.command()
 def change(
-    branch: Annotated[str, typer.Option(help="Branch to run againt")] = settings.git.default_branch,
+    branch: Annotated[str, typer.Option(help="Branch to run againt")],
 ):
+    settings = get_settings()
     docs_changer = DocsChanger(
         docs_consumer=DocConsumer(
-            ".",
+            settings.docs.docs_root,
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        git_consumer=GitConsumer(".", branch),
+        git_consumer=GitConsumer(settings.git.code_repo_root, branch),
     )
 
     suggestor = DocChangeSuggester(

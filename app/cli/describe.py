@@ -3,7 +3,7 @@ from typing import Annotated
 
 import typer
 
-from app import settings
+from app import get_settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
@@ -16,8 +16,11 @@ app = typer.Typer()
 
 @app.command()
 def docs(
-    docs_root: Annotated[Path, typer.Option("--root", help="Root of doc structure")] = Path("."),
+    docs_root: Annotated[Path, typer.Option("--root", help="Root of doc structure")] = None,
 ):
+    settings = get_settings()
+    docs_root = docs_root or settings.docs.docs_root
+
     doc_scanner = DescriberService(
         DocConsumer(
             docs_root,
@@ -38,10 +41,9 @@ def docs(
 @app.command()
 def code(
     repo_root: Annotated[Path, typer.Option("--root", help="Root of code repo")] = Path("."),
-    branch: Annotated[
-        str, typer.Option("--branch", help="Branch to run againt")
-    ] = settings.git.default_branch,
+    branch: Annotated[str, typer.Option("--branch", help="Branch to run againt")] = None,
 ):
+    settings = get_settings()
     code_scanner = CodeDescriberService(
         GitConsumer(repo_root, branch),
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,

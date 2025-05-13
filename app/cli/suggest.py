@@ -5,7 +5,7 @@ import typer
 import yaml
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from app import settings
+from app import get_settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
@@ -23,16 +23,14 @@ app = typer.Typer()
 
 @app.command()
 def suggest(
-    branch: Annotated[
-        str, typer.Option("--branch", help="Branch to run againt")
-    ] = settings.git.default_branch,
+    branch: Annotated[str, typer.Option("--branch", help="Branch to run againt")] = None,
 ):
+    settings = get_settings()
     suggestor = DocChangeSuggester(
         suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME,
     )
     code_scanner = DescriberService(
         GitConsumer(".", branch),
-        None,
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
     doc_scanner = DescriberService(
@@ -41,7 +39,6 @@ def suggest(
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        None,
         state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
     doc_state = doc_scanner.get_state()

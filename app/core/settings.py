@@ -14,12 +14,12 @@ APP_NAME = "dope"
 class DocSettings(BaseModel):
     doc_filetypes: set[FileSuffix] = DOC_SUFFIX
     exclude_dirs: set[str] = EXCLUDE_DIRS
-    docs_root: Path | None = None
+    docs_root: Path = Path(".").resolve()
 
 
 class CodeRepoSettings(BaseModel):
     default_branch: str = DEFAULT_BRANCH
-    code_repo_root: Path | None = None
+    code_repo_root: Path = Path(".").resolve()
 
 
 class AgentSettings(BaseModel):
