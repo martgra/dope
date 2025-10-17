@@ -9,6 +9,11 @@ class BaseConsumer(ABC):
 
     @abstractmethod
     def __init__(self, root_path: str | Path):
+        """Initialize the consumer with a root path.
+
+        Args:
+            root_path: The root path for the consumer.
+        """
         self.root_path = root_path
 
     @abstractmethod

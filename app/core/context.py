@@ -23,6 +23,7 @@ class UsageContext:
     """Global usage context."""
 
     def __init__(self):
+        """Initialize the usage context with thread-safe locking."""
         self._data_lock = threading.Lock()
         self.usage: Usage = Usage()
 

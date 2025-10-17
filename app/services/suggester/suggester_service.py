@@ -14,6 +14,11 @@ class DocChangeSuggester:
     """DocChangeSuggestor class."""
 
     def __init__(self, *, suggestion_state_path: Path):
+        """Initialize the doc change suggester.
+
+        Args:
+            suggestion_state_path: Path to the suggestion state file.
+        """
         self.agent = suggester_agent
         self.suggestion_state_path = Path(suggestion_state_path)
 

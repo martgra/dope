@@ -12,6 +12,12 @@ class DescriberService:
     """Scanner service."""
 
     def __init__(self, consumer: BaseConsumer, state_filepath: Path = None):
+        """Initialize the describer service.
+
+        Args:
+            consumer: The consumer instance to use for file operations.
+            state_filepath: Optional path to the state file.
+        """
         self.consumer = consumer
         self.state_filepath = state_filepath
 

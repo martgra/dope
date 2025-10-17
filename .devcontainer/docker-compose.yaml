@@ -1,11 +1,13 @@
+version: "3.8"
 services:
   app:
     user: vscode
     build:
-      context: .
-      dockerfile: Dockerfile
+      # Use repository root as build context so we can pre-warm dependencies (pyproject/uv.lock)
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
       args:
-        VARIANT: 3.12-bookworm
+        VARIANT: 3.13-bookworm
     volumes:
       - ..:/workspace:cached # Shared workspace between host and devcontainer
       - doc_updater_extensions:/home/vscode/.vscode-server/extensions # Storing extensions
@@ -14,6 +16,7 @@ services:
       - /workspace/.venv
     command: sleep infinity
 
+# Volumes that are not shared between Host and Devcontainer must be listed here.
 volumes:
   doc_updater_extensions:
   doc_updater_commandhistory:
