@@ -1,3 +1,5 @@
+"""Generate documentation update suggestions."""
+
 from pathlib import Path
 from typing import Annotated
 
@@ -5,10 +7,10 @@ import typer
 import yaml
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
+from app.core.utils import require_config
 from app.models.constants import (
     DESCRIBE_CODE_STATE_FILENAME,
     DESCRIBE_DOCS_STATE_FILENAME,
@@ -18,15 +20,22 @@ from app.models.domain.scope_template import ScopeTemplate
 from app.services.describer.describer_base import DescriberService
 from app.services.suggester.suggester_service import DocChangeSuggester
 
-app = typer.Typer()
+app = typer.Typer(help="Generate documentation update suggestions")
 
 
 @app.command()
 def suggest(
     branch: Annotated[
-        str, typer.Option("--branch", help="Branch to run againt")
-    ] = settings.git.default_branch,
+        str, typer.Option("--branch", "-b", help="Branch to compare against")
+    ] = None,
 ):
+    """Generate documentation update suggestions based on code and doc changes."""
+    settings = require_config()
+
+    # Use default branch if not specified
+    if branch is None:
+        branch = settings.git.default_branch
+
     suggestor = DocChangeSuggester(
         suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME,
     )
@@ -60,6 +69,6 @@ def suggest(
         TextColumn("[progress.description]{task.description}"),
         transient=True,
     ) as progress:
-        progress.add_task(description="Creating suggestions...", total=None)
+        progress.add_task(description="Generating suggestions...", total=None)
         suggestor.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)
     UsageContext().log_usage()

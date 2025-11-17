@@ -7,10 +7,10 @@ import yaml
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
+from app.core.utils import require_config
 from app.models.domain.scope_template import (
     DocTemplate,
     DocTemplateKey,
@@ -20,16 +20,20 @@ from app.models.domain.scope_template import (
 from app.services.scoper.scope_template import get_scope
 from app.services.scoper.scoper_service import ScopeService
 
-app = typer.Typer()
+app = typer.Typer(help="Manage documentation structure")
 
 
 def _init_scope_service(
     repo_path: Path = Path("."),
-    branch: str = settings.git.default_branch,
+    branch: str = None,
     file_type_filter=None,
     exclude_dirs=None,
 ) -> ScopeService:
     """Initialize and return a ScopeService with configured DocConsumer and GitConsumer."""
+    settings = require_config()
+
+    if branch is None:
+        branch = settings.git.default_branch
     if file_type_filter is None:
         file_type_filter = settings.docs.doc_filetypes
     if exclude_dirs is None:
@@ -146,10 +150,12 @@ def create(
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
     branch: Annotated[
-        str, typer.Option(help="Default branch to run create scope against")
-    ] = settings.git.default_branch,
+        str, typer.Option("--branch", "-b", help="Branch to compare against")
+    ] = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
+    settings = require_config()
+
     state_path: Path = settings.state_directory / "scope.yaml"
     service = _init_scope_service(branch=branch)
 
@@ -180,10 +186,12 @@ def create(
 def apply(
     branch: Annotated[
         str,
-        typer.Option(help="Branch to run scope creator against"),
-    ] = settings.git.default_branch,
+        typer.Option("--branch", "-b", help="Branch to compare against"),
+    ] = None,
 ):
     """Apply the previously created documentation scope."""
+    settings = require_config()
+
     state_path: Path = settings.state_directory / "scope.yaml"
     if not state_path.is_file():
         print(f"State file not found at {state_path}. Please run 'scope create' first.")
