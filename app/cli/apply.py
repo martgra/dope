@@ -30,9 +30,7 @@ def _apply_change(path: Path, content: str) -> None:
 
 @app.command()
 def apply(
-    branch: Annotated[
-        str, typer.Option("--branch", "-b", help="Branch to compare against")
-    ] = None,
+    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
 ):
     """Apply previously generated documentation suggestions to files."""
     settings = require_config()

@@ -1,7 +1,6 @@
 """Show current processing status."""
 
 import json
-from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -70,9 +69,7 @@ def status():
 
     # Code status
     if code_scanned > 0:
-        table.add_row(
-            "Code Files", f"{code_summarized}/{code_scanned} scanned and summarized"
-        )
+        table.add_row("Code Files", f"{code_summarized}/{code_scanned} scanned and summarized")
     else:
         table.add_row("Code Files", "[dim]Not scanned yet[/dim]")
 

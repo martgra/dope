@@ -25,9 +25,7 @@ app = typer.Typer(help="Generate documentation update suggestions")
 
 @app.command()
 def suggest(
-    branch: Annotated[
-        str, typer.Option("--branch", "-b", help="Branch to compare against")
-    ] = None,
+    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
 ):
     """Generate documentation update suggestions based on code and doc changes."""
     settings = require_config()

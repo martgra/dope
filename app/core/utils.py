@@ -19,8 +19,9 @@ def require_config():
     """
     import sys
 
-    from app import config_filepath, settings
     from rich import print as rprint
+
+    from app import settings
 
     if settings is None:
         rprint("[red]❌ No configuration found[/red]")

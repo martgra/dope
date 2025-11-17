@@ -149,9 +149,7 @@ def create(
     project_size: Annotated[
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
-    branch: Annotated[
-        str, typer.Option("--branch", "-b", help="Branch to compare against")
-    ] = None,
+    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
     settings = require_config()

@@ -88,9 +88,7 @@ def _set_exclude_folders(doc_root: Path) -> list[str]:
     def _check_folder(file: Path):
         if file.name.startswith("."):
             return True
-        if file.name in EXCLUDE_DIRS:
-            return True
-        return False
+        return file.name in EXCLUDE_DIRS
 
     choices = [
         Choice(title=file.name, value=file.name, checked=_check_folder(file))
@@ -147,7 +145,9 @@ def _set_token():
 @handle_questionary_abort
 def _set_state_directory():
     cache_dir = Path(".") / Path(".dope")
-    return Path(questionary.path("Set state directory path", default=str(cache_dir.resolve())).ask())
+    return Path(
+        questionary.path("Set state directory path", default=str(cache_dir.resolve())).ask()
+    )
 
 
 @handle_questionary_abort
@@ -168,7 +168,9 @@ def _verify_provider(provider: Provider, base_url: str | None) -> bool:
     return True
 
 
-def _create_default_settings(provider: Provider, base_url: str | None, token: SecretStr) -> Settings:
+def _create_default_settings(
+    provider: Provider, base_url: str | None, token: SecretStr
+) -> Settings:
     """Create settings with smart defaults."""
     # Try to detect git repo
     try:
@@ -262,9 +264,7 @@ def show(
         table.add_row("  Docs Root", str(settings.docs.docs_root))
         table.add_row("  File Types", ", ".join(sorted(settings.docs.doc_filetypes)))
         exclude_list = sorted(list(settings.docs.exclude_dirs))
-        exclude_display = (
-            ", ".join(exclude_list[:5]) + (", ..." if len(exclude_list) > 5 else "")
-        )
+        exclude_display = ", ".join(exclude_list[:5]) + (", ..." if len(exclude_list) > 5 else "")
         table.add_row("  Excluded Dirs", exclude_display)
         table.add_row("", "")
 
@@ -319,10 +319,7 @@ def init(
         # Only ask essential questions
         provider = _set_provider()
 
-        if provider == Provider.AZURE:
-            base_url = _set_deployment_endpoint()
-        else:
-            base_url = None
+        base_url = _set_deployment_endpoint() if provider == Provider.AZURE else None
 
         token = _set_token()
 
@@ -344,7 +341,7 @@ def init(
         new_settings, add_cache_to_git = _interactive_setup()
 
     # Save config
-    cache_dir = generate_local_cache(new_settings.state_directory, add_to_git=add_cache_to_git)
+    generate_local_cache(new_settings.state_directory, add_to_git=add_cache_to_git)
     generate_local_config_file(CONFIG_FILENAME, new_settings)
 
     rprint(f"\n[green]✅ Configuration saved to {Path.cwd() / CONFIG_FILENAME}[/green]")
@@ -448,10 +445,10 @@ def set(
         rprint(f"[green]✅ Updated {key}:[/green] {old_value} → {new_value}")
         rprint(f"[dim]📄 Saved to {config_filepath}[/dim]")
 
-    except AttributeError:
+    except AttributeError as e:
         rprint(f"[red]❌ Unknown setting: {key}[/red]")
         rprint("[blue]💡 Run 'dope config show' to see available settings[/blue]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except Exception as e:
         rprint(f"[red]❌ Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
