@@ -1,15 +1,25 @@
+"""DOPE - AI-powered documentation management CLI."""
+
 import typer
 
-from app.cli import change, config, describe, scope, suggest
+from app.cli import apply, config, scan, scope, status, suggest
 
 
 def run_cli():
-    app = typer.Typer(no_args_is_help=True)
+    """Main CLI entry point."""
+    app = typer.Typer(
+        no_args_is_help=True,
+        help="DOPE - AI-powered documentation management",
+        epilog="Run 'dope COMMAND --help' for more information on a command.",
+    )
+
+    # Add command groups
+    app.add_typer(scan.app, name="scan")
+    app.add_typer(suggest.app, name="suggest")
+    app.add_typer(apply.app, name="apply")
+    app.add_typer(status.app, name="status")
     app.add_typer(scope.app, name="scope")
     app.add_typer(config.app, name="config")
-    app.add_typer(change.app)
-    app.add_typer(describe.app, name="describe")
-    app.add_typer(suggest.app)
 
     app()
 

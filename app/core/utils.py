@@ -8,6 +8,28 @@ from pydantic_settings import BaseSettings
 from app.models.constants import APP_NAME
 
 
+def require_config():
+    """Ensure config exists, exit with helpful message if not.
+
+    Returns:
+        Settings: The loaded settings object.
+
+    Raises:
+        SystemExit: If no config found.
+    """
+    import sys
+
+    from rich import print as rprint
+
+    from app import settings
+
+    if settings is None:
+        rprint("[red]❌ No configuration found[/red]")
+        rprint("[blue]💡 Run 'dope config init' to set up[/blue]")
+        sys.exit(1)
+    return settings
+
+
 def _find_project_root(start: Path | None = None) -> Path:
     start = start or Path.cwd()
     try:

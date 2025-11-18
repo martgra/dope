@@ -1,23 +1,30 @@
+"""Scan documentation and code for changes."""
+
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from app import settings
 from app.consumers.doc_consumer import DocConsumer
 from app.consumers.git_consumer import GitConsumer
 from app.core.context import UsageContext
 from app.core.progress import track
+from app.core.utils import require_config
 from app.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
 from app.services.describer.describer_base import CodeDescriberService, DescriberService
 
-app = typer.Typer()
+app = typer.Typer(help="Scan documentation and code for changes")
 
 
 @app.command()
 def docs(
-    docs_root: Annotated[Path, typer.Option("--root", help="Root of doc structure")] = Path("."),
+    docs_root: Annotated[
+        Path, typer.Option("--root", help="Root directory of documentation")
+    ] = Path("."),
 ):
+    """Scan documentation files for changes."""
+    settings = require_config()
+
     doc_scanner = DescriberService(
         DocConsumer(
             docs_root,
@@ -28,7 +35,9 @@ def docs(
     )
     doc_state = doc_scanner.scan()
     try:
-        for filepath, state_item in track(doc_state.items(), description="Describing doc changes."):
+        for filepath, state_item in track(
+            doc_state.items(), description="Scanning documentation files"
+        ):
             doc_state[filepath] = doc_scanner.describe(file_path=filepath, state_item=state_item)
     finally:
         doc_scanner.save_state(doc_state)
@@ -37,20 +46,25 @@ def docs(
 
 @app.command()
 def code(
-    repo_root: Annotated[Path, typer.Option("--root", help="Root of code repo")] = Path("."),
-    branch: Annotated[
-        str, typer.Option("--branch", help="Branch to run againt")
-    ] = settings.git.default_branch,
+    repo_root: Annotated[
+        Path, typer.Option("--root", help="Root directory of code repository")
+    ] = Path("."),
+    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
 ):
+    """Scan code changes against a branch."""
+    settings = require_config()
+
+    # Use default branch if not specified
+    if branch is None:
+        branch = settings.git.default_branch
+
     code_scanner = CodeDescriberService(
         GitConsumer(repo_root, branch),
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
     code_state = code_scanner.scan()
     try:
-        for filepath, state_item in track(
-            code_state.items(), description="Describing code changes"
-        ):
+        for filepath, state_item in track(code_state.items(), description="Scanning code changes"):
             code_state[filepath] = code_scanner.describe(file_path=filepath, state_item=state_item)
     finally:
         code_scanner.save_state(code_state)

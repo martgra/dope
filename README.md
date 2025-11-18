@@ -29,77 +29,94 @@ source .venv/bin/activate
 pip install .
 ```
 
-## Hello World Example
+## Quick Start
 
 All commands are exposed under the `dope` CLI entry point. For help:
 ```bash
 dope --help
 ```
 
-Note: Many commands accept an optional `--branch <branch-name>` parameter (defaulting to your configured default branch).
+### Getting Started
 
+```bash
+# 1. Initialize configuration (quickstart mode)
+dope config init
+
+# For full customization, use interactive mode
+dope config init -i
+
+# 2. Scan your documentation and code
+dope scan docs
+dope scan code
+
+# 3. Generate suggestions
+dope suggest
+
+# 4. Check status
+dope status
+
+# 5. Apply suggested changes
+dope apply
 ```
-# Describe documentation on a branch
-dope describe docs --branch <branch-name>
 
-# Describe code changes on a branch
-dope describe code --branch <branch-name>
+### Command Reference
 
-# Suggest documentation updates against a branch
-dope suggest --branch <branch-name>
+Note: Most commands accept an optional `--branch <branch>` or `-b <branch>` parameter (defaulting to your configured default branch).
 
-# Apply suggested changes on a branch
-dope change --branch <branch-name>
+```bash
+# Configuration Commands
+dope config init              # Quick setup (use -i for interactive mode)
+dope config show              # Display configuration (table format)
+dope config show --format json  # Display as JSON
+dope config validate          # Validate configuration
+dope config set KEY VALUE     # Update a single setting
 
-# Generate documentation scope interactively on a branch
-dope scope create --branch <branch-name>
+# Scanning Commands
+dope scan docs                # Scan documentation files
+dope scan code -b <branch>    # Scan code changes against branch
+
+# Documentation Workflow
+dope suggest -b <branch>      # Generate documentation suggestions
+dope apply -b <branch>        # Apply suggested changes
+dope status                   # Show current processing status
+
+# Documentation Structure
+dope scope create             # Create documentation scope
+dope scope apply              # Apply documentation scope
 ```
-
-# Initialize the application with interactive prompts
-dope init
-
-# Force overwrite an existing configuration
-dope init --force
 
 ## Key Features
 
-- Scan documentation files (`.md`, `.rst`, etc.) and code diffs in Git via `describe docs` and `describe code`
-- Generate human‑readable summaries of docs and code changes
-- Suggest documentation updates using AI
-- Automate application of suggestions via an agent
-- Inspect current configuration
-- Apply suggested documentation changes directly to files using the `dope change` command (changes are applied directly; previous `--apply` and `--output` flags are deprecated)
-- **Interactive documentation scope generation with `dope scope create` (requires questionary library)**
-- **Tree‑based file structure visualization via anytree in the new `get_structure` and `get_graphical_repo_tree` features**
-- **Initialize or re-create the application YAML configuration file with `dope config init` (includes options to force overwrite, initialize all defaults, and select an LLM provider).**
-- Interactive `init` command to configure state directory, code repository root, documentation root, excluded folders, document file types, LLM provider, Azure deployment endpoint, and token, with URL validation and graceful prompt cancellation.
+### Core Functionality
+- **AI-Powered Analysis**: Scan documentation files (`.md`, `.mdx`, `.rst`, etc.) and code changes using LLMs
+- **Smart Suggestions**: Generate human-readable summaries and documentation update suggestions
+- **Automated Updates**: Apply AI-generated suggestions directly to documentation files
+- **Status Tracking**: Monitor scan progress and pending suggestions with `dope status`
 
-### Branch Option for Advanced Commands
+### Configuration
+- **Quick Setup**: Get started with just 2-3 questions using `dope config init`
+- **Interactive Mode**: Full customization with `dope config init -i`
+- **Easy Updates**: Change individual settings with `dope config set`
+- **Validation**: Check configuration health with `dope config validate`
+- **Multi-Provider Support**: Works with OpenAI and Azure OpenAI
 
-For the following commands, you can provide a `--branch <branch>` option to specify which Git branch to compare changes against. It defaults to your repository's default branch if omitted.
+### Documentation Management
+- **Scope Templates**: Define documentation structure by project size
+- **Interactive Scope Creation**: Questionary-based project setup
+- **Tree Visualization**: View file structure with anytree integration
+- **Flexible File Types**: Support for MD, MDX, RST, AsciiDoc, Org, Wiki formats
 
-- `dope describe code --branch <branch>`  
-  > Describe code changes against the specified branch.
-- `dope describe docs --branch <branch>`  
-  > Describe documentation changes against the specified branch.
-- `dope suggest --branch <branch>`  
-  > Suggest documentation updates considering code/doc differences on the given branch.
-- `dope change --branch <branch>`  
-  > Apply suggested documentation updates with respect to the specified branch.
-- `dope scope <subcommand> --branch <branch>`
-  > Scope generation and application relative to a branch.
-- `dope config <subcommand> --branch <branch>`
-  > Configuration actions relative to a branch.
+### Branch Comparison
 
-Example:
+Most commands support the `--branch` or `-b` option to specify which Git branch to compare against:
+
 ```bash
-dope describe code --branch develop
+dope scan code -b develop        # Scan against develop branch
+dope suggest -b feature/new-api  # Generate suggestions for feature branch
+dope apply -b main              # Apply changes for main branch
 ```
 
-#### Option:
-```
---branch TEXT   Specify the git branch to compare changes against (defaults to your repository’s default branch).
-```
+If omitted, commands use your configured default branch (typically `main`).
 
 ## Scope Commands
 

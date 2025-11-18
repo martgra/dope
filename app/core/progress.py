@@ -1,5 +1,4 @@
 from collections.abc import Iterable, Iterator
-from typing import TypeVar
 
 from rich.progress import (
     BarColumn,
@@ -9,10 +8,8 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-T = TypeVar("T")
 
-
-def track(
+def track[T](
     iterable: Iterable[T],
     description: str = "Processing",
     total: int | None = None,
