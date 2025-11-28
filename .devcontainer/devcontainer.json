@@ -1,43 +1,41 @@
 {
-  "name": "Python 3",
+  "name": "dope",
   "dockerComposeFile": ["docker-compose.yaml"],
-  "service": "app",
+  "service": "dope",
   "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
   "customizations": {
     "vscode": {
       "settings": {
-        "notebook.formatOnSave.enabled": true,
-        "terminal.integrated.defaultProfile.linux": "zsh",
-        "terminal.integrated.profiles.linux": {
-          "zsh": { "path": "/usr/bin/zsh" }
-        }
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "terminal.integrated.defaultProfile.linux": "zsh"
       },
       "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "njpwerner.autodocstring",
         "eamodio.gitlens",
         "mhutchie.git-graph",
         "Gruntfuggly.todo-tree",
-        "esbenp.prettier-vscode",
-        "ms-vscode-remote.remote-containers",
-        "ms-python.python",
-        "ms-python.pylint",
-        "charliermarsh.ruff",
-        "njpwerner.autodocstring",
-        "davidanson.vscode-markdownlint",
-        "streetsidesoftware.code-spell-checker",
-        "streetsidesoftware.code-spell-checker-norwegian-bokmal",
-        "shd101wyy.markdown-preview-enhanced",
-        "unifiedjs.vscode-mdx"
+        "esbenp.prettier-vscode"
       ]
     }
   },
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8888],
-  // Use 'postCreateCommand' to run commands after the container is created.
   "remoteUser": "vscode",
   "remoteEnv": {
-    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin:/home/vscode/.bun/bin"
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
   },
-  "postStartCommand": "bash .devcontainer/postStartCommand.sh",
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
-  "initializeCommand": "find ~/.ssh/ -type f -exec grep -l 'PRIVATE' {} \\; | xargs ssh-add" // https://github.com/microsoft/vscode-remote-release/issues/4024#issuecomment-1781885370
+  "postStartCommand": "bash .devcontainer/postStartCommand.sh",
+  "containerEnv": {
+    "HTTP_PROXY": "http://host.docker.internal:3128",
+    "HTTPS_PROXY": "http://host.docker.internal:3128",
+    "NO_PROXY": "localhost,127.0.0.1,::1,host.docker.internal,.local,.internal"
+  }
 }

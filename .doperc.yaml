@@ -1,0 +1,22 @@
+state_directory: /workspace/.dope
+docs:
+  doc_filetypes:
+  - .md
+  - .mdx
+  exclude_dirs:
+  - .github
+  - .ruff_cache
+  - .git
+  - .devcontainer
+  - .dope
+  - .logfire
+  - .vscode
+  - .pytest_cache
+  - .venv
+  docs_root: /workspace
+git:
+  default_branch: main
+  code_repo_root: /workspace
+agent:
+  provider: openai
+  api_version: 2024-12-01-preview
