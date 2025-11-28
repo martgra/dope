@@ -1,20 +1,20 @@
 services:
   app:
-    user: vscode
     build:
-      context: .
-      dockerfile: Dockerfile
       args:
-        VARIANT: 3.12-bookworm
-    volumes:
-      - ..:/workspace:cached # Shared workspace between host and devcontainer
-      - doc_updater_extensions:/home/vscode/.vscode-server/extensions # Storing extensions
-      - doc_updater_commandhistory:/home/vscode/commandhistory # Persistant command line history
-      - doc_updater_cache:/home/vscode/.cache
-      - /workspace/.venv
+        VARIANT: 3.13-bookworm
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
     command: sleep infinity
-
+    user: vscode
+    volumes:
+    - ../:/workspace:cached
+    - dope_extensions:/home/vscode/.vscode-server/extensions
+    - dope_commandhistory:/home/vscode/commandhistory
+    - dope_cache:/home/vscode/.cache
+    - /workspace/.venv
+version: '3.8'
 volumes:
-  doc_updater_extensions:
-  doc_updater_commandhistory:
-  doc_updater_cache:
+  dope_cache: null
+  dope_commandhistory: null
+  dope_extensions: null

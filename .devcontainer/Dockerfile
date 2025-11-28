@@ -1,13 +1,8 @@
-ARG VARIANT=3-bullseye
+ARG VARIANT=3.13-bookworm
 FROM mcr.microsoft.com/vscode/devcontainers/python:${VARIANT}
 
 ARG USERNAME=vscode
-
-USER root
-
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends iputils-ping \
-    && rm -rf /var/lib/apt/lists/*
+ARG UV_VERSION=v0.4.30
 
 USER ${USERNAME}
 
@@ -16,12 +11,12 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.cache
 
 
-
-RUN mkdir -p /home/${USERNAME}/.vscode-server/extensions \
-    && chown -R ${USERNAME} /home/${USERNAME}/.vscode-server
+# Ensure VS Code extension & history directories exist with correct ownership
+RUN mkdir -p /home/$USERNAME/.vscode-server/extensions \
+    && chown -R $USERNAME /home/$USERNAME/.vscode-server
 
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/home/$USERNAME/commandhistory/.zsh_history" \
-    && mkdir /home/$USERNAME/commandhistory \
+    && mkdir -p /home/$USERNAME/commandhistory \
     && touch /home/$USERNAME/commandhistory/.zsh_history \
     && chown -R $USERNAME /home/$USERNAME/commandhistory \
-    && echo "$SNIPPET" >> "/home/$USERNAME/.zshrc"
+    && grep -q "commandhistory/.zsh_history" /home/$USERNAME/.zshrc || echo "$SNIPPET" >> /home/$USERNAME/.zshrc
