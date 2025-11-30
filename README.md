@@ -1,4 +1,4 @@
-# ![Alt](resources/banner.png)
+![Alt](resources/banner.png)
 
 # Getting Started with dope
 
@@ -59,6 +59,8 @@ dope status
 dope apply
 ```
 
+> Scanning operations (`dope scan docs` and `dope scan code`) now generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.
+
 > You can inspect and update your configuration at any time using `dope config show`, `dope config validate`, and `dope config set <key> <value>`.
 
 ### Command Reference
@@ -74,17 +76,17 @@ dope config validate          # Validate configuration
 dope config set KEY VALUE     # Update a single setting
 
 # Scanning Commands
-dope scan docs                # Scan documentation files
-dope scan code -b <branch>    # Scan code changes against branch
+dope scan docs [--branch <branch>]   # Scan documentation files, build a `doc-terms.json` index in the state directory, and classify files for later filtering.
+dope scan code [--branch <branch>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings.
 
 # Documentation Workflow
-dope suggest -b <branch>      # Generate documentation suggestions
-dope apply -b <branch>        # Apply suggested changes
-dope status                   # Show current processing status
+dope suggest -b <branch>             # Generate documentation suggestions
+dope apply -b <branch>               # Apply suggested changes
+dope status                          # Show current processing status
 
 # Documentation Structure
-dope scope create             # Create documentation scope
-dope scope apply              # Apply documentation scope
+dope scope create                    # Create documentation scope
+dope scope apply                     # Apply documentation scope
 ```
 
 ## Key Features
@@ -94,6 +96,8 @@ dope scope apply              # Apply documentation scope
 - **Smart Suggestions**: Generate human-readable summaries and documentation update suggestions
 - **Automated Updates**: Apply AI-generated suggestions directly to documentation files
 - **Status Tracking**: Monitor scan progress and pending suggestions with `dope status`
+- **Intelligent file pre-filtering**: Files are automatically classified (SKIP, NORMAL, HIGH) and quantified by change magnitude to skip trivial changes and prioritize critical files (e.g., README, config, entry points) before invoking LLM processing.
+- **Documentation term indexing**: A `doc-terms.json` index is built during scanning to match code changes to related documentation terms, improving the focus and quality of subsequent suggestions and applies.
 
 ### Configuration
 - **Quick Setup**: Get started with just 2-3 questions using `dope config init`

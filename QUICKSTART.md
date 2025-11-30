@@ -43,6 +43,8 @@ dope scan docs --branch main
 
 _Expected:_ Lists documentation files.
 
+When you run this command, a documentation term index file (`doc-terms.json`) will be created in the state directory. This index helps the application match relevant terms between code and docs, improving the relevance of suggestions for future commands.
+
 ## Verify Setup
 
 To describe the code structure:
@@ -79,6 +81,8 @@ dope scope create --project-size medium --output scope.yml --branch <branch-name
 # Apply a documentation scope from file
 dope scope apply --scope-file scope.yml --branch <branch-name>
 ```
+
+For `dope suggest` and `dope apply`, the commands utilize the generated `doc-terms.json` index and intelligent file pre-filtering, focusing suggestions and updates on high-priority documentation changes where code and documentation terms align.
 
 - Read `CONTRIBUTING.md` to learn how to contribute
 - See `CHANGELOG.md` for the latest changes
