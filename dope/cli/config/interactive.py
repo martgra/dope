@@ -11,7 +11,7 @@ from questionary import Choice
 
 from dope.models.constants import DEFAULT_DOC_SUFFIX, DOC_SUFFIX, EXCLUDE_DIRS
 from dope.models.enums import Provider
-from dope.models.internal import FileSuffix
+from dope.models.shared import FileSuffix
 
 
 def handle_questionary_abort(func):

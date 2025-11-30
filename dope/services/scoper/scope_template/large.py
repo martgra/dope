@@ -1,11 +1,8 @@
-from dope.models.domain.scope_template import (
+from dope.models.domain.scope import (
     DocSectionTemplate,
     DocTemplate,
-    DocTemplateKey,
-    ProjectTier,
-    SectionAudience,
-    SectionTheme,
 )
+from dope.models.enums import DocTemplateKey, ProjectTier, SectionAudience, SectionTheme
 
 TIERS = [ProjectTier.large, ProjectTier.massive]
 

@@ -1,8 +1,5 @@
+from dope.core.config_locator import locate_global_config, locate_local_config_file
 from dope.core.settings import Settings, get_settings
-from dope.core.utils import (
-    locate_global_config,
-    locate_local_config_file,
-)
 from dope.models.constants import CONFIG_FILENAME
 
 # Locate config file for reference (doesn't load settings yet)

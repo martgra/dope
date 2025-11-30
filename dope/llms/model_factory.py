@@ -6,6 +6,7 @@ from pydantic_ai.providers.azure import AzureProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from dope.core.settings import get_settings
+from dope.exceptions import AgentNotConfiguredError, ProviderError
 from dope.models.enums import Provider
 
 
@@ -13,10 +14,12 @@ from dope.models.enums import Provider
 def _get_openai_provider(provider):
     settings = get_settings()
     if not settings.agent:
-        raise ValueError("Agent settings not configured")
+        raise AgentNotConfiguredError(
+            "Agent settings not configured. Run 'dope config init' first."
+        )
     if provider == Provider.AZURE:
         if not settings.agent.base_url:
-            raise ValueError("Azure provider requires base_url to be configured")
+            raise ProviderError("azure", "base_url must be configured for Azure provider")
         return AzureProvider(
             azure_endpoint=settings.agent.base_url.unicode_string(),
             api_version=settings.agent.api_version,

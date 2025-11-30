@@ -12,12 +12,11 @@ from dope.consumers.doc_consumer import DocConsumer
 from dope.consumers.git_consumer import GitConsumer
 from dope.core.usage import UsageTracker
 from dope.core.utils import require_config
-from dope.models.domain.scope_template import (
+from dope.models.domain.scope import (
     DocTemplate,
-    DocTemplateKey,
-    ProjectTier,
     ScopeTemplate,
 )
+from dope.models.enums import DocTemplateKey, ProjectTier
 from dope.services.scoper.scope_template import get_scope
 from dope.services.scoper.scoper_service import ScopeService
 

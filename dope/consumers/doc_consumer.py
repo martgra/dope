@@ -4,7 +4,8 @@ from pathlib import Path
 from git import InvalidGitRepositoryError, Repo
 
 from dope.consumers.base import BaseConsumer
-from dope.models.internal import FileSuffix
+from dope.exceptions import InvalidDirectoryError
+from dope.models.shared import FileSuffix
 
 
 class DocConsumer(BaseConsumer):
@@ -28,7 +29,7 @@ class DocConsumer(BaseConsumer):
     def _get_root_path(root_path) -> Path:
         root_path = Path(root_path)
         if not root_path.is_dir():
-            raise NotADirectoryError(f"{root_path} is not a valid directory")
+            raise InvalidDirectoryError(str(root_path), "Not a valid directory")
         return root_path
 
     def discover_files(self, file_filter=None, exclude_dirs=None) -> list[Path]:

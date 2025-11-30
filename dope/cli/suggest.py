@@ -16,7 +16,7 @@ from dope.models.constants import (
     DESCRIBE_DOCS_STATE_FILENAME,
     SUGGESTION_STATE_FILENAME,
 )
-from dope.models.domain.scope_template import ScopeTemplate
+from dope.models.domain.scope import ScopeTemplate
 from dope.services.describer.describer_base import CodeDescriberService, DescriberService
 from dope.services.suggester.suggester_service import DocChangeSuggester
 

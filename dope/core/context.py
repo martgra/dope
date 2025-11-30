@@ -1,10 +1,14 @@
+"""Context module - legacy placeholder.
+
+This module is currently unused and may be removed in a future version.
+"""
+
 import functools
 import threading
 
-from pydantic_ai.usage import Usage
-
 
 def _threadsafe_singleton(cls):
+    """Thread-safe singleton decorator (currently unused)."""
     lock = threading.Lock()
 
     @functools.wraps(cls)
@@ -16,16 +20,3 @@ def _threadsafe_singleton(cls):
         return cls._instance
 
     return wrapper
-
-
-@_threadsafe_singleton
-class UsageContext:
-    """Global usage context."""
-
-    def __init__(self):
-        self._data_lock = threading.Lock()
-        self.usage: Usage = Usage()
-
-    def log_usage(self) -> None:
-        """Log the total number of tokens spent."""
-        print(f"Total tokens used: {self.usage.total_tokens or 0}")
