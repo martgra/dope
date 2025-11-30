@@ -5,12 +5,13 @@ from pydantic_ai.models.openai import OpenAIModel, OpenAIModelName
 from pydantic_ai.providers.azure import AzureProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from dope import settings
+from dope.core.settings import get_settings
 from dope.models.enums import Provider
 
 
 @lru_cache
 def _get_openai_provider(provider):
+    settings = get_settings()
     if not settings.agent:
         raise ValueError("Agent settings not configured")
     if provider == Provider.AZURE:

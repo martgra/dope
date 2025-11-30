@@ -21,9 +21,10 @@ def require_config():
 
     from rich import print as rprint
 
-    from dope import settings  # pylint: disable=cyclic-import
+    from dope.core.settings import get_settings
 
-    if settings is None:
+    settings = get_settings()
+    if settings.agent is None:
         rprint("[red]❌ No configuration found[/red]")
         rprint("[blue]💡 Run 'dope config init' to set up[/blue]")
         sys.exit(1)

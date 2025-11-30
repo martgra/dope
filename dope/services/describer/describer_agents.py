@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pydantic_ai import Agent, RunContext
 
-from dope import settings
 from dope.consumers.git_consumer import GitConsumer
+from dope.core.settings import get_settings
 from dope.llms.model_factory import get_model
 from dope.models.domain.code import CodeChanges
 from dope.models.domain.doc import DocSummary
@@ -22,6 +22,7 @@ class Deps:
 @lru_cache(maxsize=1)
 def get_code_change_agent() -> Agent[Deps, CodeChanges]:
     """Get the code change agent (lazy-initialized and cached)."""
+    settings = get_settings()
     if settings.agent is None:
         raise RuntimeError("Agent configuration not found. Run 'dope config init' first.")
     agent = Agent(
@@ -56,6 +57,7 @@ def get_code_change_agent() -> Agent[Deps, CodeChanges]:
 @lru_cache(maxsize=1)
 def get_doc_summarization_agent() -> Agent[None, DocSummary]:
     """Get the doc summarization agent (lazy-initialized and cached)."""
+    settings = get_settings()
     if settings.agent is None:
         raise RuntimeError("Agent configuration not found. Run 'dope config init' first.")
     agent = Agent(model=get_model(settings.agent.provider, "gpt-4.1-mini"), output_type=DocSummary)

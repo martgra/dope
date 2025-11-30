@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pydantic_ai import Agent, RunContext
 
-from dope import settings
 from dope.consumers.git_consumer import GitConsumer
+from dope.core.settings import get_settings
 from dope.llms.model_factory import get_model
 from dope.services.changer.prompts import CHANGE_DOC_PROMPT
 
@@ -20,6 +20,7 @@ class Deps:
 @lru_cache(maxsize=1)
 def get_changer_agent() -> Agent[Deps, str]:
     """Get the changer agent (lazy-initialized and cached)."""
+    settings = get_settings()
     if settings.agent is None:
         raise RuntimeError("Agent configuration not found. Run 'dope config init' first.")
     agent = Agent(
