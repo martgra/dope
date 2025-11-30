@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.13+
 - Git
 - OpenAI or Azure API key set in environment variables (e.g., `OPENAI_API_KEY`)
 
@@ -22,7 +22,7 @@ pip install .
 After installing, run:
 
 ```bash
-dope init
+dope config init
 ```
 
 This will walk you through interactive prompts for setting up the state directory, code repo root, docs root, excludes, file types, LLM provider, endpoint, and token.
@@ -30,7 +30,7 @@ This will walk you through interactive prompts for setting up the state director
 You can force overwrite an existing configuration with:
 
 ```bash
-dope init --force
+dope config init --force
 ```
 
 ## First Run
@@ -48,27 +48,27 @@ _Expected:_ Lists documentation files.
 To describe the code structure:
 
 ```bash
-dope describe code --branch main
+dope scan code --branch main
 ```
 
 _Expected:_ Summary of code structure.
 
 ## Next Steps
 
-Explore the main CLI commands— all support the `--branch <branch-name>` option for branch-based workflows:
+Explore the main CLI commands—all support the `--branch <branch-name>` option for branch-based workflows:
 
 ```bash
 # Scan documentation files
 dope scan docs --branch <branch-name>
 
-# Describe the code structure
-dope describe code --branch <branch-name>
+# Scan the code structure
+dope scan code --branch <branch-name>
 
 # Suggest documentation updates (optionally on a branch)
-dope suggest docs --branch <branch-name>
+dope suggest --branch <branch-name>
 
 # Apply suggested documentation changes
-dope change docs --apply --branch <branch-name>
+dope apply --branch <branch-name>
 
 # Create a documentation scope interactively
 dope scope create --branch <branch-name>

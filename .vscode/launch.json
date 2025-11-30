@@ -2,13 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run app.cli (scope create)",
+      "name": "Run dope.cli (scope create)",
       "type": "debugpy",
       "request": "launch",
-      "module": "app.cli.main",
-      "args": [
-        "scope", "create"
-      ],
+      "module": "dope.cli.main",
+      "args": ["scope", "create"],
       "console": "integratedTerminal", // so you can interact
       "justMyCode": true
     }
