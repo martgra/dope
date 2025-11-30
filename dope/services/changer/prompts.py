@@ -14,7 +14,7 @@ WORKFLOW
 
 TOOLS:
 get_code_file_content: Load the content of code files as they are now to see specific details.
-"""  # noqa: E501
+"""
 CHANGE_DOC_USER_PROMPT = """
 Below is the content of file {doc_path}. Output only the changed file in full.
 No explanation or additional content so that it can be pasted directly into the  {doc_path}.

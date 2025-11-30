@@ -26,6 +26,6 @@ class UsageContext:
         self._data_lock = threading.Lock()
         self.usage: Usage = Usage()
 
-    def log_usage(self) -> str:
-        """Return the total number of tokens spent."""
+    def log_usage(self) -> None:
+        """Log the total number of tokens spent."""
         print(f"Total tokens used: {self.usage.total_tokens or 0}")

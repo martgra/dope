@@ -4,7 +4,7 @@ from pydantic.json import pydantic_encoder
 
 from dope.core.context import UsageContext
 from dope.models.domain.doc import SuggestedChange
-from dope.services.changer.changer_agents import Deps, changer_agent
+from dope.services.changer.changer_agents import Deps, get_changer_agent
 from dope.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
 
 
@@ -21,7 +21,7 @@ class DocsChanger:
         """
         self.docs_consumer = docs_consumer
         self.git_consumer = git_consumer
-        self.agent = changer_agent
+        self.agent = get_changer_agent()
 
     def _change_prompt(self, docs_content: str, suggested_change: SuggestedChange):
         return CHANGE_DOC_USER_PROMPT.format(

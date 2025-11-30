@@ -16,8 +16,8 @@ class CodeChange(BaseModel):
 class CodeChanges(BaseModel):
     """Description of code changes impact on the application."""
 
-    specific_changes: list[CodeChange] = Field(
-        None, description="List of detailed changes within the file"
+    specific_changes: list[CodeChange] | None = Field(
+        default=None, description="List of detailed changes within the file"
     )
     functional_impact: list[str] = Field(
         ...,

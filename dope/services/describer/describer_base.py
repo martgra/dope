@@ -1,26 +1,31 @@
 import hashlib
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dope.consumers.base import BaseConsumer
 from dope.core.context import UsageContext
 from dope.services.describer.describer_agents import (
     Deps,
-    code_change_agent,
-    doc_summarization_agent,
+    get_code_change_agent,
+    get_doc_summarization_agent,
 )
 from dope.services.describer.prompts import SUMMARIZATION_TEMPLATE
+
+if TYPE_CHECKING:
+    from dope.consumers.git_consumer import GitConsumer
 
 
 class DescriberService:
     """Scanner service."""
 
-    def __init__(self, consumer: BaseConsumer, state_filepath: Path = None):
+    def __init__(self, consumer: BaseConsumer, state_filepath: Path | None = None):
         self.consumer = consumer
         self.state_filepath = state_filepath
 
     def _compute_hash(self, file_path: Path) -> str:
-        return hashlib.md5(self.consumer.get_content(file_path).encode("utf-8")).hexdigest()
+        content = self.consumer.get_content(file_path)
+        return hashlib.md5(content).hexdigest()
 
     def _scan_files(self) -> dict:
         file_hashes = {}
@@ -31,16 +36,17 @@ class DescriberService:
 
     def load_state(self) -> dict:
         """Load the scanner state."""
-        if self.state_filepath.exists():
+        if self.state_filepath and self.state_filepath.exists():
             with self.state_filepath.open("r") as f:
                 return json.load(f)
         return {}
 
     def save_state(self, state: dict):
         """Save the state of the scanner."""
-        self.state_filepath.parent.mkdir(parents=True, exist_ok=True)
-        with self.state_filepath.open("w") as f:
-            json.dump(state, f, ensure_ascii=False, indent=4)
+        if self.state_filepath:
+            self.state_filepath.parent.mkdir(parents=True, exist_ok=True)
+            with self.state_filepath.open("w") as f:
+                json.dump(state, f, ensure_ascii=False, indent=4)
 
     def _update_state(self, new_items: dict, current_state: dict) -> dict:
         for key in list(current_state.keys()):
@@ -64,10 +70,14 @@ class DescriberService:
         return self.load_state()
 
     def _run_agent(self, prompt):
-        return doc_summarization_agent.run_sync(
-            user_prompt=prompt,
-            usage=UsageContext().usage,
-        ).output.model_dump()
+        return (
+            get_doc_summarization_agent()
+            .run_sync(
+                user_prompt=prompt,
+                usage=UsageContext().usage,
+            )
+            .output.model_dump()
+        )
 
     def describe(self, file_path, state_item) -> dict:
         """For each file with a missing summary, generate one using the agent."""
@@ -84,9 +94,18 @@ class DescriberService:
 class CodeDescriberService(DescriberService):
     """Code describer service."""
 
+    def __init__(self, consumer: "GitConsumer", state_filepath: Path | None = None):
+        """Initialize with GitConsumer specifically."""
+        super().__init__(consumer, state_filepath)
+        self.consumer: GitConsumer = consumer  # Type narrowing for this subclass
+
     def _run_agent(self, prompt):
-        return code_change_agent.run_sync(
-            user_prompt=prompt,
-            deps=Deps(consumer=self.consumer),
-            usage=UsageContext().usage,
-        ).output.model_dump()
+        return (
+            get_code_change_agent()
+            .run_sync(
+                user_prompt=prompt,
+                deps=Deps(consumer=self.consumer),
+                usage=UsageContext().usage,
+            )
+            .output.model_dump()
+        )

@@ -27,7 +27,7 @@ file_path: /path/to/changed_file
 <Content>
 Git diff of given change.
 </Content>
-"""  # noqa: E501
+"""
 
 
 SUMMARIZATION_TEMPLATE = """

@@ -25,7 +25,7 @@ app = typer.Typer(help="Manage documentation structure")
 
 def _init_scope_service(
     repo_path: Path = Path("."),
-    branch: str = None,
+    branch: str | None = None,
     file_type_filter=None,
     exclude_dirs=None,
 ) -> ScopeService:
@@ -40,18 +40,18 @@ def _init_scope_service(
         exclude_dirs = settings.docs.exclude_dirs
 
     doc_consumer = DocConsumer(
-        root_path=str(repo_path),
+        root_path=repo_path,
         file_type_filter=file_type_filter,
         exclude_dirs=exclude_dirs,
     )
-    git_consumer = GitConsumer(root_path=str(repo_path), base_branch=branch)
+    git_consumer = GitConsumer(root_path=repo_path, base_branch=branch)
     return ScopeService(doc_consumer, git_consumer)
 
 
-def _prompt_project_size() -> ProjectTier:
+def _prompt_project_size() -> ProjectTier | None:
     """Prompt interactively for project size; aborts if user cancels."""
     answer = questionary.select(
-        "What’s the project size?",
+        "What's the project size?",
         choices=[tier.value for tier in ProjectTier] + ["unsure"],
     ).ask()
     if answer is None:
@@ -68,7 +68,7 @@ def _prompt_docs_for_tier(tier: ProjectTier) -> dict[DocTemplateKey, DocTemplate
     options = get_scope(tier)
     choices = [
         questionary.Choice(
-            title=f"{key.value.upper()}: {doc.description}",
+            title=f"{key.upper()}: {doc.description}",
             value=key,
             checked=True,
         )
@@ -149,7 +149,9 @@ def create(
     project_size: Annotated[
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
-    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
+    branch: Annotated[
+        str | None, typer.Option("--branch", "-b", help="Branch to compare against")
+    ] = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
     settings = require_config()
@@ -183,7 +185,7 @@ def create(
 @app.command()
 def apply(
     branch: Annotated[
-        str,
+        str | None,
         typer.Option("--branch", "-b", help="Branch to compare against"),
     ] = None,
 ):

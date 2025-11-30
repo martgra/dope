@@ -7,14 +7,14 @@ from pydantic.json import pydantic_encoder
 from dope.core.context import UsageContext
 from dope.models.domain.doc import DocSuggestions
 from dope.services.suggester.prompts import FILE_SUMMARY_PROMPT, SUGGESTION_PROMPT
-from dope.services.suggester.suggester_agents import suggester_agent
+from dope.services.suggester.suggester_agents import get_suggester_agent
 
 
 class DocChangeSuggester:
     """DocChangeSuggestor class."""
 
     def __init__(self, *, suggestion_state_path: Path):
-        self.agent = suggester_agent
+        self.agent = get_suggester_agent()
         self.suggestion_state_path = Path(suggestion_state_path)
 
     @staticmethod

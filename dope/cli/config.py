@@ -55,7 +55,7 @@ def handle_questionary_abort(func):
 
 
 @handle_questionary_abort
-def _set_doc_root() -> str:
+def _set_doc_root() -> Path:
     return Path(
         questionary.path(
             "Set path to doc root folder", only_directories=True, default=str(Path(".").resolve())
@@ -64,13 +64,13 @@ def _set_doc_root() -> str:
 
 
 @handle_questionary_abort
-def _set_doc_types() -> list[FileSuffix]:
+def _set_doc_types() -> set[FileSuffix]:
     choices = [
         Choice(title=suffix, value=suffix, checked=suffix in DEFAULT_DOC_SUFFIX)
         for suffix in sorted(DOC_SUFFIX)
     ]
 
-    return set(questionary.checkbox(message="Select doc file types.", choices=choices).ask())
+    return set(questionary.checkbox("Select doc file types.", choices=choices).ask())  # pylint: disable=no-value-for-parameter
 
 
 @handle_questionary_abort
@@ -82,7 +82,7 @@ def _set_provider() -> Provider:
 
 
 @handle_questionary_abort
-def _set_exclude_folders(doc_root: Path) -> list[str]:
+def _set_exclude_folders(doc_root: Path) -> set[str]:
     doc_root = Path(doc_root)
 
     def _check_folder(file: Path):
@@ -96,10 +96,11 @@ def _set_exclude_folders(doc_root: Path) -> list[str]:
         if file.is_dir()
     ]
     if choices:
-        return set(
-            questionary.checkbox("Select folders to exclude from doc scan", choices=choices).ask()
+        result = questionary.checkbox(
+            message="Select folders to exclude from doc scan", choices=choices
         )
-    return []
+        return set(result.ask())  # pylint: disable=no-value-for-parameter
+    return set()
 
 
 @handle_questionary_abort
@@ -162,7 +163,7 @@ def _verify_provider(provider: Provider, base_url: str | None) -> bool:
                 f"Missing base URL when provider is set to '{Provider.AZURE.value}'"
             )
         try:
-            base_url = HttpUrl(base_url)
+            HttpUrl(base_url)  # Just validate, don't reassign
         except ValidationError as err:
             raise typer.BadParameter(f"{base_url} not valid URL") from err
     return True
@@ -175,7 +176,7 @@ def _create_default_settings(
     # Try to detect git repo
     try:
         repo = Repo(".", search_parent_directories=True)
-        repo_root = Path(repo.working_tree_dir)
+        repo_root = Path(repo.working_tree_dir) if repo.working_tree_dir else Path.cwd()
         default_branch = str(repo.active_branch) if repo.active_branch else "main"
     except (InvalidGitRepositoryError, TypeError):
         repo_root = Path.cwd()
@@ -194,7 +195,7 @@ def _create_default_settings(
         ),
         agent=AgentSettings(
             provider=provider,
-            base_url=base_url,
+            base_url=HttpUrl(base_url) if base_url else None,
             token=token,
         ),
     )
@@ -209,15 +210,17 @@ def _interactive_setup():
     add_cache_to_git = _add_cache_dir_to_git()
     new_settings.git.code_repo_root = _set_code_repo_root()
     new_settings.git.default_branch = _set_default_branch(new_settings.git.code_repo_root)
-    new_settings.docs.docs_root = Path(_set_doc_root())
+    new_settings.docs.docs_root = _set_doc_root()
     new_settings.docs.exclude_dirs = _set_exclude_folders(new_settings.docs.docs_root)
     new_settings.docs.doc_filetypes = _set_doc_types()
-    new_settings.agent.provider = _set_provider()
-    if new_settings.agent.provider == Provider.AZURE:
-        new_settings.agent.base_url = _set_deployment_endpoint()
-    else:
-        new_settings.agent.base_url = None
-    new_settings.agent.token = _set_token()
+    provider = _set_provider()
+    base_url = _set_deployment_endpoint() if provider == Provider.AZURE else None
+    token = _set_token()
+    new_settings.agent = AgentSettings(
+        provider=provider,
+        base_url=base_url,
+        token=token,
+    )
 
     return new_settings, add_cache_to_git
 
@@ -404,8 +407,8 @@ def validate():
         raise typer.Exit(1)
 
 
-@app.command()
-def set(
+@app.command(name="set")
+def update_setting(
     key: Annotated[str, typer.Argument(help="Setting key (e.g., 'git.default_branch')")],
     value: Annotated[str, typer.Argument(help="New value")],
 ):
@@ -426,6 +429,7 @@ def set(
         old_value = getattr(obj, field_name)
 
         # Set new value (with type conversion)
+        # pylint: disable=no-value-for-parameter
         if isinstance(old_value, bool):
             new_value = value.lower() in ("true", "1", "yes")
         elif isinstance(old_value, Path):
@@ -434,6 +438,7 @@ def set(
             new_value = set(value.split(","))
         else:
             new_value = type(old_value)(value)
+        # pylint: enable=no-value-for-parameter
 
         setattr(obj, field_name, new_value)
 

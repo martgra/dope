@@ -11,7 +11,11 @@ from dope.models.enums import Provider
 
 @lru_cache
 def _get_openai_provider(provider):
+    if not settings.agent:
+        raise ValueError("Agent settings not configured")
     if provider == Provider.AZURE:
+        if not settings.agent.base_url:
+            raise ValueError("Azure provider requires base_url to be configured")
         return AzureProvider(
             azure_endpoint=settings.agent.base_url.unicode_string(),
             api_version=settings.agent.api_version,

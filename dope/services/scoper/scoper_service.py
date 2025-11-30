@@ -7,9 +7,9 @@ from dope.core.progress import track
 from dope.models.domain.scope_template import ScopeTemplate, SuggestedChange
 from dope.services.scoper.prompts import CHANGE_FILE_PROMPT, MOVE_CONTENT_PROMPT, PROMPT
 from dope.services.scoper.scoper_agents import (
-    doc_aligner_agent,
-    project_complexity_agent,
-    scope_creator_agent,
+    get_doc_aligner_agent,
+    get_project_complexity_agent,
+    get_scope_creator_agent,
 )
 
 
@@ -83,10 +83,14 @@ class ScopeService:
         Returns:
             str: Complexity analysis of the project.
         """
-        complexity = project_complexity_agent.run_sync(
-            user_prompt=PROMPT.format(structure=repo_structure, metadata=repo_metadata),
-            usage=UsageContext().usage,
-        ).output
+        complexity = (
+            get_project_complexity_agent()
+            .run_sync(
+                user_prompt=PROMPT.format(structure=repo_structure, metadata=repo_metadata),
+                usage=UsageContext().usage,
+            )
+            .output
+        )
         return complexity
 
     def suggest_structure(self, scope: ScopeTemplate, doc_structure: str, code_structure: str):
@@ -116,10 +120,14 @@ class ScopeService:
         existing paths in the implemented doc structure to documents to relevant documents in
         the structure.
         """
-        result = scope_creator_agent.run_sync(
-            user_prompt=prompt,
-            usage=UsageContext().usage,
-        ).output
+        result = (
+            get_scope_creator_agent()
+            .run_sync(
+                user_prompt=prompt,
+                usage=UsageContext().usage,
+            )
+            .output
+        )
         self._map_paths_to_sections(scope, result)
         return scope
 
@@ -145,25 +153,30 @@ class ScopeService:
             scope.documentation_structure.items(),
             description="Aligning changes to current doc structure",
         ):
-            content = self._check_and_read_doc(doc.implemented_in_path)
+            content = self._check_and_read_doc(
+                Path(doc.implemented_in_path) if doc.implemented_in_path else Path(".")
+            )
             prompt = CHANGE_FILE_PROMPT.format(
                 scope=scope.model_dump_json(indent=2),
                 filepath=str(doc.implemented_in_path),
                 file_content=content,
             )
-            response = doc_aligner_agent.run_sync(
+            response = get_doc_aligner_agent().run_sync(
                 user_prompt=prompt,
                 usage=UsageContext().usage,
             )
             suggested_structure = response.output
-            self._create_file_and_path(doc.implemented_in_path, suggested_structure.content)
+            self._create_file_and_path(
+                Path(doc.implemented_in_path) if doc.implemented_in_path else Path("."),
+                suggested_structure.content,
+            )
             changes_to_other_files.extend(suggested_structure.changes_in_other_files)
         return changes_to_other_files
 
     def _implement_changes(self, changes_to_other_files: list[SuggestedChange]):
         for change in track(changes_to_other_files, description="Moving content between files."):
-            doc_content = self._check_and_read_doc(change.filepath)
-            response = doc_aligner_agent.run_sync(
+            doc_content = self._check_and_read_doc(Path(change.filepath))
+            response = get_doc_aligner_agent().run_sync(
                 user_prompt=MOVE_CONTENT_PROMPT.format(
                     instructions=change.instructions,
                     content=change.content,
@@ -172,7 +185,7 @@ class ScopeService:
                 usage=UsageContext().usage,
             )
             aligned_doc = response.output
-            self._create_file_and_path(change.filepath, aligned_doc.content)
+            self._create_file_and_path(Path(change.filepath), aligned_doc.content)
 
     def apply_scope(self, scope: ScopeTemplate):
         """Applies the scope to the documentation structure.

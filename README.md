@@ -10,7 +10,7 @@ An AI‑powered command‑line tool to scan your code and documentation, generat
 
 ### Prerequisites
 
-- Python 3.12 (see `.python-version`)
+- Python 3.13 (see `.python-version`)
 - An Azure OpenAI or OpenAI API token (export as `AGENT_TOKEN` or set `OPENAI_API_KEY`)
 - [Git](https://git-scm.com/) for code scanning
 
@@ -58,6 +58,8 @@ dope status
 # 5. Apply suggested changes
 dope apply
 ```
+
+> You can inspect and update your configuration at any time using `dope config show`, `dope config validate`, and `dope config set <key> <value>`.
 
 ### Command Reference
 

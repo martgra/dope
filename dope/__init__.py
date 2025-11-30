@@ -8,8 +8,8 @@ from dope.models.constants import CONFIG_FILENAME
 
 config_filepath = locate_local_config_file(CONFIG_FILENAME) or locate_global_config(CONFIG_FILENAME)
 
-# Don't crash if no config exists - let commands handle it
-settings = None
+# Always create settings object - agent will be None if no config
+settings = Settings()
 if config_filepath:
     try:
         settings = Settings(**load_settings_from_yaml(config_filepath))

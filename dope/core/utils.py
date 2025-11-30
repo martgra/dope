@@ -21,7 +21,7 @@ def require_config():
 
     from rich import print as rprint
 
-    from dope import settings
+    from dope import settings  # pylint: disable=cyclic-import
 
     if settings is None:
         rprint("[red]❌ No configuration found[/red]")
@@ -34,7 +34,7 @@ def _find_project_root(start: Path | None = None) -> Path:
     start = start or Path.cwd()
     try:
         repo = Repo(start, search_parent_directories=True)
-        return Path(repo.working_tree_dir)
+        return Path(repo.working_tree_dir) if repo.working_tree_dir else start
     except InvalidGitRepositoryError:
         return start
 

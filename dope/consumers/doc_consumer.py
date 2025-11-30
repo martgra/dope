@@ -49,21 +49,24 @@ class DocConsumer(BaseConsumer):
         repo_root = None
         try:
             repo = Repo(base_dir, search_parent_directories=True)
-            repo_root = Path(repo.working_tree_dir)
-            ignored_files = set(
-                repo.git.ls_files("--others", "-i", "--exclude-standard").splitlines()
-            )
+            if repo.working_tree_dir:
+                repo_root = Path(repo.working_tree_dir)
+                ignored_files = set(
+                    repo.git.ls_files("--others", "-i", "--exclude-standard").splitlines()
+                )
         except (InvalidGitRepositoryError, Exception):
             ignored_files = None
 
         discovered = []
         for dirpath, dirs, files in os.walk(base_dir):
-            dirs[:] = [d for d in dirs if d.lower() not in combined_excludes]
+            dirpath_obj = Path(dirpath)
+            # Filter out excluded directories - dirs is list[str] from os.walk
+            dirs[:] = [d for d in dirs if d.lower() not in combined_excludes]  # type: ignore[union-attr]
             for file in files:
-                file_path = Path(dirpath) / file
+                file_path = dirpath_obj / file
                 if combined_filter and file_path.suffix.lower() not in combined_filter:
                     continue
-                if ignored_files is not None:
+                if ignored_files is not None and repo_root is not None:
                     try:
                         rel_path = file_path.relative_to(repo_root).as_posix()
                     except ValueError:
@@ -75,7 +78,7 @@ class DocConsumer(BaseConsumer):
 
         return discovered
 
-    def get_content(self, file_path) -> str:
+    def get_content(self, file_path) -> bytes:
         """Return content of changed file."""
-        with open(file_path) as file:
+        with open(file_path, "rb") as file:
             return file.read()

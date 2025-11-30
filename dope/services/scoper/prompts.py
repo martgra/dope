@@ -1,3 +1,6 @@
+"""Prompt templates for scoper service."""
+# pylint: disable=duplicate-code
+
 COMPLEXITY_DETERMINATION = """
 Your task is to determine the size and complexity of a code project.
 

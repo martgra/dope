@@ -14,7 +14,7 @@ from dope.models.constants import SUGGESTION_STATE_FILENAME
 from dope.services.changer.changer_service import DocsChanger
 from dope.services.suggester.suggester_service import DocChangeSuggester
 
-app = typer.Typer(help="Apply suggested documentation changes")
+app = typer.Typer()
 
 
 def _apply_change(path: Path, content: str) -> None:
@@ -28,11 +28,17 @@ def _apply_change(path: Path, content: str) -> None:
         file.write(content)
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def apply(
-    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
+    ctx: typer.Context,
+    branch: Annotated[
+        str | None, typer.Option("--branch", "-b", help="Branch to compare against")
+    ] = None,
 ):
     """Apply previously generated documentation suggestions to files."""
+    if ctx.resilient_parsing:
+        return
+
     settings = require_config()
 
     # Use default branch if not specified
@@ -41,11 +47,11 @@ def apply(
 
     docs_changer = DocsChanger(
         docs_consumer=DocConsumer(
-            ".",
+            Path("."),
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        git_consumer=GitConsumer(".", branch),
+        git_consumer=GitConsumer(Path("."), branch),
     )
 
     suggestor = DocChangeSuggester(

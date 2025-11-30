@@ -82,6 +82,9 @@ class DocTemplate(BaseModel):
     tiers: list[ProjectTier] | None = Field(
         None, description="Tier the doc is suited for.", exclude=True
     )
+    roles: list[SectionAudience] | None = Field(
+        None, description="Roles for whom the document is relevant", exclude=True
+    )
     implemented_in_path: str | None = Field(
         None, description="Path to the implementation of the documentation."
     )
@@ -106,12 +109,13 @@ class ScopeTemplate(BaseModel):
     )
 
     def get_all_documents(self) -> set[DocTemplateKey]:
-        """Returns a list of all sections across all documents in the documentation structure.
+        """Returns a set of all document keys in the documentation structure.
 
         Returns:
-            List of tuples containing (doc_key, section_name, section_object)
+            Set of document template keys
         """
-        return self.documentation_structure.keys()
+        # pylint: disable=no-member  # Pylint confused by Pydantic Field descriptor
+        return set(self.documentation_structure.keys())
 
 
 class SuggestedChange(BaseModel):

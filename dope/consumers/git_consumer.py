@@ -58,10 +58,10 @@ class GitConsumer(BaseConsumer):
         file_list = self.repo.git.ls_files().splitlines()
         return [Path(path) for path in file_list]
 
-    def get_content(self, file_path):
-        """Return content of changed file."""
+    def get_content(self, file_path) -> bytes:
+        """Return diff content of changed file as bytes."""
         diff = self.repo.git.diff(self.base_branch, f"--unified={5}", "--", str(file_path))
-        return diff
+        return diff.encode("utf-8")
 
     def get_full_content(self, file_path):
         """Return content of code file."""
@@ -85,7 +85,7 @@ class GitConsumer(BaseConsumer):
                 continue
         return loc
 
-    def get_metadata(self, branch_name: str = None) -> CodeMetadata:
+    def get_metadata(self, branch_name: str | None = None) -> CodeMetadata:
         """Return repo metadata.
 
         Args:

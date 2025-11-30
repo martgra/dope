@@ -17,17 +17,23 @@ from dope.models.constants import (
     SUGGESTION_STATE_FILENAME,
 )
 from dope.models.domain.scope_template import ScopeTemplate
-from dope.services.describer.describer_base import DescriberService
+from dope.services.describer.describer_base import CodeDescriberService, DescriberService
 from dope.services.suggester.suggester_service import DocChangeSuggester
 
-app = typer.Typer(help="Generate documentation update suggestions")
+app = typer.Typer()
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def suggest(
-    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
+    ctx: typer.Context,
+    branch: Annotated[
+        str | None, typer.Option("--branch", "-b", help="Branch to compare against")
+    ] = None,
 ):
     """Generate documentation update suggestions based on code and doc changes."""
+    if ctx.resilient_parsing:
+        return
+
     settings = require_config()
 
     # Use default branch if not specified
@@ -37,18 +43,16 @@ def suggest(
     suggestor = DocChangeSuggester(
         suggestion_state_path=settings.state_directory / SUGGESTION_STATE_FILENAME,
     )
-    code_scanner = DescriberService(
-        GitConsumer(".", branch),
-        None,
+    code_scanner = CodeDescriberService(
+        GitConsumer(Path("."), branch),
         state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
     )
     doc_scanner = DescriberService(
         DocConsumer(
-            ".",
+            Path("."),
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        None,
         state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
     )
     doc_state = doc_scanner.get_state()

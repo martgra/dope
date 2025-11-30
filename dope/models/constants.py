@@ -9,17 +9,17 @@ CONFIG_FILENAME: str = ".doperc.yaml"
 APP_NAME: str = "dope"
 
 DOC_SUFFIX: set[FileSuffix] = {
-    ".md",
-    ".markdown",
-    ".mdx",
-    ".rst",
-    ".adoc",
-    ".asciidoc",
-    ".org",
-    ".wiki",
+    FileSuffix(".md"),
+    FileSuffix(".markdown"),
+    FileSuffix(".mdx"),
+    FileSuffix(".rst"),
+    FileSuffix(".adoc"),
+    FileSuffix(".asciidoc"),
+    FileSuffix(".org"),
+    FileSuffix(".wiki"),
 }
 
-DEFAULT_DOC_SUFFIX: set[FileSuffix] = {".md", ".mdx"}
+DEFAULT_DOC_SUFFIX: set[FileSuffix] = {FileSuffix(".md"), FileSuffix(".mdx")}
 
 EXCLUDE_DIRS: set[str] = {"node_modules", ".venv", ".pytest_cache", "dist", "build", "venv"}
 

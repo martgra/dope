@@ -49,7 +49,9 @@ def code(
     repo_root: Annotated[
         Path, typer.Option("--root", help="Root directory of code repository")
     ] = Path("."),
-    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to compare against")] = None,
+    branch: Annotated[
+        str | None, typer.Option("--branch", "-b", help="Branch to compare against")
+    ] = None,
 ):
     """Scan code changes against a branch."""
     settings = require_config()
