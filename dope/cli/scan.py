@@ -5,10 +5,11 @@ from typing import Annotated
 
 import typer
 
+from dope.cli.common import get_branch_option, get_state_path, resolve_branch
 from dope.consumers.doc_consumer import DocConsumer
 from dope.consumers.git_consumer import GitConsumer
-from dope.core.context import UsageContext
 from dope.core.progress import track
+from dope.core.usage import UsageTracker
 from dope.core.utils import require_config
 from dope.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
 from dope.services.describer.describer_base import CodeDescriberService, DescriberService
@@ -24,6 +25,7 @@ def docs(
 ):
     """Scan documentation files for changes."""
     settings = require_config()
+    tracker = UsageTracker()
 
     doc_scanner = DescriberService(
         DocConsumer(
@@ -31,7 +33,8 @@ def docs(
             file_type_filter=settings.docs.doc_filetypes,
             exclude_dirs=settings.docs.exclude_dirs,
         ),
-        state_filepath=settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME,
+        state_filepath=get_state_path(settings, DESCRIBE_DOCS_STATE_FILENAME),
+        usage_tracker=tracker,
     )
     doc_state = doc_scanner.scan()
     try:
@@ -41,7 +44,7 @@ def docs(
             doc_state[filepath] = doc_scanner.describe(file_path=filepath, state_item=state_item)
     finally:
         doc_scanner.save_state(doc_state)
-    UsageContext().log_usage()
+    tracker.log()
 
 
 @app.command()
@@ -49,20 +52,17 @@ def code(
     repo_root: Annotated[
         Path, typer.Option("--root", help="Root directory of code repository")
     ] = Path("."),
-    branch: Annotated[
-        str | None, typer.Option("--branch", "-b", help="Branch to compare against")
-    ] = None,
+    branch: get_branch_option() = None,
 ):
     """Scan code changes against a branch."""
     settings = require_config()
-
-    # Use default branch if not specified
-    if branch is None:
-        branch = settings.git.default_branch
+    branch = resolve_branch(branch, settings)
+    tracker = UsageTracker()
 
     code_scanner = CodeDescriberService(
         GitConsumer(repo_root, branch),
-        state_filepath=settings.state_directory / DESCRIBE_CODE_STATE_FILENAME,
+        state_filepath=get_state_path(settings, DESCRIBE_CODE_STATE_FILENAME),
+        usage_tracker=tracker,
     )
     code_state = code_scanner.scan()
     try:
@@ -70,4 +70,4 @@ def code(
             code_state[filepath] = code_scanner.describe(file_path=filepath, state_item=state_item)
     finally:
         code_scanner.save_state(code_state)
-    UsageContext().log_usage()
+    tracker.log()

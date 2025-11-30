@@ -6,6 +6,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from dope.cli.common import get_state_path
 from dope.core.utils import require_config
 from dope.models.constants import (
     DESCRIBE_CODE_STATE_FILENAME,
@@ -23,10 +24,10 @@ def status():
     settings = require_config()
 
     # Load state files
-    docs_state_path = settings.state_directory / DESCRIBE_DOCS_STATE_FILENAME
-    code_state_path = settings.state_directory / DESCRIBE_CODE_STATE_FILENAME
-    suggestions_state_path = settings.state_directory / SUGGESTION_STATE_FILENAME
-    scope_path = settings.state_directory / "scope.yaml"
+    docs_state_path = get_state_path(settings, DESCRIBE_DOCS_STATE_FILENAME)
+    code_state_path = get_state_path(settings, DESCRIBE_CODE_STATE_FILENAME)
+    suggestions_state_path = get_state_path(settings, SUGGESTION_STATE_FILENAME)
+    scope_path = get_state_path(settings, "scope.yaml")
 
     # Count items in each state
     docs_scanned = 0

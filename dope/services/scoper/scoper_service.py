@@ -2,8 +2,8 @@ from pathlib import Path
 
 from dope.consumers.doc_consumer import DocConsumer
 from dope.consumers.git_consumer import GitConsumer
-from dope.core.context import UsageContext
 from dope.core.progress import track
+from dope.core.usage import UsageTracker
 from dope.models.domain.scope_template import ScopeTemplate, SuggestedChange
 from dope.services.scoper.prompts import CHANGE_FILE_PROMPT, MOVE_CONTENT_PROMPT, PROMPT
 from dope.services.scoper.scoper_agents import (
@@ -16,15 +16,22 @@ from dope.services.scoper.scoper_agents import (
 class ScopeService:
     """ScopeService."""
 
-    def __init__(self, doc_consumer: DocConsumer, git_consumer: GitConsumer):
+    def __init__(
+        self,
+        doc_consumer: DocConsumer,
+        git_consumer: GitConsumer,
+        usage_tracker: UsageTracker | None = None,
+    ):
         """Initialize ScopeService.
 
         Args:
             doc_consumer (DocConsumer): Consumer to interact with documentation.
             git_consumer (GitConsumer): Consumer to interact with code.
+            usage_tracker (UsageTracker): Optional usage tracker for LLM token tracking.
         """
         self.doc_consumer = doc_consumer
         self.git_consumer = git_consumer
+        self.usage_tracker = usage_tracker or UsageTracker()
 
     @staticmethod
     def _map_paths_to_sections(doc_scope: ScopeTemplate, section_paths: dict[str, str]) -> None:
@@ -87,7 +94,7 @@ class ScopeService:
             get_project_complexity_agent()
             .run_sync(
                 user_prompt=PROMPT.format(structure=repo_structure, metadata=repo_metadata),
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             )
             .output
         )
@@ -124,7 +131,7 @@ class ScopeService:
             get_scope_creator_agent()
             .run_sync(
                 user_prompt=prompt,
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             )
             .output
         )
@@ -163,7 +170,7 @@ class ScopeService:
             )
             response = get_doc_aligner_agent().run_sync(
                 user_prompt=prompt,
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             )
             suggested_structure = response.output
             self._create_file_and_path(
@@ -182,7 +189,7 @@ class ScopeService:
                     content=change.content,
                     doc_content=doc_content,
                 ),
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             )
             aligned_doc = response.output
             self._create_file_and_path(Path(change.filepath), aligned_doc.content)

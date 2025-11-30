@@ -75,11 +75,8 @@ def get_settings() -> Settings:
         >>> settings.agent.provider
         Provider.OPENAI
     """
-    from dope.core.utils import (  # Delayed import to avoid circular dependency
-        load_settings_from_yaml,
-        locate_global_config,
-        locate_local_config_file,
-    )
+    from dope.core.config_io import load_settings_from_yaml
+    from dope.core.config_locator import locate_global_config, locate_local_config_file
     from dope.models.constants import CONFIG_FILENAME
 
     config_filepath = locate_local_config_file(CONFIG_FILENAME) or locate_global_config(
