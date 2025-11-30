@@ -6,9 +6,10 @@ from pydantic_ai import Agent, RunContext
 
 from dope.consumers.git_consumer import GitConsumer
 from dope.core.settings import get_settings
+from dope.exceptions import AgentNotConfiguredError, DocumentNotFoundError
 from dope.llms.model_factory import get_model
 from dope.models.domain.code import CodeChanges
-from dope.models.domain.doc import DocSummary
+from dope.models.domain.documentation import DocSummary
 from dope.services.describer.prompts import CODE_DESCRIPTION_PROMPT, DOC_DESCRIPTION_PROMPT
 
 
@@ -24,7 +25,7 @@ def get_code_change_agent() -> Agent[Deps, CodeChanges]:
     """Get the code change agent (lazy-initialized and cached)."""
     settings = get_settings()
     if settings.agent is None:
-        raise RuntimeError("Agent configuration not found. Run 'dope config init' first.")
+        raise AgentNotConfiguredError()
     agent = Agent(
         model=get_model(settings.agent.provider, "gpt-4.1-mini"),
         deps_type=Deps,
@@ -47,7 +48,7 @@ def get_code_change_agent() -> Agent[Deps, CodeChanges]:
         """
         print(f"Calling code tool for file {code_filepath}")
         if not Path(code_filepath).is_file():
-            raise FileNotFoundError(code_filepath)
+            raise DocumentNotFoundError(code_filepath)
         content = _ctx.deps.consumer.get_full_content(file_path=code_filepath)
         return content
 
@@ -59,7 +60,7 @@ def get_doc_summarization_agent() -> Agent[None, DocSummary]:
     """Get the doc summarization agent (lazy-initialized and cached)."""
     settings = get_settings()
     if settings.agent is None:
-        raise RuntimeError("Agent configuration not found. Run 'dope config init' first.")
+        raise AgentNotConfiguredError()
     agent = Agent(model=get_model(settings.agent.provider, "gpt-4.1-mini"), output_type=DocSummary)
 
     @agent.system_prompt

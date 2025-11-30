@@ -3,7 +3,7 @@ import json
 from pydantic.json import pydantic_encoder
 
 from dope.core.usage import UsageTracker
-from dope.models.domain.doc import SuggestedChange
+from dope.models.domain.documentation import SuggestedChange
 from dope.services.changer.changer_agents import Deps, get_changer_agent
 from dope.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
 

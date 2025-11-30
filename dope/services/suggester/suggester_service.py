@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic.json import pydantic_encoder
 
 from dope.core.usage import UsageTracker
-from dope.models.domain.doc import DocSuggestions
+from dope.models.domain.documentation import DocSuggestions
 from dope.services.suggester.prompts import FILE_SUMMARY_PROMPT, SUGGESTION_PROMPT
 from dope.services.suggester.suggester_agents import get_suggester_agent
 

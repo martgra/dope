@@ -4,7 +4,7 @@ from dope.consumers.doc_consumer import DocConsumer
 from dope.consumers.git_consumer import GitConsumer
 from dope.core.progress import track
 from dope.core.usage import UsageTracker
-from dope.models.domain.scope_template import ScopeTemplate, SuggestedChange
+from dope.models.domain.scope import ScopeTemplate, SuggestedChange
 from dope.services.scoper.prompts import CHANGE_FILE_PROMPT, MOVE_CONTENT_PROMPT, PROMPT
 from dope.services.scoper.scoper_agents import (
     get_doc_aligner_agent,

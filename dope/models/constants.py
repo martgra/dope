@@ -1,4 +1,4 @@
-from dope.models.internal import FileSuffix
+from dope.models.shared import FileSuffix
 
 SUGGESTION_STATE_FILENAME: str = "suggestion-state.json"
 DESCRIBE_DOCS_STATE_FILENAME: str = "doc-state.json"

@@ -1,9 +1,8 @@
-from dope.models.domain.scope_template import (
+from dope.models.domain.scope import (
     DocTemplate,
-    DocTemplateKey,
-    ProjectTier,
     StructureTemplate,
 )
+from dope.models.enums import DocTemplateKey, ProjectTier
 from dope.services.scoper.scope_template.large import large
 from dope.services.scoper.scope_template.massive import massive
 from dope.services.scoper.scope_template.medium import medium

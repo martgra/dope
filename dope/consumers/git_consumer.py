@@ -4,7 +4,8 @@ from typing import Literal
 from git import Repo
 
 from dope.consumers.base import BaseConsumer
-from dope.models.domain.doc import CodeMetadata
+from dope.exceptions import DocumentNotFoundError
+from dope.models.domain.documentation import CodeMetadata
 
 
 class GitConsumer(BaseConsumer):
@@ -46,7 +47,7 @@ class GitConsumer(BaseConsumer):
         elif mode == "all":
             return self._get_all_files()
         else:
-            raise ValueError(f"Unsupported mode: {mode}")
+            raise ValueError(f"Unsupported discover_files mode: {mode}. Use 'diff' or 'all'.")
 
     def _get_diff_files(self, branch_name, exclude_patterns):
         ref = branch_name if branch_name else self.base_branch
@@ -71,7 +72,7 @@ class GitConsumer(BaseConsumer):
             with code_path.open("r") as file:
                 return file.read()
         else:
-            raise FileNotFoundError(str(code_path))
+            raise DocumentNotFoundError(str(code_path))
 
     def _get_lines_of_code(self):
         all_files = self._get_all_files()
