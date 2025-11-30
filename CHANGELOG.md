@@ -5,7 +5,7 @@
 - Added `get_structure` and repository metadata features (anytree)
 - Added `get_graphical_repo_tree` utility
 - Added Python dependencies: anytree >=2.13.0, questionary >=2.1.0
-- Updated import paths for domain models (`app.models.domain.domain`)
+- Updated import paths for domain models (`dope.models.domain.domain`)
 - Rename `--apply-change` option to `--apply` for the `dope change docs` command.
 - Add a new `--branch <branch-name>` option to specify which Git branch to compare against (defaulting to the configured default branch) for the following commands:
   - `dope scan docs`
@@ -18,8 +18,8 @@
 - Enhanced `init` command to support interactive prompts for configuration fields: `state_directory`, `code_repo_root`, `docs_root`, `exclude_dirs`, `doc_filetypes`, `provider`, `deployment_endpoint`, and `token`, including URL validation and graceful abort handling. ([app/cli/config.py])
 - Renamed `GitSettings` to `CodeRepoSettings` and introduced new `docs_root` and `code_repo_root` attributes; default values for file suffixes, excludes, and branch are now driven by constants. ([app/core/settings.py], [app/models/constants.py])
 - `generate_local_config_file` now omits `None` values when writing YAML; `generate_local_cache` supports custom `cache_dir_path` and `add_to_git` behavior with `.gitignore` creation. ([app/core/utils.py])
-- Refactored the code-describing CLI to use the new `CodeDescriberService` (moved from `app.services.describer.describer_service` to `app.services.describer.describer_base`).
-- Introduced a generic `Scanner` class in `app.services.describer.describer_base` for incremental file scanning, state persistence, and content summarization.
+- Refactored the code-describing CLI to use the new `CodeDescriberService` (moved from `dope.services.describer.describer_service` to `dope.services.describer.describer_base`).
+- Introduced a generic `Scanner` class in `dope.services.describer.describer_base` for incremental file scanning, state persistence, and content summarization.
 - Added a `Deps` dataclass and `get_code_file_content` tool to the `code_change_agent` for reliable retrieval of full file contents and explicit error handling.
 - Expanded the documentation prompts (`DOC_DESCRIPTION_PROMPT` and `CODE_DESCRIPTION_PROMPT`) to clarify input formats and improve the accuracy of generated summaries.
 
