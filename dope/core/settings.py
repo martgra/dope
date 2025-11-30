@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 
 from platformdirs import user_cache_dir
@@ -50,3 +51,55 @@ class Settings(BaseSettings):
     git: CodeRepoSettings = CodeRepoSettings()
     agent: AgentSettings | None = None
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Get cached application settings.
+
+    This function loads settings from configuration files (local or global) on first call,
+    then returns the cached instance on subsequent calls. This pattern:
+    - Avoids circular import issues by deferring imports until function call
+    - Prevents repeated file I/O and YAML parsing
+    - Makes testing easier (can clear cache with get_settings.cache_clear())
+    - Provides single source of truth for settings access
+
+    Returns:
+        Settings: The cached settings instance.
+
+    Raises:
+        SystemExit: If configuration file exists but is invalid.
+
+    Example:
+        >>> settings = get_settings()
+        >>> settings.agent.provider
+        Provider.OPENAI
+    """
+    from dope.core.utils import (  # Delayed import to avoid circular dependency
+        load_settings_from_yaml,
+        locate_global_config,
+        locate_local_config_file,
+    )
+    from dope.models.constants import CONFIG_FILENAME
+
+    config_filepath = locate_local_config_file(CONFIG_FILENAME) or locate_global_config(
+        CONFIG_FILENAME
+    )
+
+    # Always create settings object - agent will be None if no config
+    settings = Settings()
+    if config_filepath:
+        try:
+            settings = Settings(**load_settings_from_yaml(config_filepath))
+        except Exception as e:
+            # Config exists but is invalid - this is an error
+            import sys
+
+            from rich import print as rprint
+
+            rprint(f"[red]❌ Config file invalid: {config_filepath}[/red]")
+            rprint(f"[yellow]Error: {e}[/yellow]")
+            rprint("[blue]Run 'dope config init --force' to recreate[/blue]")
+            sys.exit(1)
+
+    return settings
