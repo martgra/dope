@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic.json import pydantic_encoder
 
-from dope.core.context import UsageContext
+from dope.core.usage import UsageTracker
 from dope.models.domain.doc import DocSuggestions
 from dope.services.suggester.prompts import FILE_SUMMARY_PROMPT, SUGGESTION_PROMPT
 from dope.services.suggester.suggester_agents import get_suggester_agent
@@ -13,9 +13,10 @@ from dope.services.suggester.suggester_agents import get_suggester_agent
 class DocChangeSuggester:
     """DocChangeSuggestor class."""
 
-    def __init__(self, *, suggestion_state_path: Path):
+    def __init__(self, *, suggestion_state_path: Path, usage_tracker: UsageTracker | None = None):
         self.agent = get_suggester_agent()
         self.suggestion_state_path = Path(suggestion_state_path)
+        self.usage_tracker = usage_tracker or UsageTracker()
 
     @staticmethod
     def _prompt_formatter(state_dict: dict) -> str:
@@ -76,7 +77,7 @@ class DocChangeSuggester:
             )
             suggestion = self.agent.run_sync(
                 user_prompt=prompt,
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             ).output
             suggestion_state["suggestion"] = suggestion.model_dump()
             self._save_state(suggestion_state)

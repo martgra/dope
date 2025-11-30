@@ -7,9 +7,10 @@ import yaml
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from dope.cli.common import get_branch_option, resolve_branch
 from dope.consumers.doc_consumer import DocConsumer
 from dope.consumers.git_consumer import GitConsumer
-from dope.core.context import UsageContext
+from dope.core.usage import UsageTracker
 from dope.core.utils import require_config
 from dope.models.domain.scope_template import (
     DocTemplate,
@@ -28,12 +29,12 @@ def _init_scope_service(
     branch: str | None = None,
     file_type_filter=None,
     exclude_dirs=None,
+    usage_tracker: UsageTracker | None = None,
 ) -> ScopeService:
     """Initialize and return a ScopeService with configured DocConsumer and GitConsumer."""
     settings = require_config()
 
-    if branch is None:
-        branch = settings.git.default_branch
+    branch = resolve_branch(branch, settings)
     if file_type_filter is None:
         file_type_filter = settings.docs.doc_filetypes
     if exclude_dirs is None:
@@ -45,7 +46,7 @@ def _init_scope_service(
         exclude_dirs=exclude_dirs,
     )
     git_consumer = GitConsumer(root_path=repo_path, base_branch=branch)
-    return ScopeService(doc_consumer, git_consumer)
+    return ScopeService(doc_consumer, git_consumer, usage_tracker=usage_tracker)
 
 
 def _prompt_project_size() -> ProjectTier | None:
@@ -149,15 +150,14 @@ def create(
     project_size: Annotated[
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
-    branch: Annotated[
-        str | None, typer.Option("--branch", "-b", help="Branch to compare against")
-    ] = None,
+    branch: get_branch_option() = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
     settings = require_config()
+    tracker = UsageTracker()
 
     state_path: Path = settings.state_directory / "scope.yaml"
-    service = _init_scope_service(branch=branch)
+    service = _init_scope_service(branch=branch, usage_tracker=tracker)
 
     size_enum = _determine_project_size(interactive, project_size, service)
     doc_sections = _determine_doc_sections(interactive, size_enum)
@@ -179,18 +179,16 @@ def create(
         scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
     _save_state(scope_template, state_path)
     print(f"Scope created at {str(state_path)}")
-    UsageContext().log_usage()
+    tracker.log()
 
 
 @app.command()
 def apply(
-    branch: Annotated[
-        str | None,
-        typer.Option("--branch", "-b", help="Branch to compare against"),
-    ] = None,
+    branch: get_branch_option() = None,
 ):
     """Apply the previously created documentation scope."""
     settings = require_config()
+    tracker = UsageTracker()
 
     state_path: Path = settings.state_directory / "scope.yaml"
     if not state_path.is_file():
@@ -199,7 +197,7 @@ def apply(
     if not typer.confirm("Are you sure you want to apply the scoped changes?"):
         print("Aborted.")
         return
-    service = _init_scope_service(branch=branch)
+    service = _init_scope_service(branch=branch, usage_tracker=tracker)
     scope_template = _load_state(state_path)
     try:
         service.apply_scope(scope_template)
@@ -207,4 +205,4 @@ def apply(
         print(f"Error applying scope: {e}")
         raise typer.Abort() from e
     print("Applied the structure.")
-    UsageContext().log_usage()
+    tracker.log()

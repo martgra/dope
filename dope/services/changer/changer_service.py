@@ -2,7 +2,7 @@ import json
 
 from pydantic.json import pydantic_encoder
 
-from dope.core.context import UsageContext
+from dope.core.usage import UsageTracker
 from dope.models.domain.doc import SuggestedChange
 from dope.services.changer.changer_agents import Deps, get_changer_agent
 from dope.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
@@ -11,17 +11,18 @@ from dope.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_P
 class DocsChanger:
     """DocChanger class."""
 
-    def __init__(self, *, docs_consumer, git_consumer):
+    def __init__(self, *, docs_consumer, git_consumer, usage_tracker: UsageTracker | None = None):
         """Initialize DocChanger.
 
         Args:
-            agent (_type_): _description_
-            docs_consumer (_type_): _description_
-            git_consumer (_type_): _description_
+            docs_consumer: Consumer for documentation files
+            git_consumer: Consumer for Git operations
+            usage_tracker: Optional usage tracker for LLM token tracking
         """
         self.docs_consumer = docs_consumer
         self.git_consumer = git_consumer
         self.agent = get_changer_agent()
+        self.usage_tracker = usage_tracker or UsageTracker()
 
     def _change_prompt(self, docs_content: str, suggested_change: SuggestedChange):
         return CHANGE_DOC_USER_PROMPT.format(
@@ -61,6 +62,6 @@ class DocsChanger:
         content = self.agent.run_sync(
             user_prompt=prompt,
             deps=Deps(git_consumer=self.git_consumer),
-            usage=UsageContext().usage,
+            usage=self.usage_tracker.usage,
         ).output
         return suggested_change.documentation_file_path, content

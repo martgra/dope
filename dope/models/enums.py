@@ -6,14 +6,3 @@ class Provider(str, Enum):
 
     OPENAI = "openai"
     AZURE = "azure"
-
-
-class ProjectSize(str, Enum):
-    """Enum for project size."""
-
-    TRIVIAL = "trivial"
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE = "large"
-    XL = "xl"
-    UNSURE = "unsure"

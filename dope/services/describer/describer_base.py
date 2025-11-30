@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dope.consumers.base import BaseConsumer
-from dope.core.context import UsageContext
+from dope.core.usage import UsageTracker
 from dope.services.describer.describer_agents import (
     Deps,
     get_code_change_agent,
@@ -19,9 +19,15 @@ if TYPE_CHECKING:
 class DescriberService:
     """Scanner service."""
 
-    def __init__(self, consumer: BaseConsumer, state_filepath: Path | None = None):
+    def __init__(
+        self,
+        consumer: BaseConsumer,
+        state_filepath: Path | None = None,
+        usage_tracker: UsageTracker | None = None,
+    ):
         self.consumer = consumer
         self.state_filepath = state_filepath
+        self.usage_tracker = usage_tracker or UsageTracker()
 
     def _compute_hash(self, file_path: Path) -> str:
         content = self.consumer.get_content(file_path)
@@ -74,7 +80,7 @@ class DescriberService:
             get_doc_summarization_agent()
             .run_sync(
                 user_prompt=prompt,
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             )
             .output.model_dump()
         )
@@ -94,9 +100,14 @@ class DescriberService:
 class CodeDescriberService(DescriberService):
     """Code describer service."""
 
-    def __init__(self, consumer: "GitConsumer", state_filepath: Path | None = None):
+    def __init__(
+        self,
+        consumer: "GitConsumer",
+        state_filepath: Path | None = None,
+        usage_tracker: UsageTracker | None = None,
+    ):
         """Initialize with GitConsumer specifically."""
-        super().__init__(consumer, state_filepath)
+        super().__init__(consumer, state_filepath, usage_tracker)
         self.consumer: GitConsumer = consumer  # Type narrowing for this subclass
 
     def _run_agent(self, prompt):
@@ -105,7 +116,7 @@ class CodeDescriberService(DescriberService):
             .run_sync(
                 user_prompt=prompt,
                 deps=Deps(consumer=self.consumer),
-                usage=UsageContext().usage,
+                usage=self.usage_tracker.usage,
             )
             .output.model_dump()
         )
