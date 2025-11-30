@@ -11,7 +11,11 @@ from dope.consumers.git_consumer import GitConsumer
 from dope.core.progress import track
 from dope.core.usage import UsageTracker
 from dope.core.utils import require_config
-from dope.models.constants import DESCRIBE_CODE_STATE_FILENAME, DESCRIBE_DOCS_STATE_FILENAME
+from dope.models.constants import (
+    DESCRIBE_CODE_STATE_FILENAME,
+    DESCRIBE_DOCS_STATE_FILENAME,
+    DOC_TERM_INDEX_FILENAME,
+)
 from dope.services.describer.describer_base import CodeDescriberService, DescriberService
 
 app = typer.Typer(help="Scan documentation and code for changes")
@@ -35,6 +39,7 @@ def docs(
         ),
         state_filepath=get_state_path(settings, DESCRIBE_DOCS_STATE_FILENAME),
         usage_tracker=tracker,
+        doc_term_index_path=get_state_path(settings, DOC_TERM_INDEX_FILENAME),
     )
     doc_state = doc_scanner.scan()
     try:
@@ -63,6 +68,7 @@ def code(
         GitConsumer(repo_root, branch),
         state_filepath=get_state_path(settings, DESCRIBE_CODE_STATE_FILENAME),
         usage_tracker=tracker,
+        doc_term_index_path=get_state_path(settings, DOC_TERM_INDEX_FILENAME),
     )
     code_state = code_scanner.scan()
     try:

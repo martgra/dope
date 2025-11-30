@@ -21,8 +21,15 @@ class DocsChanger:
         """
         self.docs_consumer = docs_consumer
         self.git_consumer = git_consumer
-        self.agent = get_changer_agent()
+        self._agent = None
         self.usage_tracker = usage_tracker or UsageTracker()
+
+    @property
+    def agent(self):
+        """Lazy-load the agent only when needed."""
+        if self._agent is None:
+            self._agent = get_changer_agent()
+        return self._agent
 
     def _change_prompt(self, docs_content: str, suggested_change: SuggestedChange):
         return CHANGE_DOC_USER_PROMPT.format(

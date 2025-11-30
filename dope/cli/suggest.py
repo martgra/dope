@@ -14,6 +14,7 @@ from dope.core.utils import require_config
 from dope.models.constants import (
     DESCRIBE_CODE_STATE_FILENAME,
     DESCRIBE_DOCS_STATE_FILENAME,
+    DOC_TERM_INDEX_FILENAME,
     SUGGESTION_STATE_FILENAME,
 )
 from dope.models.domain.scope import ScopeTemplate
@@ -44,6 +45,7 @@ def suggest(
         GitConsumer(Path("."), branch),
         state_filepath=get_state_path(settings, DESCRIBE_CODE_STATE_FILENAME),
         usage_tracker=tracker,
+        doc_term_index_path=get_state_path(settings, DOC_TERM_INDEX_FILENAME),
     )
     doc_scanner = DescriberService(
         DocConsumer(
@@ -53,6 +55,7 @@ def suggest(
         ),
         state_filepath=get_state_path(settings, DESCRIBE_DOCS_STATE_FILENAME),
         usage_tracker=tracker,
+        doc_term_index_path=get_state_path(settings, DOC_TERM_INDEX_FILENAME),
     )
     doc_state = doc_scanner.get_state()
     code_state = code_scanner.get_state()

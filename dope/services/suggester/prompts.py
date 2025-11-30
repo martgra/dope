@@ -25,9 +25,19 @@ Summarization of the current documentation giving you an overview of the current
 {documentation}
 </current_documentation>
 
-The code changes to suggest updates in the documentation on. If none of the code changes fit with the provided scope
-and are deemed insignificant do not suggest a change, else give a detailed instruction on the change needed based on
-the code change, your understanding of the documentation and the scope.
+The code changes to suggest updates in the documentation on. Files are ordered by priority (HIGH priority first).
+Each code change includes metadata about its significance:
+- Priority: HIGH files (README, config, entry points) require careful documentation
+- Change Magnitude: Indicates the scale of changes (major > 0.7, medium 0.4-0.7, minor < 0.4)
+- Lines Changed: Number of lines added/deleted
+
+Consider the priority and magnitude when deciding which changes need documentation updates.
+HIGH priority files with major changes should receive detailed documentation updates.
+Minor changes in normal files may only need brief mentions or no updates.
+
+If none of the code changes fit with the provided scope and are deemed insignificant,
+do not suggest a change. Otherwise, give a detailed instruction on the change needed based on
+the code change, its priority/magnitude, your understanding of the documentation, and the scope.
 <code_changes>
 {code_changes}
 </code_changes>
@@ -36,7 +46,7 @@ the code change, your understanding of the documentation and the scope.
 FILE_SUMMARY_PROMPT = """
 
 <{file_path}>
-file_path: {file_path}
+file_path: {file_path}{metadata}
 
 summary:
 {summary}
