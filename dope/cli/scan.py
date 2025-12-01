@@ -1,17 +1,21 @@
 """Scan documentation and code for changes."""
 
+import asyncio
 from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from dope.cli.common import get_branch_option, resolve_branch
 from dope.cli.factories import create_code_scanner, create_doc_scanner
-from dope.core.progress import track
 from dope.core.usage import UsageTracker
 from dope.core.utils import require_config
 
 app = typer.Typer(help="Scan documentation and code for changes")
+
+# Default concurrency for parallel LLM API calls
+DEFAULT_CONCURRENCY = 5
 
 
 @app.command()
@@ -19,6 +23,9 @@ def docs(
     docs_root: Annotated[
         Path, typer.Option("--root", help="Root directory of documentation")
     ] = Path("."),
+    concurrency: Annotated[
+        int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
+    ] = DEFAULT_CONCURRENCY,
 ):
     """Scan documentation files for changes."""
     settings = require_config()
@@ -29,10 +36,20 @@ def docs(
     # Phase 1: Discover files and update state (hashes)
     doc_scanner.scan()
 
-    # Phase 2: Generate summaries for files that need them
+    # Phase 2: Generate summaries for files that need them (parallel)
     files_to_process = doc_scanner.files_needing_summary()
-    for filepath in track(files_to_process, description="Scanning documentation files"):
-        doc_scanner.describe_and_save(filepath)
+    if files_to_process:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task(
+                f"Scanning {len(files_to_process)} documentation files...", total=None
+            )
+            asyncio.run(
+                doc_scanner.describe_files_parallel(files_to_process, max_concurrency=concurrency)
+            )
 
     # Phase 3: Build term index for code scanning relevance
     doc_scanner.build_term_index()
@@ -46,6 +63,9 @@ def code(
         Path, typer.Option("--root", help="Root directory of code repository")
     ] = Path("."),
     branch: get_branch_option() = None,
+    concurrency: Annotated[
+        int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
+    ] = DEFAULT_CONCURRENCY,
 ):
     """Scan code changes against a branch."""
     settings = require_config()
@@ -57,9 +77,17 @@ def code(
     # Phase 1: Discover files, filter, and update state (hashes)
     code_scanner.scan()
 
-    # Phase 2: Generate summaries for files that need them
+    # Phase 2: Generate summaries for files that need them (parallel)
     files_to_process = code_scanner.files_needing_summary()
-    for filepath in track(files_to_process, description="Scanning code changes"):
-        code_scanner.describe_and_save(filepath)
+    if files_to_process:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task(f"Scanning {len(files_to_process)} code changes...", total=None)
+            asyncio.run(
+                code_scanner.describe_files_parallel(files_to_process, max_concurrency=concurrency)
+            )
 
     tracker.log()

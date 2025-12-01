@@ -436,6 +436,34 @@ class DocAgentStrategy:
             .output.model_dump()
         )
 
+    async def run_agent_async(
+        self,
+        file_path: str,
+        content: bytes,
+        usage_tracker: UsageTracker,
+        consumer: BaseConsumer | None = None,
+    ) -> dict:
+        """Run doc summarization agent asynchronously.
+
+        Args:
+            file_path: Path to the documentation file.
+            content: File content as bytes.
+            usage_tracker: Tracker for LLM usage statistics.
+            consumer: Not used for doc agent.
+
+        Returns:
+            DocSummary dict from the agent.
+        """
+        prompt = SUMMARIZATION_TEMPLATE.format(
+            file_path=file_path,
+            content=content.decode("utf-8", errors="ignore"),
+        )
+        result = await get_doc_summarization_agent().run(
+            user_prompt=prompt,
+            usage=usage_tracker.usage,
+        )
+        return result.output.model_dump()
+
 
 @dataclass
 class CodeAgentStrategy:
@@ -477,3 +505,32 @@ class CodeAgentStrategy:
             )
             .output.model_dump()
         )
+
+    async def run_agent_async(
+        self,
+        file_path: str,
+        content: bytes,
+        usage_tracker: UsageTracker,
+        consumer: BaseConsumer | None = None,
+    ) -> dict:
+        """Run code change agent asynchronously with git context.
+
+        Args:
+            file_path: Path to the code file.
+            content: File content as bytes (diff content).
+            usage_tracker: Tracker for LLM usage statistics.
+            consumer: Git consumer for additional context (uses self.consumer).
+
+        Returns:
+            CodeChanges dict from the agent.
+        """
+        prompt = SUMMARIZATION_TEMPLATE.format(
+            file_path=file_path,
+            content=content.decode("utf-8", errors="ignore"),
+        )
+        result = await get_code_change_agent().run(
+            user_prompt=prompt,
+            deps=Deps(consumer=self.consumer),
+            usage=usage_tracker.usage,
+        )
+        return result.output.model_dump()

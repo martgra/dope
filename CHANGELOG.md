@@ -1,6 +1,6 @@
 # Unreleased
 
-- Added `dope scope` command group with `create` subcommand for interactive documentation‑scope generation
+- Added `dope scope` command group with `create` subcommand for interactive documentation‐scope generation
 - Introduced `ScopeService`, `DocScope`, and AI agents for scope definition
 - Added `get_structure` and repository metadata features (anytree)
 - Added `get_graphical_repo_tree` utility
@@ -24,6 +24,7 @@
 - Expanded the documentation prompts (`DOC_DESCRIPTION_PROMPT` and `CODE_DESCRIPTION_PROMPT`) to clarify input formats and improve the accuracy of generated summaries.
 - Added `dope apply` command to apply suggested documentation changes via the DocsChanger service.
 - Added `dope config` command group with subcommands `init`, `show`, `validate`, and `set` to manage application configuration.
+- Added `--concurrency` option (default 5) for `dope scan docs` and `dope scan code` commands, enabling parallel LLM calls during scans.
 
 # Version History
 

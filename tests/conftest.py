@@ -245,6 +245,37 @@ def mock_agent():
 
 
 @pytest.fixture
+def mock_async_agent():
+    """Create a mock agent for async operations.
+
+    Returns a MagicMock configured for agent.run() async calls.
+    """
+    import asyncio
+
+    agent = MagicMock()
+
+    # Create mock output
+    mock_output = MagicMock()
+    mock_output.model_dump.return_value = {
+        "description": "Test description",
+        "changes": ["Test change"],
+    }
+
+    # Configure async run return value
+    mock_result = MagicMock()
+    mock_result.output = mock_output
+
+    # Create a coroutine that returns the mock result
+    async def async_run(*args, **kwargs):
+        await asyncio.sleep(0)  # Yield to event loop
+        return mock_result
+
+    agent.run = async_run
+
+    return agent
+
+
+@pytest.fixture
 def mock_suggester_agent():
     """Create a mock agent for suggestion generation."""
     from dope.models.domain.documentation import (

@@ -38,12 +38,15 @@ dope config init --force
 To scan your documentation files:
 
 ```bash
-dope scan docs --branch main
+# Run a parallel documentation scan with up to 10 concurrent LLM calls
+dope scan docs --branch main --concurrency 10
 ```
 
 _Expected:_ Lists documentation files.
 
 When you run this command, a documentation term index file (`doc-terms.json`) will be created in the state directory. This index helps the application match relevant terms between code and docs, improving the relevance of suggestions for future commands.
+
+**Note:** The `--concurrency` flag controls how many concurrent LLM calls are made (default: 5). Increasing concurrency can speed up scanning at the cost of higher API usage.
 
 **Note:** If you run a command without proper configuration, the CLI will now display a red-colored error message and exit with code 1, so CI or scripts can catch the failure.
 
@@ -52,7 +55,8 @@ When you run this command, a documentation term index file (`doc-terms.json`) wi
 To describe the code structure:
 
 ```bash
-dope scan code --branch main
+# Verify code setup with parallel summaries
+dope scan code --branch main --concurrency 8
 ```
 
 _Expected:_ Summary of code structure.
@@ -63,10 +67,10 @@ Explore the main CLI commands—all support the `--branch <branch-name>` option 
 
 ```bash
 # Scan documentation files
-dope scan docs --branch <branch-name>
+dope scan docs --branch <branch-name> [--concurrency <N>]  # (default: 5)
 
 # Scan the code structure
-dope scan code --branch <branch-name>
+dope scan code --branch <branch-name> [--concurrency <N>]  # (default: 5)
 
 # Suggest documentation updates (optionally on a branch, with optional scope file)
 dope suggest --scope-file <scope.yaml> --branch <branch-name>

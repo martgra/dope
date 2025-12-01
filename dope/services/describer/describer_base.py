@@ -229,6 +229,77 @@ class DescriberService:
                 state_item["summary"] = None
         return state_item
 
+    async def describe_async(self, file_path: str, state_item: dict) -> dict:
+        """Generate summary for a file asynchronously.
+
+        Args:
+            file_path: Path to the file.
+            state_item: Current state item for the file.
+
+        Returns:
+            Updated state item with summary.
+        """
+        if state_item.get("skipped"):
+            return state_item
+
+        if not state_item["summary"]:
+            content = self._consumer.get_content(self._consumer.root_path / file_path)
+            try:
+                state_item["summary"] = await self._agent_strategy.run_agent_async(
+                    file_path=file_path,
+                    content=content,
+                    usage_tracker=self._usage_tracker,
+                    consumer=self._consumer,
+                )
+            except Exception as e:
+                logger.warning("Failed to generate summary for %s: %s", file_path, e)
+                state_item["summary"] = None
+        return state_item
+
+    async def describe_files_parallel(
+        self,
+        file_paths: list[str],
+        max_concurrency: int = 5,
+    ) -> dict[str, dict]:
+        """Describe multiple files in parallel and save results.
+
+        Uses asyncio.Semaphore to limit concurrent LLM API calls.
+
+        Args:
+            file_paths: List of file paths to describe.
+            max_concurrency: Maximum concurrent API calls (default: 5).
+
+        Returns:
+            Dictionary mapping file paths to their updated state items.
+        """
+        import asyncio
+
+        state = self._load_state()
+        semaphore = asyncio.Semaphore(max_concurrency)
+        results: dict[str, dict] = {}
+
+        async def process_file(file_path: str) -> tuple[str, dict]:
+            async with semaphore:
+                state_item = state.get(file_path, {}).copy()
+                if state_item.get("skipped") or state_item.get("summary"):
+                    return file_path, state_item
+                updated = await self.describe_async(file_path, state_item)
+                return file_path, updated
+
+        tasks = [process_file(fp) for fp in file_paths]
+        completed = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in completed:
+            if isinstance(result, Exception):
+                logger.warning("Parallel describe failed for a file: %s", result)
+                continue
+            file_path, updated_item = result
+            results[file_path] = updated_item
+            state[file_path] = updated_item
+
+        self._save_state(state)
+        return results
+
 
 class CodeDescriberService(DescriberService):
     """Code describer service with intelligent filtering.

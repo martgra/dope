@@ -46,8 +46,8 @@ dope config init
 dope config init -i
 
 # 2. Scan your documentation and code
-dope scan docs
-dope scan code
+dope scan docs --branch <branch-name> [--concurrency <N>]
+dope scan code --branch <branch-name> [--concurrency <N>]
 
 # 3. Generate suggestions
 dope suggest
@@ -59,7 +59,8 @@ dope status
 dope apply
 ```
 
-> Scanning operations (`dope scan docs` and `dope scan code`) now generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.
+> Scanning operations (`dope scan docs` and `dope scan code`) now generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.  
+> Both `dope scan docs` and `dope scan code` accept an optional `--concurrency <N>` argument to control the number of simultaneous LLM API calls (default: 5). Increase or decrease as needed for your environment.
 
 > You can inspect and update your configuration at any time using `dope config show`, `dope config validate`, and `dope config set <key> <value>`.
 
@@ -78,8 +79,8 @@ dope config validate          # Validate configuration
 dope config set KEY VALUE     # Update a single setting
 
 # Scanning Commands
-dope scan docs [--branch <branch>]   # Scan documentation files, build a `doc-terms.json` index in the state directory, and classify files for later filtering.
-dope scan code [--branch <branch>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings.
+dope scan docs [--branch <branch>] [--concurrency <N>]   # Scan documentation files, build a `doc-terms.json` index in the state directory, and classify files for later filtering. (default concurrency: 5, controls parallel LLM calls)
+dope scan code [--branch <branch>] [--concurrency <N>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings. (default concurrency: 5, controls parallel LLM calls)
 
 # Documentation Workflow
 dope suggest [--scope-file <scope.yaml>] [--branch <branch>]   # Generate documentation suggestions; optionally load a scope template from `scope.yaml` for targeted suggestions

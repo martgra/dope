@@ -447,10 +447,90 @@ class TestBuildTermIndex:
         }
         repository.save(state)
 
-        # First build
-        service.build_term_index()
+        # First build - should rebuild
+        first_result = service.build_term_index()
+        assert first_result is True
 
-        # Second build should use cache
+        # Second build should use cache (returns False = no rebuild needed)
         result = service.build_term_index()
-
         assert result is False
+
+
+class TestDescribeFilesParallel:
+    """Tests for parallel file description."""
+
+    @pytest.fixture
+    def repository(self, temp_dir):
+        """Create a DescriberRepository instance."""
+        return DescriberRepository(temp_dir / "state.json")
+
+    @pytest.fixture
+    def service(self, repository, mock_file_consumer, mock_usage_tracker):
+        """Create a DescriberService instance."""
+        return DescriberService(
+            consumer=mock_file_consumer,
+            repository=repository,
+            usage_tracker=mock_usage_tracker,
+        )
+
+    @patch("dope.services.describer.strategies.get_doc_summarization_agent")
+    def test_processes_multiple_files_in_parallel(
+        self, mock_get_agent, service, repository, mock_async_agent
+    ):
+        """Test describe_files_parallel processes multiple files."""
+        import asyncio
+
+        mock_get_agent.return_value = mock_async_agent
+
+        # Set up state with files needing summaries
+        state = {
+            "file1.md": {"hash": "abc", "summary": None},
+            "file2.md": {"hash": "def", "summary": None},
+            "file3.md": {"hash": "ghi", "summary": None},
+        }
+        repository.save(state)
+
+        results = asyncio.run(
+            service.describe_files_parallel(
+                ["file1.md", "file2.md", "file3.md"],
+                max_concurrency=2,
+            )
+        )
+
+        # Check all files were processed
+        assert len(results) == 3
+        assert all(r.get("summary") is not None for r in results.values())
+
+        # Check state was persisted
+        saved_state = repository.load()
+        assert saved_state["file1.md"]["summary"] is not None
+        assert saved_state["file2.md"]["summary"] is not None
+        assert saved_state["file3.md"]["summary"] is not None
+
+    def test_skips_files_with_existing_summary(self, service, repository):
+        """Test parallel describe skips files that already have summaries."""
+        import asyncio
+
+        state = {
+            "has_summary.md": {"hash": "abc", "summary": {"text": "existing"}},
+        }
+        repository.save(state)
+
+        results = asyncio.run(service.describe_files_parallel(["has_summary.md"]))
+
+        # Should return existing summary without calling agent
+        assert results["has_summary.md"]["summary"] == {"text": "existing"}
+
+    def test_skips_skipped_files(self, service, repository):
+        """Test parallel describe skips files marked as skipped."""
+        import asyncio
+
+        state = {
+            "skipped.md": {"hash": None, "skipped": True, "summary": None},
+        }
+        repository.save(state)
+
+        results = asyncio.run(service.describe_files_parallel(["skipped.md"]))
+
+        assert results["skipped.md"].get("skipped") is True
+        assert results["skipped.md"].get("summary") is None
