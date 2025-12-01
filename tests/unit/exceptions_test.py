@@ -5,6 +5,7 @@ import pytest
 from dope.exceptions import (
     AgentError,
     AgentNotConfiguredError,
+    ChangeMagnitudeError,
     ConfigNotFoundError,
     ConfigurationError,
     DirectoryError,
@@ -18,6 +19,10 @@ from dope.exceptions import (
     InvalidDirectoryError,
     InvalidSuffixError,
     ProviderError,
+    StateError,
+    StateLoadError,
+    StateSaveError,
+    SummaryGenerationError,
 )
 
 
@@ -166,6 +171,10 @@ def test_all_exceptions_catchable_as_dope_error():
         AgentNotConfiguredError(),
         ProviderError("provider", "reason"),
         InvalidSuffixError(".bad"),
+        SummaryGenerationError("/file.py"),
+        ChangeMagnitudeError("/file.py"),
+        StateLoadError("/state.json"),
+        StateSaveError("/state.json"),
     ]
 
     for exc in exceptions:
@@ -182,6 +191,7 @@ def test_exception_hierarchy():
     # Git exceptions
     assert issubclass(GitRepositoryNotFoundError, GitError)
     assert issubclass(GitBranchNotFoundError, GitError)
+    assert issubclass(ChangeMagnitudeError, GitError)
     assert issubclass(GitError, DopeError)
 
     # Document exceptions
@@ -195,7 +205,81 @@ def test_exception_hierarchy():
     # Agent exceptions
     assert issubclass(AgentNotConfiguredError, AgentError)
     assert issubclass(ProviderError, AgentError)
+    assert issubclass(SummaryGenerationError, AgentError)
     assert issubclass(AgentError, DopeError)
+
+    # State exceptions
+    assert issubclass(StateLoadError, StateError)
+    assert issubclass(StateSaveError, StateError)
+    assert issubclass(StateError, DopeError)
 
     # Other exceptions
     assert issubclass(InvalidSuffixError, DopeError)
+
+
+def test_summary_generation_error_without_reason():
+    """Test SummaryGenerationError without reason."""
+    error = SummaryGenerationError("/path/to/file.py")
+    assert error.file_path == "/path/to/file.py"
+    assert error.reason is None
+    assert "/path/to/file.py" in str(error)
+
+
+def test_summary_generation_error_with_reason():
+    """Test SummaryGenerationError with reason."""
+    error = SummaryGenerationError("/path/to/file.py", "API rate limit exceeded")
+    assert error.file_path == "/path/to/file.py"
+    assert error.reason == "API rate limit exceeded"
+    assert "/path/to/file.py" in str(error)
+    assert "API rate limit exceeded" in str(error)
+
+
+def test_change_magnitude_error_without_reason():
+    """Test ChangeMagnitudeError without reason."""
+    error = ChangeMagnitudeError("/path/to/file.py")
+    assert error.file_path == "/path/to/file.py"
+    assert error.reason is None
+    assert "/path/to/file.py" in str(error)
+
+
+def test_change_magnitude_error_with_reason():
+    """Test ChangeMagnitudeError with reason."""
+    error = ChangeMagnitudeError("/path/to/file.py", "Git diff failed")
+    assert error.file_path == "/path/to/file.py"
+    assert error.reason == "Git diff failed"
+    assert "/path/to/file.py" in str(error)
+    assert "Git diff failed" in str(error)
+
+
+def test_state_load_error_without_reason():
+    """Test StateLoadError without reason."""
+    error = StateLoadError("/path/to/state.json")
+    assert error.state_path == "/path/to/state.json"
+    assert error.reason is None
+    assert "/path/to/state.json" in str(error)
+
+
+def test_state_load_error_with_reason():
+    """Test StateLoadError with reason."""
+    error = StateLoadError("/path/to/state.json", "Invalid JSON")
+    assert error.state_path == "/path/to/state.json"
+    assert error.reason == "Invalid JSON"
+    assert "/path/to/state.json" in str(error)
+    assert "Invalid JSON" in str(error)
+
+
+def test_state_save_error_without_reason():
+    """Test StateSaveError without reason."""
+    error = StateSaveError("/path/to/state.json")
+    assert error.state_path == "/path/to/state.json"
+    assert error.reason is None
+    assert "/path/to/state.json" in str(error)
+
+
+def test_state_save_error_with_reason():
+    """Test StateSaveError with reason."""
+    error = StateSaveError("/path/to/state.json", "Permission denied")
+    assert error.state_path == "/path/to/state.json"
+    assert error.reason == "Permission denied"
+    assert "/path/to/state.json" in str(error)
+    assert "Permission denied" in str(error)

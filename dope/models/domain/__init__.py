@@ -1,9 +1,8 @@
 """Domain models for dope application."""
 
-from dope.models.domain.code import CodeChange, CodeChanges
+from dope.models.domain.code import CodeChange, CodeChanges, CodeMetadata
 from dope.models.domain.documentation import (
     ChangeSuggestion,
-    CodeMetadata,
     DocSection,
     DocSuggestions,
     DocSummary,
@@ -19,14 +18,16 @@ from dope.models.domain.scope import (
 from dope.models.domain.scope import (
     SuggestedChange as ScopeSuggestedChange,
 )
+from dope.models.enums import ChangeType
 
 __all__ = [
     # Code models
     "CodeChange",
     "CodeChanges",
+    "CodeMetadata",
     # Documentation models
     "ChangeSuggestion",
-    "CodeMetadata",
+    "ChangeType",
     "DocSection",
     "DocSuggestions",
     "DocSummary",

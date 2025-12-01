@@ -45,6 +45,8 @@ _Expected:_ Lists documentation files.
 
 When you run this command, a documentation term index file (`doc-terms.json`) will be created in the state directory. This index helps the application match relevant terms between code and docs, improving the relevance of suggestions for future commands.
 
+**Note:** If you run a command without proper configuration, the CLI will now display a red-colored error message and exit with code 1, so CI or scripts can catch the failure.
+
 ## Verify Setup
 
 To describe the code structure:
@@ -66,8 +68,8 @@ dope scan docs --branch <branch-name>
 # Scan the code structure
 dope scan code --branch <branch-name>
 
-# Suggest documentation updates (optionally on a branch)
-dope suggest --branch <branch-name>
+# Suggest documentation updates (optionally on a branch, with optional scope file)
+dope suggest --scope-file <scope.yaml> --branch <branch-name>
 
 # Apply suggested documentation changes
 dope apply --branch <branch-name>

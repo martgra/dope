@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -11,6 +12,8 @@ from dope.models.domain.code import CodeChanges
 from dope.models.domain.documentation import DocSummary
 from dope.models.settings import get_settings
 from dope.services.describer.prompts import CODE_DESCRIPTION_PROMPT, DOC_DESCRIPTION_PROMPT
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -46,7 +49,7 @@ def get_code_change_agent() -> Agent[Deps, CodeChanges]:
         Returns:
             str: Content of code file.
         """
-        print(f"Calling code tool for file {code_filepath}")
+        logger.debug("Agent tool: fetching content for %s", code_filepath)
         if not Path(code_filepath).is_file():
             raise DocumentNotFoundError(code_filepath)
         content = _ctx.deps.consumer.get_full_content(file_path=code_filepath)

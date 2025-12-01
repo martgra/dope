@@ -207,3 +207,54 @@ class DocTermIndex:
                 return True
 
         return False
+
+
+class DocTermIndexBuilder:
+    """Builder for creating and updating DocTermIndex from documentation state.
+
+    Provides a clean interface for building the term index, separate from
+    the index itself. Use this when you need explicit control over when
+    the index is built.
+
+    Example:
+        >>> builder = DocTermIndexBuilder(index_path)
+        >>> builder.build_if_needed(doc_state)
+    """
+
+    def __init__(self, index_path: Path):
+        """Initialize builder with index path.
+
+        Args:
+            index_path: Path where index will be persisted.
+        """
+        self._index_path = index_path
+
+    def build_if_needed(self, doc_state: dict) -> bool:
+        """Build and save index if it's stale or doesn't exist.
+
+        Args:
+            doc_state: Documentation state with summaries.
+
+        Returns:
+            True if index was rebuilt, False if cache was valid.
+        """
+        index = DocTermIndex(self._index_path)
+
+        # Check if we can use cached index
+        if index.load() and not index.is_stale(doc_state):
+            return False
+
+        # Build and save
+        index.build_from_state(doc_state)
+        index.save()
+        return True
+
+    def force_build(self, doc_state: dict) -> None:
+        """Force rebuild of index regardless of cache state.
+
+        Args:
+            doc_state: Documentation state with summaries.
+        """
+        index = DocTermIndex(self._index_path)
+        index.build_from_state(doc_state)
+        index.save()

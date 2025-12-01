@@ -3,11 +3,20 @@ from pathlib import Path
 
 
 class BaseConsumer(ABC):
-    """Base consumer class."""
+    """Base consumer class for file discovery and content access.
 
-    @abstractmethod
-    def __init__(self, root_path: str | Path):
-        self.root_path = root_path
+    Subclasses must call super().__init__() or set root_path themselves.
+    """
+
+    root_path: Path
+
+    def __init__(self, root_path: str | Path) -> None:
+        """Initialize the consumer with a root path.
+
+        Args:
+            root_path: Root directory for file operations.
+        """
+        self.root_path = Path(root_path)
 
     @abstractmethod
     def discover_files(self) -> list[Path]:
@@ -15,7 +24,7 @@ class BaseConsumer(ABC):
         pass
 
     @abstractmethod
-    def get_content(self, file_path) -> bytes:
+    def get_content(self, file_path: Path) -> bytes:
         """Get file content."""
         pass
 

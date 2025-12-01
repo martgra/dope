@@ -42,13 +42,3 @@ the code change, its priority/magnitude, your understanding of the documentation
 {code_changes}
 </code_changes>
 """
-
-FILE_SUMMARY_PROMPT = """
-
-<{file_path}>
-file_path: {file_path}{metadata}
-
-summary:
-{summary}
-</{file_path}>
-"""

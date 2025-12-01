@@ -60,7 +60,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
-exclude = ["tests/*"]
+exclude = ["tests/*", "vulture_whitelist.py"]
 
 [tool.ruff.lint]
 extend-ignore = ["E203", "D107", "D100"]

@@ -1,82 +1,116 @@
 import hashlib
-import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dope.consumers.base import BaseConsumer
 from dope.core.usage import UsageTracker
-from dope.services.describer.describer_agents import (
-    Deps,
-    get_code_change_agent,
-    get_doc_summarization_agent,
+from dope.repositories.describer_state import DescriberRepository
+from dope.services.describer.strategies import (
+    AgentStrategy,
+    DocAgentStrategy,
+    DocScanStrategy,
+    ScanStrategy,
 )
-from dope.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
 if TYPE_CHECKING:
     from dope.consumers.git_consumer import GitConsumer
+    from dope.core.classification import FileClassifier
+
+
+logger = logging.getLogger(__name__)
 
 
 class DescriberService:
-    """Scanner service."""
+    """Scanner service using repository pattern for state management.
+
+    This service uses the Strategy pattern for scanning and description behaviors,
+    allowing composition of different strategies without inheritance.
+
+    Args:
+        consumer: File consumer for discovering and reading files.
+        repository: Repository for state persistence (required).
+        usage_tracker: Optional tracker for LLM usage statistics.
+        doc_term_index_path: Optional path to doc term index file.
+        scan_strategy: Optional custom scan strategy (defaults to DocScanStrategy).
+        agent_strategy: Optional custom agent strategy (defaults to DocAgentStrategy).
+    """
 
     def __init__(
         self,
+        *,
         consumer: BaseConsumer,
-        state_filepath: Path | None = None,
+        repository: DescriberRepository,
         usage_tracker: UsageTracker | None = None,
         doc_term_index_path: Path | None = None,
+        scan_strategy: ScanStrategy | None = None,
+        agent_strategy: AgentStrategy | None = None,
     ):
-        self.consumer = consumer
-        self.state_filepath = state_filepath
-        self.usage_tracker = usage_tracker or UsageTracker()
-        self.doc_term_index_path = doc_term_index_path
+        self._consumer = consumer
+        self._repository = repository
+        self._usage_tracker = usage_tracker or UsageTracker()
+        self._doc_term_index_path = doc_term_index_path
+        self._scan_strategy = scan_strategy or DocScanStrategy()
+        self._agent_strategy = agent_strategy or DocAgentStrategy()
+
+    @property
+    def consumer(self) -> BaseConsumer:
+        """Get the file consumer."""
+        return self._consumer
+
+    @property
+    def repository(self) -> DescriberRepository:
+        """Get the state repository."""
+        return self._repository
+
+    @property
+    def usage_tracker(self) -> UsageTracker:
+        """Get the usage tracker."""
+        return self._usage_tracker
+
+    @property
+    def scan_strategy(self) -> ScanStrategy:
+        """Get the scan strategy."""
+        return self._scan_strategy
+
+    @property
+    def agent_strategy(self) -> AgentStrategy:
+        """Get the agent strategy."""
+        return self._agent_strategy
 
     def _compute_hash(self, file_path: Path) -> str:
-        content = self.consumer.get_content(file_path)
+        content = self._consumer.get_content(file_path)
         return hashlib.md5(content).hexdigest()
 
     def _scan_files(self) -> dict:
-        file_hashes = {}
-        for file_path in self.consumer.discover_files():
-            file_hash = self._compute_hash(file_path)
-            file_hashes[str(file_path)] = {"hash": file_hash}
-        return file_hashes
+        """Scan files using the configured strategy."""
+        return self._scan_strategy.scan_files(self._consumer)
 
-    def load_state(self) -> dict:
-        """Load the scanner state."""
-        if self.state_filepath and self.state_filepath.exists():
-            with self.state_filepath.open("r") as f:
-                return json.load(f)
-        return {}
+    def _load_state(self) -> dict:
+        """Load the scanner state using repository."""
+        return self._repository.load()
 
-    def save_state(self, state: dict):
-        """Save the state of the scanner."""
-        if self.state_filepath:
-            self.state_filepath.parent.mkdir(parents=True, exist_ok=True)
-            with self.state_filepath.open("w") as f:
-                json.dump(state, f, ensure_ascii=False, indent=4)
+    def _save_state(self, state: dict) -> None:
+        """Save the state using repository."""
+        self._repository.save(state)
 
-        # Also build and save doc term index if configured (for doc scanner)
-        if self.doc_term_index_path:
-            self._build_and_save_term_index(state)
+    def build_term_index(self) -> bool:
+        """Build and save doc term index from current state.
 
-    def _build_and_save_term_index(self, state: dict):
-        """Build term index from documentation state and save it.
+        This should be called explicitly after scanning documentation files.
+        Only rebuilds if the index is stale or doesn't exist.
 
-        Args:
-            state: Documentation state with summaries
+        Returns:
+            True if index was rebuilt, False if cache was valid.
         """
-        from dope.core.doc_terms import DocTermIndex
+        if not self._doc_term_index_path:
+            return False
 
-        index = DocTermIndex(self.doc_term_index_path)
+        from dope.core.doc_terms import DocTermIndexBuilder
 
-        # Only rebuild if state has changed
-        if index.load() and not index.is_stale(state):
-            return
-
-        # Build from current state
-        index.build_from_state(state)
-        index.save()
+        builder = DocTermIndexBuilder(self._doc_term_index_path)
+        state = self._load_state()
+        return builder.build_if_needed(state)
 
     def _update_state(self, new_items: dict, current_state: dict) -> dict:
         """Update state handling both processed and skipped files."""
@@ -107,25 +141,70 @@ class DescriberService:
 
     def scan(self) -> dict:
         """Perform scanning by updating the state based on discovered files and their hashes."""
-        old_state = self.load_state()
+        old_state = self._load_state()
         new_items = self._scan_files()
         updated_state = self._update_state(new_items, old_state)
-        self.save_state(updated_state)
+        self._save_state(updated_state)
         return updated_state
 
     def get_state(self) -> dict:
-        """Return state."""
-        return self.load_state()
+        """Return current state from repository."""
+        return self._load_state()
 
-    def _run_agent(self, prompt):
-        return (
-            get_doc_summarization_agent()
-            .run_sync(
-                user_prompt=prompt,
-                usage=self.usage_tracker.usage,
-            )
-            .output.model_dump()
-        )
+    def save_state(self, state: dict) -> None:
+        """Save state to repository (public method for CLI compatibility).
+
+        Args:
+            state: State dictionary to persist.
+        """
+        self._save_state(state)
+
+    def files_needing_summary(self) -> list[str]:
+        """Get list of file paths that need summaries generated.
+
+        Returns files that:
+        - Are not skipped
+        - Have no summary yet
+
+        Returns:
+            List of file path strings needing summaries.
+        """
+        state = self._load_state()
+        return [
+            filepath
+            for filepath, data in state.items()
+            if not data.get("skipped") and data.get("summary") is None
+        ]
+
+    def describe_and_save(self, file_path: str) -> dict:
+        """Describe a single file and persist the result.
+
+        This method:
+        1. Loads current state
+        2. Generates summary for the file
+        3. Saves updated state immediately
+
+        Args:
+            file_path: Path to the file to describe.
+
+        Returns:
+            Updated state item for the file.
+        """
+        state = self._load_state()
+        state_item = state.get(file_path, {})
+
+        # Skip if already has summary or is skipped
+        if state_item.get("skipped") or state_item.get("summary"):
+            return state_item
+
+        # Generate summary
+        updated_item = self.describe(file_path=file_path, state_item=state_item)
+
+        # Persist immediately
+        state[file_path] = updated_item
+        self._save_state(state)
+
+        return updated_item
 
     def describe(self, file_path, state_item) -> dict:
         """For each file with a missing summary, generate one using the agent.
@@ -137,231 +216,94 @@ class DescriberService:
             return state_item
 
         if not state_item["summary"]:
-            content = self.consumer.get_content(self.consumer.root_path / file_path)
-            prompt = SUMMARIZATION_TEMPLATE.format(file_path=file_path, content=content)
+            content = self._consumer.get_content(self._consumer.root_path / file_path)
             try:
-                state_item["summary"] = self._run_agent(prompt=prompt)
-            except Exception:
+                state_item["summary"] = self._agent_strategy.run_agent(
+                    file_path=file_path,
+                    content=content,
+                    usage_tracker=self._usage_tracker,
+                    consumer=self._consumer,
+                )
+            except Exception as e:
+                logger.warning("Failed to generate summary for %s: %s", file_path, e)
                 state_item["summary"] = None
         return state_item
 
 
 class CodeDescriberService(DescriberService):
-    """Code describer service with intelligent filtering."""
+    """Code describer service with intelligent filtering.
+
+    This service handles code file scanning and description, with support for
+    intelligent filtering based on file classification and change magnitude.
+
+    Uses CodeScanStrategy and CodeAgentStrategy via composition instead of
+    method overriding.
+
+    Args:
+        consumer: GitConsumer instance for code operations.
+        repository: Repository for state persistence (required).
+        classifier: File classifier for determining processing priority.
+        usage_tracker: Optional tracker for LLM usage statistics.
+        enable_filtering: Enable intelligent pre-filtering (default: True).
+        doc_term_index_path: Optional path to doc term index for context-aware scoring.
+    """
 
     def __init__(
         self,
+        *,
         consumer: "GitConsumer",
-        state_filepath: Path | None = None,
+        repository: DescriberRepository,
+        classifier: "FileClassifier | None" = None,
         usage_tracker: UsageTracker | None = None,
         enable_filtering: bool = True,
         doc_term_index_path: Path | None = None,
     ):
-        """Initialize with GitConsumer specifically.
+        from dope.core.classification import FileClassifier
+        from dope.services.describer.strategies import CodeAgentStrategy, CodeScanStrategy
 
-        Args:
-            consumer: GitConsumer instance for code operations
-            state_filepath: Path to state file for caching
-            usage_tracker: Tracker for LLM usage statistics
-            enable_filtering: Enable intelligent pre-filtering (default: True)
-            doc_term_index_path: Optional path to doc term index for context-aware scoring
-        """
+        # Create strategies for code scanning and description
+        scan_strategy = CodeScanStrategy(
+            consumer=consumer,
+            classifier=classifier or FileClassifier(),
+            enable_filtering=enable_filtering,
+            doc_term_index_path=doc_term_index_path,
+        )
+        agent_strategy = CodeAgentStrategy(consumer=consumer)
+
         super().__init__(
             consumer=consumer,
-            state_filepath=state_filepath,
+            repository=repository,
             usage_tracker=usage_tracker,
+            doc_term_index_path=doc_term_index_path,
+            scan_strategy=scan_strategy,
+            agent_strategy=agent_strategy,
         )
-        self.consumer: GitConsumer = consumer  # Type narrowing for this subclass
-        self.enable_filtering = enable_filtering
-        self.doc_term_index = None
 
-        # Load doc term index if available
-        if doc_term_index_path and doc_term_index_path.exists():
-            from dope.core.doc_terms import DocTermIndex
+        # Store reference for backward compatibility with tests
+        self._git_consumer: GitConsumer = consumer
 
-            self.doc_term_index = DocTermIndex(doc_term_index_path)
-            if self.doc_term_index.load():
-                # Successfully loaded
-                pass
-            else:
-                # Failed to load, disable
-                self.doc_term_index = None
+    @property
+    def enable_filtering(self) -> bool:
+        """Whether intelligent filtering is enabled."""
+        from dope.services.describer.strategies import CodeScanStrategy
+
+        if isinstance(self._scan_strategy, CodeScanStrategy):
+            return self._scan_strategy.enable_filtering
+        return False
 
     def should_process_file(self, file_path: Path) -> dict:
         """Decide if a file needs LLM processing using multiple signals.
 
-        Combines:
-        - Path-based classification (test files, lock files, etc.)
-        - Change magnitude analysis (lines changed, significance score)
-        - Whitespace normalization (formatting-only changes)
-        - Service-specific thresholds
+        Delegates to the CodeScanStrategy.
 
         Args:
             file_path: Path to the file to evaluate
 
         Returns:
-            dict with keys:
-                - process (bool): Whether to process this file
-                - reason (str): Human-readable reason for decision
-                - priority (str|None): Priority level if processing
-                - metadata (dict|None): Additional classification metadata
+            dict with process decision, reason, priority, and metadata.
         """
-        if not self.enable_filtering:
-            return {"process": True, "reason": "Filtering disabled", "priority": "NORMAL"}
+        from dope.services.describer.strategies import CodeScanStrategy
 
-        # Step 1: Path-based classification (fast, no git operations)
-        classification = self.consumer.classify_file_by_path(file_path)
-
-        if classification.classification == "SKIP":
-            return {
-                "process": False,
-                "reason": classification.reason,
-                "priority": None,
-                "metadata": {"classification": classification.classification},
-            }
-
-        # Step 2: Change magnitude analysis
-        try:
-            magnitude = self.consumer.get_change_magnitude(file_path)
-
-            # Apply doc term relevance boost if index is available
-            if self.doc_term_index and magnitude.total_lines > 0:
-                try:
-                    # Get normalized diff for term matching
-                    diff_content = self.consumer.get_normalized_diff(file_path).decode(
-                        "utf-8", errors="ignore"
-                    )
-                    doc_matches = self.doc_term_index.get_relevant_docs(diff_content)
-
-                    if doc_matches:
-                        # Extract just doc paths
-                        magnitude.related_docs = [doc for doc, _ in doc_matches[:3]]
-
-                        # Boost score based on documentation relevance
-                        match_count = sum(count for _, count in doc_matches)
-                        boost_factor = min(1.5, 1.0 + (match_count * 0.05))
-                        magnitude.score = min(1.0, magnitude.score * boost_factor)
-                except Exception:
-                    pass
-
-        except Exception:
-            # If we can't get magnitude, process it to be safe
-            return {
-                "process": True,
-                "reason": "Could not determine magnitude",
-                "priority": classification.classification,
-            }
-
-        # Skip pure renames with minimal changes
-        if magnitude.is_rename and magnitude.rename_similarity and magnitude.rename_similarity > 95:
-            return {
-                "process": False,
-                "reason": f"Pure rename ({magnitude.rename_similarity}% similarity)",
-                "priority": None,
-                "metadata": {
-                    "classification": classification.classification,
-                    "magnitude": magnitude.score,
-                    "rename_similarity": magnitude.rename_similarity,
-                },
-            }
-
-        # Skip trivial changes unless it's a high-priority file
-        if magnitude.score < 0.2 and classification.classification != "HIGH":
-            return {
-                "process": False,
-                "reason": (
-                    f"Trivial change ({magnitude.total_lines} lines, score: {magnitude.score:.2f})"
-                ),
-                "priority": None,
-                "metadata": {
-                    "classification": classification.classification,
-                    "magnitude": magnitude.score,
-                    "lines_changed": magnitude.total_lines,
-                },
-            }
-
-        # Step 3: Check for whitespace-only changes
-        try:
-            normalized_diff = self.consumer.get_normalized_diff(file_path)
-            if len(normalized_diff) == 0:
-                return {
-                    "process": False,
-                    "reason": "Whitespace/formatting changes only",
-                    "priority": None,
-                    "metadata": {
-                        "classification": classification.classification,
-                        "magnitude": magnitude.score,
-                    },
-                }
-        except Exception:
-            # If normalization fails, continue processing
-            pass
-
-        # File should be processed
-        priority = classification.classification
-        metadata = {
-            "classification": classification.classification,
-            "magnitude": magnitude.score,
-            "lines_added": magnitude.lines_added,
-            "lines_deleted": magnitude.lines_deleted,
-            "is_rename": magnitude.is_rename,
-        }
-
-        # Include doc relevance if available
-        if magnitude.related_docs:
-            metadata["related_docs"] = magnitude.related_docs
-
-        return {
-            "process": True,
-            "reason": f"Significant change ({magnitude.total_lines} lines changed)",
-            "priority": priority,
-            "metadata": metadata,
-        }
-
-    def _scan_files(self) -> dict:
-        """Scan files with intelligent filtering.
-
-        Overrides parent to add pre-filtering before hash computation.
-        Skipped files are recorded in state for transparency.
-        """
-        file_hashes = {}
-        discovered_files = self.consumer.discover_files()
-
-        for file_path in discovered_files:
-            if self.enable_filtering:
-                decision = self.should_process_file(file_path)
-
-                if not decision["process"]:
-                    # Record skipped files in state for debugging/metrics
-                    file_hashes[str(file_path)] = {
-                        "hash": None,
-                        "skipped": True,
-                        "skip_reason": decision["reason"],
-                        "metadata": decision.get("metadata", {}),
-                    }
-                    continue
-
-                # Store decision metadata for later use
-                file_hash = self._compute_hash(file_path)
-                file_hashes[str(file_path)] = {
-                    "hash": file_hash,
-                    "priority": decision.get("priority"),
-                    "metadata": decision.get("metadata", {}),
-                }
-            else:
-                # Original behavior when filtering is disabled
-                file_hash = self._compute_hash(file_path)
-                file_hashes[str(file_path)] = {"hash": file_hash}
-
-        return file_hashes
-
-    def _run_agent(self, prompt):
-        return (
-            get_code_change_agent()
-            .run_sync(
-                user_prompt=prompt,
-                deps=Deps(consumer=self.consumer),
-                usage=self.usage_tracker.usage,
-            )
-            .output.model_dump()
-        )
+        if isinstance(self._scan_strategy, CodeScanStrategy):
+            return self._scan_strategy.should_process_file(file_path)
+        return {"process": True, "reason": "No filtering strategy", "priority": "NORMAL"}

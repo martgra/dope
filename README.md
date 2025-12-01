@@ -63,6 +63,8 @@ dope apply
 
 > You can inspect and update your configuration at any time using `dope config show`, `dope config validate`, and `dope config set <key> <value>`.
 
+> **Note:** If configuration is missing or invalid, the CLI prints a colored error message and exits with status code 1, allowing automation scripts to detect failures.
+
 ### Command Reference
 
 Note: Most commands accept an optional `--branch <branch>` or `-b <branch>` parameter (defaulting to your configured default branch).
@@ -80,7 +82,7 @@ dope scan docs [--branch <branch>]   # Scan documentation files, build a `doc-te
 dope scan code [--branch <branch>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings.
 
 # Documentation Workflow
-dope suggest -b <branch>             # Generate documentation suggestions
+dope suggest [--scope-file <scope.yaml>] [--branch <branch>]   # Generate documentation suggestions; optionally load a scope template from `scope.yaml` for targeted suggestions
 dope apply -b <branch>               # Apply suggested changes
 dope status                          # Show current processing status
 

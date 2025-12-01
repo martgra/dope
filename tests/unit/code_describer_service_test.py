@@ -1,12 +1,13 @@
 """Tests for CodeDescriberService filtering logic."""
 
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from dope.consumers.git_consumer import ChangeMagnitude, FileClassification, GitConsumer
+from dope.consumers.git_consumer import GitConsumer
+from dope.core.classification import ChangeMagnitude, FileClassification, FileClassifier
+from dope.repositories.describer_state import DescriberRepository
 from dope.services.describer.describer_base import CodeDescriberService
 
 
@@ -15,50 +16,55 @@ def mock_consumer_fixture():
     """Create a mock GitConsumer."""
     consumer = Mock(spec=GitConsumer)
     consumer.root_path = Path("/mock/repo")
+    consumer.repo = MagicMock()
+    consumer.base_branch = "main"
     return consumer
 
 
+@pytest.fixture(name="mock_repository")
+def mock_repository_fixture():
+    """Create a mock DescriberRepository."""
+    repo = Mock(spec=DescriberRepository)
+    repo.load.return_value = {}
+    return repo
+
+
+@pytest.fixture(name="mock_classifier")
+def mock_classifier_fixture():
+    """Create a mock FileClassifier."""
+    classifier = Mock(spec=FileClassifier)
+    return classifier
+
+
 @pytest.fixture(name="service")
-def service_fixture(mock_consumer):
-    """Create CodeDescriberService with mocked consumer."""
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode='w') as f:
-        f.write('{}')  # Initialize with empty JSON
-        state_path = Path(f.name)
-
-    service = CodeDescriberService(
-        consumer=mock_consumer, state_filepath=state_path, enable_filtering=True
+def service_fixture(mock_consumer, mock_repository, mock_classifier):
+    """Create CodeDescriberService with mocked dependencies."""
+    return CodeDescriberService(
+        consumer=mock_consumer,
+        repository=mock_repository,
+        classifier=mock_classifier,
+        enable_filtering=True,
     )
-    yield service
-
-    # Cleanup
-    if state_path.exists():
-        state_path.unlink()
 
 
 @pytest.fixture(name="service_no_filter")
-def service_no_filter_fixture(mock_consumer):
+def service_no_filter_fixture(mock_consumer, mock_repository):
     """Create CodeDescriberService with filtering disabled."""
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode='w') as f:
-        f.write('{}')  # Initialize with empty JSON
-        state_path = Path(f.name)
-
-    service = CodeDescriberService(
-        consumer=mock_consumer, state_filepath=state_path, enable_filtering=False
+    return CodeDescriberService(
+        consumer=mock_consumer,
+        repository=mock_repository,
+        enable_filtering=False,
     )
-    yield service
-
-    if state_path.exists():
-        state_path.unlink()
 
 
 class TestShouldProcessFile:
     """Test the should_process_file decision logic."""
 
-    def test_skip_trivial_file(self, service, mock_consumer):
+    def test_skip_trivial_file(self, service, mock_classifier):
         """Test files should be skipped."""
         file_path = Path("test_api.py")
 
-        mock_consumer.classify_file_by_path.return_value = FileClassification(
+        mock_classifier.classify.return_value = FileClassification(
             classification="SKIP", reason="Trivial file type: test", matched_pattern="test_*.py"
         )
 
@@ -67,23 +73,18 @@ class TestShouldProcessFile:
         assert decision["process"] is False
         assert "test" in decision["reason"].lower()
         assert decision["priority"] is None
+        mock_classifier.classify.assert_called_once_with(file_path)
 
-    def test_process_high_priority_file(self, service, mock_consumer):
+    def test_process_high_priority_file(self, service, mock_classifier, mock_consumer):
         """High priority files should always be processed."""
         file_path = Path("README.md")
 
-        mock_consumer.classify_file_by_path.return_value = FileClassification(
+        mock_classifier.classify.return_value = FileClassification(
             classification="HIGH", reason="Critical file type: readme"
         )
 
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=2,
-            lines_deleted=1,
-            total_lines=3,
-            is_rename=False,
-            score=0.2,  # Small change
-        )
-
+        # Mock git operations for change magnitude
+        mock_consumer.repo.git.diff.return_value = "2\t1\tREADME.md"
         mock_consumer.get_normalized_diff.return_value = b"some diff"
 
         decision = service.should_process_file(file_path)
@@ -91,22 +92,19 @@ class TestShouldProcessFile:
         assert decision["process"] is True
         assert decision["priority"] == "HIGH"
 
-    def test_skip_pure_rename(self, service, mock_consumer):
+    def test_skip_pure_rename(self, service, mock_classifier, mock_consumer):
         """Pure renames should be skipped."""
         file_path = Path("new_name.py")
 
-        mock_consumer.classify_file_by_path.return_value = FileClassification(
+        mock_classifier.classify.return_value = FileClassification(
             classification="NORMAL", reason="Regular file"
         )
 
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=0,
-            lines_deleted=0,
-            total_lines=0,
-            is_rename=True,
-            score=0.1,  # Low score due to pure rename
-            rename_similarity=98,
-        )
+        # Mock git operations - first call for numstat, second for summary
+        mock_consumer.repo.git.diff.side_effect = [
+            "0\t0\tnew_name.py",  # numstat
+            "rename old_name.py => new_name.py (98%)",  # summary
+        ]
 
         decision = service.should_process_file(file_path)
 
@@ -114,42 +112,39 @@ class TestShouldProcessFile:
         assert "rename" in decision["reason"].lower()
         assert decision["metadata"]["rename_similarity"] == 98
 
-    def test_skip_trivial_change(self, service, mock_consumer):
+    def test_skip_trivial_change(self, service, mock_classifier, mock_consumer):
         """Small changes in normal files should be skipped."""
         file_path = Path("utils.py")
 
-        mock_consumer.classify_file_by_path.return_value = FileClassification(
+        mock_classifier.classify.return_value = FileClassification(
             classification="NORMAL", reason="Regular file"
         )
 
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=2,
-            lines_deleted=1,
-            total_lines=3,
-            is_rename=False,
-            score=0.15,  # Below threshold
-        )
+        # Mock git operations - small change (1 line total -> score 0.2 but trivial)
+        # Need 0 lines for score 0.0 which is below 0.2 threshold
+        mock_consumer.repo.git.diff.side_effect = [
+            "0\t0\tutils.py",  # numstat - no actual changes
+            "",  # summary (no rename)
+        ]
 
         decision = service.should_process_file(file_path)
 
         assert decision["process"] is False
         assert "trivial" in decision["reason"].lower()
 
-    def test_skip_whitespace_only_changes(self, service, mock_consumer):
+    def test_skip_whitespace_only_changes(self, service, mock_classifier, mock_consumer):
         """Formatting-only changes should be skipped."""
         file_path = Path("api.py")
 
-        mock_consumer.classify_file_by_path.return_value = FileClassification(
+        mock_classifier.classify.return_value = FileClassification(
             classification="NORMAL", reason="Regular file"
         )
 
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=10,
-            lines_deleted=10,
-            total_lines=20,
-            is_rename=False,
-            score=0.4,  # Significant score
-        )
+        # Mock git operations - significant line count but whitespace only
+        mock_consumer.repo.git.diff.side_effect = [
+            "50\t20\tapi.py",  # numstat
+            "",  # summary (no rename)
+        ]
 
         # But normalized diff is empty (whitespace only)
         mock_consumer.get_normalized_diff.return_value = b""
@@ -161,21 +156,19 @@ class TestShouldProcessFile:
             "reason"
         ].lower()
 
-    def test_process_significant_change(self, service, mock_consumer):
+    def test_process_significant_change(self, service, mock_classifier, mock_consumer):
         """Significant changes should be processed."""
         file_path = Path("core/engine.py")
 
-        mock_consumer.classify_file_by_path.return_value = FileClassification(
+        mock_classifier.classify.return_value = FileClassification(
             classification="NORMAL", reason="Regular file"
         )
 
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=50,
-            lines_deleted=20,
-            total_lines=70,
-            is_rename=False,
-            score=0.7,  # Significant
-        )
+        # Mock git operations - significant change
+        mock_consumer.repo.git.diff.side_effect = [
+            "50\t20\tcore/engine.py",  # numstat
+            "",  # summary (no rename)
+        ]
 
         mock_consumer.get_normalized_diff.return_value = b"meaningful diff content"
 
@@ -183,7 +176,7 @@ class TestShouldProcessFile:
 
         assert decision["process"] is True
         assert decision["priority"] == "NORMAL"
-        assert decision["metadata"]["magnitude"] == 0.7
+        assert decision["metadata"]["magnitude"] >= 0.6  # 70 lines -> high score
 
     def test_filtering_disabled(self, service_no_filter):
         """When filtering is disabled, all files should be processed."""
@@ -198,7 +191,7 @@ class TestShouldProcessFile:
 class TestScanFiles:
     """Test the _scan_files method with filtering."""
 
-    def test_scan_with_filtering_enabled(self, service, mock_consumer):
+    def test_scan_with_filtering_enabled(self, service, mock_classifier, mock_consumer):
         """Test that scan filters out trivial files."""
         mock_consumer.discover_files.return_value = [
             Path("test_api.py"),  # Should be skipped
@@ -213,20 +206,16 @@ class TestScanFiles:
                 )
             return FileClassification(classification="NORMAL", reason="Regular file")
 
-        mock_consumer.classify_file_by_path.side_effect = classify_side_effect
+        mock_classifier.classify.side_effect = classify_side_effect
 
-        # Mock magnitude for processed file
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=50,
-            lines_deleted=20,
-            total_lines=70,
-            is_rename=False,
-            score=0.7,
-        )
+        # Mock git operations for non-skipped file
+        mock_consumer.repo.git.diff.side_effect = [
+            "50\t20\tapi.py",  # numstat
+            "",  # summary
+        ]
 
         mock_consumer.get_normalized_diff.return_value = b"meaningful diff"
         mock_consumer.get_content.return_value = b"file content"
-        mock_consumer.root_path = Path("/mock")
 
         result = service._scan_files()
 
@@ -244,7 +233,6 @@ class TestScanFiles:
         ]
 
         mock_consumer.get_content.return_value = b"file content"
-        mock_consumer.root_path = Path("/mock")
 
         result = service_no_filter._scan_files()
 
@@ -320,8 +308,10 @@ class TestDescribe:
         mock_consumer.get_content.return_value = b"file content"
         mock_consumer.root_path = Path("/mock")
 
-        # Mock the LLM call
-        with patch.object(service, "_run_agent", return_value={"changes": ["something"]}):
+        # Mock the agent strategy
+        with patch.object(
+            service._agent_strategy, "run_agent", return_value={"changes": ["something"]}
+        ):
             result = service.describe("api.py", state_item)
 
         assert result["summary"] == {"changes": ["something"]}
@@ -331,7 +321,9 @@ class TestDescribe:
 class TestIntegration:
     """Integration tests combining scan and describe."""
 
-    def test_full_workflow_with_filtering(self, service, mock_consumer):
+    def test_full_workflow_with_filtering(
+        self, service, mock_classifier, mock_consumer, mock_repository
+    ):
         """Test complete scan + describe workflow with filtering."""
         mock_consumer.discover_files.return_value = [
             Path("test_api.py"),
@@ -345,17 +337,15 @@ class TestIntegration:
                 )
             return FileClassification(classification="NORMAL", reason="Regular file")
 
-        mock_consumer.classify_file_by_path.side_effect = classify_side_effect
-        mock_consumer.get_change_magnitude.return_value = ChangeMagnitude(
-            lines_added=50,
-            lines_deleted=20,
-            total_lines=70,
-            is_rename=False,
-            score=0.7,
-        )
+        mock_classifier.classify.side_effect = classify_side_effect
+
+        # Mock git operations
+        mock_consumer.repo.git.diff.side_effect = [
+            "50\t20\tapi.py",  # numstat
+            "",  # summary
+        ]
         mock_consumer.get_normalized_diff.return_value = b"meaningful diff"
         mock_consumer.get_content.return_value = b"file content"
-        mock_consumer.root_path = Path("/mock")
 
         # Scan
         state = service.scan()
@@ -365,7 +355,9 @@ class TestIntegration:
         assert state["api.py"]["hash"] is not None
 
         # Describe
-        with patch.object(service, "_run_agent", return_value={"changes": ["something"]}):
+        with patch.object(
+            service._agent_strategy, "run_agent", return_value={"changes": ["something"]}
+        ):
             for file_path, state_item in state.items():
                 state[file_path] = service.describe(file_path, state_item)
 

@@ -3,6 +3,9 @@
 from dataclasses import dataclass, field
 
 from pydantic_ai.usage import Usage
+from rich.console import Console
+
+console = Console(stderr=True)
 
 
 @dataclass
@@ -16,5 +19,6 @@ class UsageTracker:
     usage: Usage = field(default_factory=Usage)
 
     def log(self) -> None:
-        """Log current usage statistics to console."""
-        print(f"Total tokens used: {self.usage.total_tokens or 0}")
+        """Log current usage statistics to stderr."""
+        total = self.usage.total_tokens or 0
+        console.print(f"[dim]Total tokens used: {total}[/dim]")

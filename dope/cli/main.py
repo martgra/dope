@@ -21,7 +21,16 @@ def run_cli():
     app.add_typer(scope.app, name="scope")
     app.add_typer(config.app, name="config")
 
-    app()
+    try:
+        app()
+    except Exception as e:
+        # Check if it's a ConfigurationError (imported locally to avoid circular imports if any)
+        if type(e).__name__ == "ConfigurationError":
+            from rich import print as rprint
+
+            rprint(f"[red]❌ {e}[/red]")
+            raise typer.Exit(1) from e
+        raise
 
 
 if __name__ == "__main__":

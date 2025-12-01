@@ -12,6 +12,8 @@ from dope.models.domain.documentation import (
     SuggestedChange,
 )
 from dope.models.enums import ChangeType
+from dope.repositories import SuggestionRepository
+from dope.services.suggester.change_processor import ChangeProcessor
 from dope.services.suggester.suggester_service import DocChangeSuggester
 
 
@@ -22,7 +24,8 @@ def suggester_fixture():
         f.write("{}")
         state_path = Path(f.name)
 
-    suggester = DocChangeSuggester(suggestion_state_path=state_path)
+    repository = SuggestionRepository(state_path)
+    suggester = DocChangeSuggester(repository=repository)
     yield suggester
 
     if state_path.exists():
@@ -39,7 +42,7 @@ class TestFilterProcessableFiles:
             "api.py": {"hash": "abc123", "summary": {"changes": ["something"]}},
         }
 
-        result = DocChangeSuggester._filter_processable_files(state)
+        result = ChangeProcessor.filter_processable_files(state)
 
         assert "test_file.py" not in result
         assert "api.py" in result
@@ -51,7 +54,7 @@ class TestFilterProcessableFiles:
             "complete.py": {"hash": "def456", "summary": {"changes": ["something"]}},
         }
 
-        result = DocChangeSuggester._filter_processable_files(state)
+        result = ChangeProcessor.filter_processable_files(state)
 
         assert "incomplete.py" not in result
         assert "complete.py" in result
@@ -67,7 +70,7 @@ class TestFilterProcessableFiles:
             "utils.py": {"hash": "def456", "summary": {"changes": ["refactored"]}},
         }
 
-        result = DocChangeSuggester._filter_processable_files(state)
+        result = ChangeProcessor.filter_processable_files(state)
 
         assert len(result) == 2
         assert "api.py" in result
@@ -92,7 +95,7 @@ class TestSortByPriority:
             },
         }
 
-        result = DocChangeSuggester._sort_by_priority(state)
+        result = ChangeProcessor.sort_by_priority(state)
 
         assert result[0][0] == "high.py"
         assert result[1][0] == "normal.py"
@@ -112,7 +115,7 @@ class TestSortByPriority:
             },
         }
 
-        result = DocChangeSuggester._sort_by_priority(state)
+        result = ChangeProcessor.sort_by_priority(state)
 
         assert result[0][0] == "high_magnitude.py"
         assert result[1][0] == "low_magnitude.py"
@@ -128,7 +131,7 @@ class TestSortByPriority:
             },
         }
 
-        result = DocChangeSuggester._sort_by_priority(state)
+        result = ChangeProcessor.sort_by_priority(state)
 
         # Should still sort HIGH first
         assert result[0][0] == "with_metadata.py"
@@ -148,7 +151,7 @@ class TestPromptFormatter:
             }
         }
 
-        result = DocChangeSuggester._prompt_formatter(state, include_metadata=True)
+        result = ChangeProcessor.format_changes_for_prompt(state, include_metadata=True)
 
         assert "api.py" in result
         assert "Priority: HIGH" in result
@@ -167,7 +170,7 @@ class TestPromptFormatter:
             }
         }
 
-        result = DocChangeSuggester._prompt_formatter(state, include_metadata=False)
+        result = ChangeProcessor.format_changes_for_prompt(state, include_metadata=False)
 
         assert "api.py" in result
         assert "Priority" not in result
@@ -180,7 +183,7 @@ class TestPromptFormatter:
             "valid.py": {"hash": "abc123", "summary": {"changes": ["something"]}},
         }
 
-        result = DocChangeSuggester._prompt_formatter(state, include_metadata=True)
+        result = ChangeProcessor.format_changes_for_prompt(state, include_metadata=True)
 
         assert "skipped.py" not in result
         assert "valid.py" in result
@@ -202,7 +205,7 @@ class TestPromptFormatter:
             },
         }
 
-        result = DocChangeSuggester._prompt_formatter(state, include_metadata=True)
+        result = ChangeProcessor.format_changes_for_prompt(state, include_metadata=True)
 
         # Find positions in the formatted string
         high_pos = result.find("high.py")

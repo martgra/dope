@@ -1,27 +1,42 @@
+"""Documentation-related domain models."""
+
 from pydantic import BaseModel, Field
 
 from dope.models.enums import ChangeType
 
 
 class DocSection(BaseModel):
-    """Summary of a section within the doc."""
+    """Summary of a section within a documentation file.
+
+    Attributes:
+        section_name: Name of the section/heading
+        summary: Detailed description of the section content
+        references: Code references mentioned in the section
+    """
 
     section_name: str = Field(..., description="Name of the section")
     summary: str | None = Field(
         ...,
-        description="A detailed description of the section describing current content in the file."
-        " Be specific about names, commands or variables in the text. This is intended as a summary"
-        "for someone who knows the codebase well.",
+        description=(
+            "A detailed description of the section describing current content in the file. "
+            "Be specific about names, commands or variables in the text. This is intended as a "
+            "summary for someone who knows the codebase well."
+        ),
     )
     references: list[str] = Field(
         ...,
-        description="References to code in the text such as commands,"
-        "config values, libraries files etc.",
+        description=(
+            "References to code in the text such as commands, config values, libraries, files etc."
+        ),
     )
 
 
 class DocSummary(BaseModel):
-    """Summary of a doc."""
+    """Summary of a documentation file.
+
+    Attributes:
+        sections: List of major sections in the document
+    """
 
     sections: list[DocSection] | None = Field(
         ...,
@@ -30,7 +45,12 @@ class DocSummary(BaseModel):
 
 
 class ChangeSuggestion(BaseModel):
-    """Change suggestion for a specific doc part based on code."""
+    """A specific change suggestion for a documentation section.
+
+    Attributes:
+        suggestion: Detailed instructions for the change
+        code_references: Related code files for context
+    """
 
     suggestion: str = Field(
         ...,
@@ -47,26 +67,39 @@ class ChangeSuggestion(BaseModel):
 
 
 class SuggestedChange(BaseModel):
-    """All changes to apply to a particular documentation file."""
+    """All changes to apply to a specific documentation file.
+
+    Attributes:
+        change_type: Type of change (add, modify, or delete)
+        documentation_file_path: Path to the target documentation file
+        suggested_changes: List of specific changes to apply
+    """
 
     change_type: ChangeType = Field(
         ...,
-        description="Indicate if this change is to add a new file, change an existing file, "
-        "or delete a redundant file.",
-        example=ChangeType.ADD,
+        description=(
+            "Indicate if this change is to add a new file, change an existing file, "
+            "or delete a redundant file."
+        ),
+        json_schema_extra={"example": ChangeType.ADD},
     )
     documentation_file_path: str = Field(
         ...,
         description="Path to the documentation file to add, change, or delete.",
-        example="docs/readme.md",
+        json_schema_extra={"example": "docs/readme.md"},
     )
     suggested_changes: list[ChangeSuggestion] = Field(
-        ..., description="List of particular changes."
+        ...,
+        description="List of particular changes.",
     )
 
 
 class DocSuggestions(BaseModel):
-    """Changes to apply to the whole documentation based on code changes."""
+    """Collection of documentation changes based on code changes.
+
+    Attributes:
+        changes_to_apply: List of changes, one per documentation file
+    """
 
     changes_to_apply: list[SuggestedChange] = Field(
         ...,
@@ -75,13 +108,3 @@ class DocSuggestions(BaseModel):
             "path. This ensures that each file path occurs only once."
         ),
     )
-
-
-class CodeMetadata(BaseModel):
-    """Repo metadata."""
-
-    commits: int = Field(..., description="number of commits in branch")
-    num_contributors: int = Field(..., description="Number of unique contributors.")
-    branches: list[str] = Field(..., description="Name of branches in repo.")
-    tags: list[str] = Field(..., description="Name of tags in repo.")
-    lines_of_code: int = Field(..., description="lines of code in repo")

@@ -92,13 +92,8 @@ def get_settings() -> Settings:
             settings = Settings(**load_settings_from_yaml(config_filepath))
         except Exception as e:
             # Config exists but is invalid - this is an error
-            import sys
+            from dope.exceptions import ConfigurationError
 
-            from rich import print as rprint
-
-            rprint(f"[red]❌ Config file invalid: {config_filepath}[/red]")
-            rprint(f"[yellow]Error: {e}[/yellow]")
-            rprint("[blue]Run 'dope config init --force' to recreate[/blue]")
-            sys.exit(1)
+            raise ConfigurationError(f"Config file invalid: {config_filepath}\nError: {e}") from e
 
     return settings

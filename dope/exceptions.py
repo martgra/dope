@@ -165,3 +165,79 @@ class InvalidSuffixError(DopeError):
         self.suffix = suffix
         self.reason = reason
         super().__init__(f"{reason}: {suffix}")
+
+
+class SummaryGenerationError(AgentError):
+    """Raised when summary generation fails."""
+
+    def __init__(self, file_path: str, reason: str | None = None):
+        """Initialize SummaryGenerationError.
+
+        Args:
+            file_path: Path to the file that failed
+            reason: Explanation of the failure
+        """
+        self.file_path = file_path
+        self.reason = reason
+        msg = f"Failed to generate summary for {file_path}"
+        if reason:
+            msg += f": {reason}"
+        super().__init__(msg)
+
+
+class ChangeMagnitudeError(GitError):
+    """Raised when change magnitude calculation fails."""
+
+    def __init__(self, file_path: str, reason: str | None = None):
+        """Initialize ChangeMagnitudeError.
+
+        Args:
+            file_path: Path to the file that failed
+            reason: Explanation of the failure
+        """
+        self.file_path = file_path
+        self.reason = reason
+        msg = f"Failed to calculate change magnitude for {file_path}"
+        if reason:
+            msg += f": {reason}"
+        super().__init__(msg)
+
+
+class StateError(DopeError):
+    """Base class for state-related errors."""
+
+
+class StateLoadError(StateError):
+    """Raised when state file cannot be loaded."""
+
+    def __init__(self, state_path: str, reason: str | None = None):
+        """Initialize StateLoadError.
+
+        Args:
+            state_path: Path to the state file
+            reason: Explanation of the failure
+        """
+        self.state_path = state_path
+        self.reason = reason
+        msg = f"Failed to load state from {state_path}"
+        if reason:
+            msg += f": {reason}"
+        super().__init__(msg)
+
+
+class StateSaveError(StateError):
+    """Raised when state file cannot be saved."""
+
+    def __init__(self, state_path: str, reason: str | None = None):
+        """Initialize StateSaveError.
+
+        Args:
+            state_path: Path to the state file
+            reason: Explanation of the failure
+        """
+        self.state_path = state_path
+        self.reason = reason
+        msg = f"Failed to save state to {state_path}"
+        if reason:
+            msg += f": {reason}"
+        super().__init__(msg)

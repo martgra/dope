@@ -20,7 +20,7 @@ class DocConsumer(BaseConsumer):
             exclude_dirs (list[str]): name of directories to exclude.
         """
         self.filter = ("md", "mdx")
-        self.root_path: Path = self._get_root_path(root_path)
+        super().__init__(self._get_root_path(root_path))
         self.exclude_dirs = {"node_modules", ".venv"}
         self.file_type_filter = file_type_filter
         self.exclude_dirs = exclude_dirs

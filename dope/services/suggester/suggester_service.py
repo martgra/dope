@@ -1,198 +1,200 @@
-import hashlib
-import json
-from pathlib import Path
+"""Suggester service for generating documentation change suggestions.
 
-from pydantic.json import pydantic_encoder
+This service orchestrates the generation of documentation update suggestions
+based on code and documentation changes.
+"""
 
+from typing import Any, Protocol
+
+from dope.core.protocols import UsageTrackerProtocol
 from dope.core.usage import UsageTracker
 from dope.models.domain.documentation import DocSuggestions
-from dope.services.suggester.prompts import FILE_SUMMARY_PROMPT, SUGGESTION_PROMPT
-from dope.services.suggester.suggester_agents import get_suggester_agent
+from dope.repositories import SuggestionRepository
+from dope.services.suggester.change_processor import ChangeProcessor
+from dope.services.suggester.prompts import SUGGESTION_PROMPT
+
+
+class SuggestionAgent(Protocol):
+    """Protocol for suggestion generation agents."""
+
+    def run_sync(self, *, user_prompt: str, usage: Any) -> Any:
+        """Run the agent synchronously.
+
+        Args:
+            user_prompt: Prompt for the agent
+            usage: Usage tracking object
+
+        Returns:
+            Agent result with .output attribute
+        """
+        ...
 
 
 class DocChangeSuggester:
-    """DocChangeSuggestor class."""
+    """Generates documentation change suggestions based on code and doc changes.
 
-    def __init__(self, *, suggestion_state_path: Path, usage_tracker: UsageTracker | None = None):
-        self._agent = None
-        self.suggestion_state_path = Path(suggestion_state_path)
-        self.usage_tracker = usage_tracker or UsageTracker()
+    Uses dependency injection for testability and decoupling from
+    specific agent implementations.
+
+    Args:
+        repository: Repository for suggestion state persistence
+        agent: Agent for generating suggestions (optional, lazy-loaded)
+        usage_tracker: Tracker for LLM usage statistics
+
+    Example:
+        >>> repo = SuggestionRepository(Path(".dope/suggestions.json"))
+        >>> suggester = DocChangeSuggester(repository=repo)
+        >>> suggestions = suggester.get_suggestions(
+        ...     docs_change=doc_state,
+        ...     code_change=code_state,
+        ...     scope=scope_info,
+        ... )
+    """
+
+    def __init__(
+        self,
+        *,
+        repository: SuggestionRepository,
+        agent: SuggestionAgent | None = None,
+        usage_tracker: UsageTrackerProtocol | None = None,
+    ):
+        """Initialize suggester with dependencies.
+
+        Args:
+            repository: Repository for state persistence
+            agent: Optional pre-configured agent (lazy-loaded if not provided)
+            usage_tracker: Optional usage tracker
+        """
+        self._repository = repository
+        self._agent = agent
+        self._usage_tracker = usage_tracker or UsageTracker()
 
     @property
-    def agent(self):
-        """Lazy-load the agent only when needed."""
+    def agent(self) -> SuggestionAgent:
+        """Get the suggestion agent, lazy-loading if needed."""
         if self._agent is None:
+            from dope.services.suggester.suggester_agents import get_suggester_agent
+
             self._agent = get_suggester_agent()
         return self._agent
 
-    @staticmethod
-    def _filter_processable_files(state_dict: dict) -> dict:
-        """Filter out skipped files and return only processable changes.
-
-        Args:
-            state_dict: State dictionary containing file information
-
-        Returns:
-            Filtered dictionary with only files that have summaries
-        """
-        processable = {}
-        for filepath, data in state_dict.items():
-            # Skip files marked as skipped
-            if data.get("skipped"):
-                continue
-
-            # Skip files without summaries
-            if not data.get("summary"):
-                continue
-
-            processable[filepath] = data
-
-        return processable
-
-    @staticmethod
-    def _sort_by_priority(state_dict: dict) -> list[tuple[str, dict]]:
-        """Sort files by priority (HIGH first, then NORMAL).
-
-        Args:
-            state_dict: State dictionary with priority metadata
-
-        Returns:
-            List of (filepath, data) tuples sorted by priority
-        """
-        items = list(state_dict.items())
-
-        def priority_key(item):
-            filepath, data = item
-            priority = data.get("priority", "NORMAL")
-            magnitude = data.get("metadata", {}).get("magnitude", 0.0)
-
-            # Sort order: HIGH priority first, then by magnitude
-            if priority == "HIGH":
-                return (0, -magnitude)  # 0 for HIGH, negative magnitude for desc sort
-            else:
-                return (1, -magnitude)  # 1 for NORMAL
-
-        return sorted(items, key=priority_key)
-
-    @staticmethod
-    def _prompt_formatter(state_dict: dict, include_metadata: bool = True) -> str:
-        """Format state into prompt with optional metadata enrichment.
-
-        Args:
-            state_dict: State dictionary containing file information
-            include_metadata: If True, include priority and magnitude in prompt
-
-        Returns:
-            Formatted prompt string
-        """
-        formatted_prompt = ""
-
-        # Filter and sort
-        processable = DocChangeSuggester._filter_processable_files(state_dict)
-        sorted_files = DocChangeSuggester._sort_by_priority(processable)
-
-        for filepath, data in sorted_files:
-            # Build metadata context
-            metadata_context = ""
-            if include_metadata:
-                priority = data.get("priority", "NORMAL")
-                metadata = data.get("metadata", {})
-                magnitude = metadata.get("magnitude", 0.0)
-                lines_added = metadata.get("lines_added", 0)
-                lines_deleted = metadata.get("lines_deleted", 0)
-
-                metadata_context = f"\nPriority: {priority}"
-                if magnitude > 0:
-                    # Determine significance category
-                    if magnitude > 0.7:
-                        significance = "major"
-                    elif magnitude > 0.4:
-                        significance = "medium"
-                    else:
-                        significance = "minor"
-                    metadata_context += (
-                        f"\nChange Magnitude: {magnitude:.2f} (significance: {significance})"
-                    )
-                if lines_added > 0 or lines_deleted > 0:
-                    metadata_context += f"\nLines Changed: +{lines_added} -{lines_deleted}"
-
-            formatted_prompt += FILE_SUMMARY_PROMPT.format(
-                file_path=filepath,
-                metadata=metadata_context,
-                summary=json.dumps(
-                    data.get("summary"), indent=2, ensure_ascii=False, default=pydantic_encoder
-                ),
-            )
-        return formatted_prompt
-
-    def _check_get_state(self, state_hash: str):
-        if not self.suggestion_state_path.is_file():
-            return {}
-        with self.suggestion_state_path.open() as file:
-            state = json.load(file)
-        if state_hash == state.get("hash"):
-            return state
-        else:
-            return {}
+    @property
+    def usage_tracker(self) -> UsageTrackerProtocol:
+        """Get the usage tracker."""
+        return self._usage_tracker
 
     def get_state(self) -> DocSuggestions:
-        """Return the suggested change state."""
-        with self.suggestion_state_path.open() as file:
-            return DocSuggestions.model_validate(json.load(file).get("suggestion"))
+        """Return the current suggestion state.
 
-    def _get_state_hash(self, *, docs_change: dict, code_change: dict):
-        return hashlib.md5(
-            json.dumps(docs_change).encode("utf-8") + json.dumps(code_change).encode("utf-8")
-        ).hexdigest()
+        Returns:
+            DocSuggestions from stored state
+        """
+        return self._repository.get_suggestions()
 
-    def _save_state(self, state):
-        with self.suggestion_state_path.open("w") as file:
-            json.dump(state, file, ensure_ascii=False, indent=True)
-
-    def get_suggestions(self, *, docs_change, code_change, scope):
-        """Get suggestions how to update doc.
+    def get_suggestions(
+        self,
+        *,
+        docs_change: dict[str, Any],
+        code_change: dict[str, Any],
+        scope: str,
+    ) -> DocSuggestions:
+        """Generate documentation update suggestions.
 
         Filters out skipped files, prioritizes HIGH priority changes,
         and includes change magnitude metadata in the prompt.
 
         Args:
-            docs_change: Dictionary of documentation changes
+            docs_change: Dictionary of documentation changes with state
             code_change: Dictionary of code changes with metadata
             scope: Project scope information
 
         Returns:
             DocSuggestions with prioritized and filtered suggestions
         """
-        # Filter processable files first
-        processable_code = self._filter_processable_files(code_change)
-        processable_docs = self._filter_processable_files(docs_change)
+        # Filter to processable files only
+        processable_code = ChangeProcessor.filter_processable_files(code_change)
+        processable_docs = ChangeProcessor.filter_processable_files(docs_change)
 
         # Early return if no processable changes
         if not processable_code:
             return DocSuggestions(changes_to_apply=[])
 
-        state_hash = self._get_state_hash(
-            code_change=processable_code, docs_change=processable_docs
+        # Check cache validity
+        state_hash = self._repository.get_state_hash(
+            code_change=processable_code,
+            docs_change=processable_docs,
         )
-        suggestion_state = self._check_get_state(state_hash)
 
-        if not suggestion_state:
-            suggestion_state["hash"] = state_hash
+        if self._repository.is_state_valid(state_hash):
+            return self._repository.get_suggestions()
 
-            # Build enhanced prompt with metadata
-            prompt = SUGGESTION_PROMPT.format(
-                scope=scope,
-                documentation=self._prompt_formatter(processable_docs, include_metadata=False),
-                code_changes=self._prompt_formatter(processable_code, include_metadata=True),
-            )
+        # Build prompt with metadata
+        prompt = self._build_prompt(
+            scope=scope,
+            processable_docs=processable_docs,
+            processable_code=processable_code,
+        )
 
-            suggestion = self.agent.run_sync(
-                user_prompt=prompt,
-                usage=self.usage_tracker.usage,
-            ).output
-            suggestion_state["suggestion"] = suggestion.model_dump()
-            self._save_state(suggestion_state)
-        else:
-            suggestion = DocSuggestions.model_validate(suggestion_state.get("suggestion"))
+        # Generate suggestions
+        result = self.agent.run_sync(
+            user_prompt=prompt,
+            usage=self._usage_tracker.usage,
+        )
+        suggestions = result.output
 
-        return suggestion
+        # Save and return
+        self._repository.save_suggestions(suggestions, state_hash)
+
+        return suggestions
+
+    def _build_prompt(
+        self,
+        *,
+        scope: str,
+        processable_docs: dict[str, Any],
+        processable_code: dict[str, Any],
+    ) -> str:
+        """Build the suggestion prompt.
+
+        Args:
+            scope: Project scope information
+            processable_docs: Filtered documentation changes
+            processable_code: Filtered code changes
+
+        Returns:
+            Formatted prompt string
+        """
+        return SUGGESTION_PROMPT.format(
+            scope=scope,
+            documentation=ChangeProcessor.format_changes_for_prompt(
+                processable_docs,
+                include_metadata=False,
+            ),
+            code_changes=ChangeProcessor.format_changes_for_prompt(
+                processable_code,
+                include_metadata=True,
+            ),
+        )
+
+
+# Backward compatibility - factory function for old interface
+def create_suggester(
+    suggestion_state_path: Any,
+    usage_tracker: UsageTrackerProtocol | None = None,
+) -> DocChangeSuggester:
+    """Factory function for backward compatibility.
+
+    Args:
+        suggestion_state_path: Path to suggestion state file
+        usage_tracker: Optional usage tracker
+
+    Returns:
+        Configured DocChangeSuggester instance
+    """
+    from pathlib import Path
+
+    repository = SuggestionRepository(Path(suggestion_state_path))
+    return DocChangeSuggester(
+        repository=repository,
+        usage_tracker=usage_tracker,
+    )

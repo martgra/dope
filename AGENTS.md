@@ -39,6 +39,7 @@ uv run prek run --all-files          # Run all linting checks using prek (compat
 uv run ruff check --fix .            # Lint and auto-fix
 uv run ruff format .                 # Format code
 ```
+**Note:** The ruff configuration now excludes `vulture_whitelist.py` (in addition to `tests/*`) to prevent lint errors on intentionally maintained patterns and suppress false positives.
 
 ### Pre-commit checklist
 ```bash

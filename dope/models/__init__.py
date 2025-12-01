@@ -20,12 +20,11 @@ from dope.models.constants import (
 )
 
 # Domain models - Code
-from dope.models.domain.code import CodeChange, CodeChanges
+from dope.models.domain.code import CodeChange, CodeChanges, CodeMetadata
 
 # Domain models - Documentation
 from dope.models.domain.documentation import (
     ChangeSuggestion,
-    CodeMetadata,
     DocSection,
     DocSuggestions,
     DocSummary,

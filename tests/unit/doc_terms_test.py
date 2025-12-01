@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from dope.core.doc_terms import DocTermIndex
+from dope.core.doc_terms import DocTermIndex, DocTermIndexBuilder
 
 
 @pytest.fixture(name="sample_doc_state")
@@ -309,3 +309,78 @@ class TestStaleness:
         index = DocTermIndex()
 
         assert index.is_stale(sample_doc_state)
+
+
+class TestDocTermIndexBuilder:
+    """Tests for DocTermIndexBuilder."""
+
+    def test_build_if_needed_creates_new_index(self, sample_doc_state):
+        """Builder creates index when none exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            index_path = Path(tmpdir) / "doc-terms.json"
+            builder = DocTermIndexBuilder(index_path)
+
+            rebuilt = builder.build_if_needed(sample_doc_state)
+
+            assert rebuilt is True
+            assert index_path.exists()
+
+    def test_build_if_needed_uses_cache_when_valid(self, sample_doc_state):
+        """Builder uses cached index when not stale."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            index_path = Path(tmpdir) / "doc-terms.json"
+            builder = DocTermIndexBuilder(index_path)
+
+            # First build
+            builder.build_if_needed(sample_doc_state)
+
+            # Second call should use cache
+            rebuilt = builder.build_if_needed(sample_doc_state)
+
+            assert rebuilt is False
+
+    def test_build_if_needed_rebuilds_when_stale(self, sample_doc_state):
+        """Builder rebuilds index when stale."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            index_path = Path(tmpdir) / "doc-terms.json"
+            builder = DocTermIndexBuilder(index_path)
+
+            # First build
+            builder.build_if_needed(sample_doc_state)
+
+            # Modify state
+            modified_state = sample_doc_state.copy()
+            modified_state["docs/authentication.md"] = {
+                **modified_state["docs/authentication.md"],
+                "hash": "newhash999",
+            }
+
+            # Should rebuild
+            rebuilt = builder.build_if_needed(modified_state)
+
+            assert rebuilt is True
+
+    def test_force_build_always_rebuilds(self, sample_doc_state):
+        """Force build always rebuilds regardless of cache."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            index_path = Path(tmpdir) / "doc-terms.json"
+            builder = DocTermIndexBuilder(index_path)
+
+            # First build
+            builder.build_if_needed(sample_doc_state)
+
+            # Get file modification time
+            import os
+
+            mtime1 = os.path.getmtime(index_path)
+
+            # Force rebuild (even though cache is valid)
+            import time
+
+            time.sleep(0.01)  # Ensure time difference
+            builder.force_build(sample_doc_state)
+
+            mtime2 = os.path.getmtime(index_path)
+
+            # File should have been rewritten
+            assert mtime2 > mtime1
