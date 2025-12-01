@@ -6,7 +6,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from dope.core.settings import Settings
+from dope.models.settings import Settings
 
 console = Console()
 

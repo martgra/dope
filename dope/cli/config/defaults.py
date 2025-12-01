@@ -5,9 +5,9 @@ from pathlib import Path
 from git import InvalidGitRepositoryError, Repo
 from pydantic import HttpUrl, SecretStr
 
-from dope.core.settings import AgentSettings, CodeRepoSettings, DocSettings, Settings
 from dope.models.constants import DEFAULT_DOC_SUFFIX, EXCLUDE_DIRS
 from dope.models.enums import Provider
+from dope.models.settings import AgentSettings, CodeRepoSettings, DocSettings, Settings
 
 
 def create_default_settings(provider: Provider, base_url: str | None, token: SecretStr) -> Settings:

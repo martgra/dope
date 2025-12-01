@@ -5,11 +5,11 @@ from pathlib import Path
 from pydantic_ai import Agent, RunContext
 
 from dope.consumers.git_consumer import GitConsumer
-from dope.core.settings import get_settings
 from dope.exceptions import AgentNotConfiguredError, DocumentNotFoundError
 from dope.llms.model_factory import get_model
 from dope.models.domain.code import CodeChanges
 from dope.models.domain.documentation import DocSummary
+from dope.models.settings import get_settings
 from dope.services.describer.prompts import CODE_DESCRIPTION_PROMPT, DOC_DESCRIPTION_PROMPT
 
 

@@ -28,10 +28,10 @@ from dope.cli.config.interactive import (
 from dope.cli.config.validation import display_validation_results, validate_config
 from dope.core.config_io import generate_local_cache, generate_local_config_file
 from dope.core.config_locator import locate_local_config_file
-from dope.core.settings import AgentSettings, Settings
 from dope.core.utils import require_config
 from dope.models.constants import CONFIG_FILENAME
 from dope.models.enums import Provider
+from dope.models.settings import AgentSettings, Settings
 
 app = typer.Typer(help="Manage application configuration")
 

@@ -1,7 +1,6 @@
 """Abstract state management for persistence."""
 
 import hashlib
-import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TypeVar
@@ -88,15 +87,3 @@ class StateManager[T](ABC):
         """
         content = self.serialize(state)
         return hashlib.md5(content.encode()).hexdigest()
-
-
-class JsonStateManager(StateManager[dict]):
-    """JSON-based state persistence."""
-
-    def serialize(self, data: dict) -> str:
-        """Serialize dict to formatted JSON string."""
-        return json.dumps(data, ensure_ascii=False, indent=2)
-
-    def deserialize(self, content: str) -> dict:
-        """Deserialize JSON string to dict."""
-        return json.loads(content)

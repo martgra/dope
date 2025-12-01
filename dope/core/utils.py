@@ -1,16 +1,9 @@
-"""Utility functions (legacy - delegates to focused modules).
+"""Core utility functions.
 
-This module maintains backward compatibility by re-exporting functions
-from their new locations. Import from specific modules for new code:
-
-- dope.core.config_locator - Configuration file location
-- dope.core.config_io - Configuration I/O operations
-- dope.core.project - Project and Git utilities
+Common helper functions for the dope application.
 """
 
 import sys
-
-# Re-export from new modules for backward compatibility
 
 
 def require_config():
@@ -24,7 +17,7 @@ def require_config():
     """
     from rich import print as rprint
 
-    from dope.core.settings import get_settings
+    from dope.models.settings import get_settings
 
     settings = get_settings()
     if settings.agent is None:

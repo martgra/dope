@@ -5,7 +5,7 @@ from typing import Annotated
 
 import typer
 
-from dope.core.settings import Settings
+from dope.models.settings import Settings
 
 
 def get_branch_option() -> type[str | None]:

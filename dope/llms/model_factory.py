@@ -5,9 +5,9 @@ from pydantic_ai.models.openai import OpenAIModel, OpenAIModelName
 from pydantic_ai.providers.azure import AzureProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from dope.core.settings import get_settings
 from dope.exceptions import AgentNotConfiguredError, ProviderError
 from dope.models.enums import Provider
+from dope.models.settings import get_settings
 
 
 @lru_cache

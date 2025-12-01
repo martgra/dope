@@ -6,7 +6,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from dope.models.domain.doc import ChangeType, ChangeSuggestion, DocSuggestions, SuggestedChange
+from dope.models.domain.documentation import (
+    ChangeSuggestion,
+    DocSuggestions,
+    SuggestedChange,
+)
+from dope.models.enums import ChangeType
 from dope.services.suggester.suggester_service import DocChangeSuggester
 
 

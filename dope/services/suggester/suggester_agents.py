@@ -2,10 +2,10 @@ from functools import lru_cache
 
 from pydantic_ai import Agent
 
-from dope.core.settings import get_settings
 from dope.exceptions import AgentNotConfiguredError
 from dope.llms.model_factory import get_model
 from dope.models.domain.documentation import DocSuggestions
+from dope.models.settings import get_settings
 from dope.services.suggester.prompts import SYSTEM_PROMPT
 
 

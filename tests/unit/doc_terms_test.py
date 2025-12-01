@@ -309,30 +309,3 @@ class TestStaleness:
         index = DocTermIndex()
 
         assert index.is_stale(sample_doc_state)
-
-
-class TestStatistics:
-    """Test statistics/debugging helpers."""
-
-    def test_get_stats(self, sample_doc_state):
-        """Get index statistics."""
-        index = DocTermIndex()
-        index.build_from_state(sample_doc_state)
-
-        stats = index.get_stats()
-
-        assert "total_terms" in stats
-        assert "total_docs" in stats
-        assert "avg_terms_per_doc" in stats
-
-        assert stats["total_terms"] > 0
-        assert stats["total_docs"] == 2  # 2 non-skipped docs
-
-    def test_get_stats_empty_index(self):
-        """Stats for empty index."""
-        index = DocTermIndex()
-        stats = index.get_stats()
-
-        assert stats["total_terms"] == 0
-        assert stats["total_docs"] == 0
-        assert stats["avg_terms_per_doc"] == 0

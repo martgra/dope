@@ -40,19 +40,6 @@ class ScopeService:
                 if key == doc_name:
                     doc.implemented_in_path = file_path
 
-    @staticmethod
-    def _map_sections_to_paths(doc_scope: ScopeTemplate) -> dict[str, list[dict]]:
-        path_to_docs = {}
-
-        for _, doc in doc_scope.documentation_structure.items():
-            if doc.implemented_in_path:
-                file_path = doc.implemented_in_path
-                if file_path not in path_to_docs:
-                    path_to_docs[file_path] = []
-                path_to_docs[file_path].append(doc)
-
-        return path_to_docs
-
     def get_doc_overview(self) -> str:
         """Return document structure as string-tree.
 

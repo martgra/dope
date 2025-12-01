@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from dope.core.settings import Settings, get_settings
+from dope.models.settings import Settings, get_settings
 
 
 def test_get_settings_returns_settings_instance():
@@ -83,8 +83,8 @@ def test_settings_immutability_not_enforced():
 
 def test_multiple_imports_same_cached_instance():
     """Test that multiple imports get the same cached instance."""
-    from dope.core.settings import get_settings as get_settings_import1
-    from dope.core.settings import get_settings as get_settings_import2
+    from dope.models.settings import get_settings as get_settings_import1
+    from dope.models.settings import get_settings as get_settings_import2
 
     settings1 = get_settings_import1()
     settings2 = get_settings_import2()

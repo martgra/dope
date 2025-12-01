@@ -3,8 +3,8 @@
 from git import InvalidGitRepositoryError, Repo
 from rich.console import Console
 
-from dope.core.settings import Settings
 from dope.models.enums import Provider
+from dope.models.settings import Settings
 
 console = Console()
 

@@ -207,19 +207,3 @@ class DocTermIndex:
                 return True
 
         return False
-
-    def get_stats(self) -> dict:
-        """Get index statistics for debugging/monitoring.
-
-        Returns:
-            Dictionary with index statistics
-        """
-        return {
-            "total_terms": len(self.term_to_docs),
-            "total_docs": len(self.doc_hashes),
-            "avg_terms_per_doc": (
-                sum(len(docs) for docs in self.term_to_docs.values()) / len(self.term_to_docs)
-                if self.term_to_docs
-                else 0
-            ),
-        }
