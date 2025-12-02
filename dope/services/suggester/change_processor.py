@@ -40,6 +40,24 @@ def _build_metadata_dict(data: dict) -> dict[str, str]:
     if lines_added > 0 or lines_deleted > 0:
         result["Lines Changed"] = f"+{lines_added} -{lines_deleted}"
 
+    # Add scope alignment if available
+    scope_alignment = data.get("scope_alignment")
+    if scope_alignment:
+        max_relevance = scope_alignment.get("max_relevance", 0.0)
+        category = scope_alignment.get("category")
+        relevant_sections = scope_alignment.get("relevant_sections", [])
+
+        if max_relevance > 0:
+            result["Scope Relevance"] = f"{max_relevance:.2f}"
+
+        if category:
+            result["Category"] = category
+
+        if relevant_sections:
+            # Show top 3 affected docs
+            affected_docs = [f"{s['doc']}.{s['section']}" for s in relevant_sections[:3]]
+            result["Affects Docs"] = ", ".join(affected_docs)
+
     return result
 
 

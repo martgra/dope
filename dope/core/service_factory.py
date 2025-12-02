@@ -97,6 +97,8 @@ class ServiceFactory:
     ) -> "DocChangeSuggester":
         """Create a DocChangeSuggester for generating suggestions.
 
+        Loads scope template if available and creates scope-aware suggester.
+
         Args:
             usage_tracker: Optional usage tracker
 
@@ -107,8 +109,22 @@ class ServiceFactory:
         from dope.services.suggester.suggester_service import DocChangeSuggester
 
         repository = SuggestionRepository(self.settings.suggestion_state_path)
+
+        # Load scope if available
+        scope = None
+        if self.settings.scope_path.exists():
+            try:
+                from dope.core.config_io import load_scope_from_yaml
+
+                scope = load_scope_from_yaml(self.settings.scope_path)
+            except Exception:
+                # Scope file exists but is invalid - continue without scope
+                pass
+
         return DocChangeSuggester(
             repository=repository,
+            scope=scope,
+            scope_filter_settings=self.settings.scope_filter,
             usage_tracker=usage_tracker,
         )
 

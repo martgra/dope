@@ -42,7 +42,6 @@ class TestDocChangeSuggesterWorkflow:
         result = suggester.get_suggestions(
             docs_change=sample_doc_state,
             code_change=sample_code_state,
-            scope="Test project scope",
         )
 
         assert isinstance(result, DocSuggestions)
@@ -68,7 +67,6 @@ class TestDocChangeSuggesterWorkflow:
         suggester.get_suggestions(
             docs_change={},
             code_change=code_state,
-            scope="",
         )
 
         # Verify agent was called
@@ -96,11 +94,11 @@ class TestDocChangeSuggesterWorkflow:
         doc_state = {}
 
         # First call - should invoke agent
-        suggester.get_suggestions(docs_change=doc_state, code_change=code_state, scope="")
+        suggester.get_suggestions(docs_change=doc_state, code_change=code_state)
         assert mock_suggester_agent.run_sync.call_count == 1
 
         # Second call with same input - should use cache
-        suggester.get_suggestions(docs_change=doc_state, code_change=code_state, scope="")
+        suggester.get_suggestions(docs_change=doc_state, code_change=code_state)
         # Agent should not be called again
         assert mock_suggester_agent.run_sync.call_count == 1
 
@@ -118,7 +116,6 @@ class TestDocChangeSuggesterWorkflow:
         suggester.get_suggestions(
             docs_change={},
             code_change={"src/main.py": {"hash": "abc", "summary": {"text": "v1"}}},
-            scope="",
         )
         assert mock_suggester_agent.run_sync.call_count == 1
 
@@ -126,7 +123,6 @@ class TestDocChangeSuggesterWorkflow:
         suggester.get_suggestions(
             docs_change={},
             code_change={"src/main.py": {"hash": "def", "summary": {"text": "v2"}}},
-            scope="",
         )
         # Agent should be called again
         assert mock_suggester_agent.run_sync.call_count == 2
@@ -140,7 +136,6 @@ class TestDocChangeSuggesterWorkflow:
         result = suggester.get_suggestions(
             docs_change={},
             code_change=code_state,
-            scope="",
         )
 
         assert isinstance(result, DocSuggestions)
@@ -181,19 +176,6 @@ class TestPromptBuilding:
             agent=mock_suggester_agent,
         )
 
-    def test_prompt_includes_scope(self, suggester, mock_suggester_agent):
-        """Test that prompt includes scope information."""
-        suggester.get_suggestions(
-            docs_change={},
-            code_change={"main.py": {"hash": "abc", "summary": {"text": "Main"}}},
-            scope="This is a Python CLI tool",
-        )
-
-        call_args = mock_suggester_agent.run_sync.call_args
-        prompt = call_args.kwargs["user_prompt"]
-
-        assert "This is a Python CLI tool" in prompt
-
     def test_prompt_includes_code_metadata(self, suggester, mock_suggester_agent):
         """Test that prompt includes code metadata for prioritization."""
         code_state = {
@@ -212,7 +194,6 @@ class TestPromptBuilding:
         suggester.get_suggestions(
             docs_change={},
             code_change=code_state,
-            scope="",
         )
 
         call_args = mock_suggester_agent.run_sync.call_args
@@ -239,7 +220,6 @@ class TestPromptBuilding:
         suggester.get_suggestions(
             docs_change={},
             code_change=code_state,
-            scope="",
         )
 
         call_args = mock_suggester_agent.run_sync.call_args

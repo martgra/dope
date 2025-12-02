@@ -235,7 +235,7 @@ class TestGetSuggestions:
             mock_run.return_value = mock_result
 
             suggester.get_suggestions(
-                docs_change=docs_change, code_change=code_change, scope=""
+                docs_change=docs_change, code_change=code_change
             )
 
             # Check that prompt doesn't include skipped file
@@ -254,7 +254,7 @@ class TestGetSuggestions:
         docs_change = {}
 
         result = suggester.get_suggestions(
-            docs_change=docs_change, code_change=code_change, scope=""
+            docs_change=docs_change, code_change=code_change
         )
 
         assert isinstance(result, DocSuggestions)
@@ -278,7 +278,7 @@ class TestGetSuggestions:
             mock_run.return_value = mock_result
 
             suggester.get_suggestions(
-                docs_change=docs_change, code_change=code_change, scope=""
+                docs_change=docs_change, code_change=code_change
             )
 
             call_args = mock_run.call_args
@@ -309,7 +309,6 @@ class TestGetSuggestions:
                 code_change={
                     "api.py": {"hash": "def", "summary": {"changes": ["something"]}}
                 },
-                scope="",
             )
 
             call_args = mock_run.call_args
@@ -365,7 +364,7 @@ class TestIntegration:
             mock_run.return_value = mock_result
 
             result = suggester.get_suggestions(
-                docs_change=docs_change, code_change=code_change, scope="Test scope"
+                docs_change=docs_change, code_change=code_change
             )
 
             # Verify LLM was called

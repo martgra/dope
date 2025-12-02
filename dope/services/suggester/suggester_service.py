@@ -9,9 +9,12 @@ from typing import Any, Protocol
 from dope.core.protocols import UsageTrackerProtocol
 from dope.core.usage import UsageTracker
 from dope.models.domain.documentation import DocSuggestions
+from dope.models.domain.scope import ScopeTemplate
+from dope.models.settings import ScopeFilterSettings
 from dope.repositories import SuggestionRepository
 from dope.services.suggester.change_processor import ChangeProcessor
 from dope.services.suggester.prompts import SUGGESTION_PROMPT
+from dope.services.suggester.scope_filter import ScopeAlignmentFilter
 
 
 class SuggestionAgent(Protocol):
@@ -38,16 +41,18 @@ class DocChangeSuggester:
 
     Args:
         repository: Repository for suggestion state persistence
+        scope: Project documentation scope template (optional)
+        scope_filter_settings: Settings for scope-based filtering (optional)
         agent: Agent for generating suggestions (optional, lazy-loaded)
         usage_tracker: Tracker for LLM usage statistics
 
     Example:
         >>> repo = SuggestionRepository(Path(".dope/suggestions.json"))
-        >>> suggester = DocChangeSuggester(repository=repo)
+        >>> scope = load_scope()
+        >>> suggester = DocChangeSuggester(repository=repo, scope=scope)
         >>> suggestions = suggester.get_suggestions(
         ...     docs_change=doc_state,
         ...     code_change=code_state,
-        ...     scope=scope_info,
         ... )
     """
 
@@ -55,6 +60,8 @@ class DocChangeSuggester:
         self,
         *,
         repository: SuggestionRepository,
+        scope: ScopeTemplate | None = None,
+        scope_filter_settings: ScopeFilterSettings | None = None,
         agent: SuggestionAgent | None = None,
         usage_tracker: UsageTrackerProtocol | None = None,
     ):
@@ -62,12 +69,18 @@ class DocChangeSuggester:
 
         Args:
             repository: Repository for state persistence
+            scope: Optional project scope for filtering
+            scope_filter_settings: Optional filter settings
             agent: Optional pre-configured agent (lazy-loaded if not provided)
             usage_tracker: Optional usage tracker
         """
         self._repository = repository
+        self._scope = scope
         self._agent = agent
         self._usage_tracker = usage_tracker or UsageTracker()
+
+        # Create scope filter if scope provided
+        self._scope_filter = ScopeAlignmentFilter(scope, scope_filter_settings) if scope else None
 
     @property
     def agent(self) -> SuggestionAgent:
@@ -96,17 +109,15 @@ class DocChangeSuggester:
         *,
         docs_change: dict[str, Any],
         code_change: dict[str, Any],
-        scope: str,
     ) -> DocSuggestions:
         """Generate documentation update suggestions.
 
-        Filters out skipped files, prioritizes HIGH priority changes,
-        and includes change magnitude metadata in the prompt.
+        Filters out skipped files, applies scope-based filtering if scope available,
+        prioritizes HIGH priority changes, and includes change magnitude metadata.
 
         Args:
             docs_change: Dictionary of documentation changes with state
             code_change: Dictionary of code changes with metadata
-            scope: Project scope information
 
         Returns:
             DocSuggestions with prioritized and filtered suggestions
@@ -114,6 +125,10 @@ class DocChangeSuggester:
         # Filter to processable files only
         processable_code = ChangeProcessor.filter_processable_files(code_change)
         processable_docs = ChangeProcessor.filter_processable_files(docs_change)
+
+        # Apply scope-based filtering if scope available
+        if self._scope_filter:
+            processable_code, _relevance_map = self._scope_filter.filter_changes(processable_code)
 
         # Early return if no processable changes
         if not processable_code:
@@ -130,7 +145,6 @@ class DocChangeSuggester:
 
         # Build prompt with metadata
         prompt = self._build_prompt(
-            scope=scope,
             processable_docs=processable_docs,
             processable_code=processable_code,
         )
@@ -150,22 +164,19 @@ class DocChangeSuggester:
     def _build_prompt(
         self,
         *,
-        scope: str,
         processable_docs: dict[str, Any],
         processable_code: dict[str, Any],
     ) -> str:
         """Build the suggestion prompt.
 
         Args:
-            scope: Project scope information
             processable_docs: Filtered documentation changes
-            processable_code: Filtered code changes
+            processable_code: Filtered code changes (with scope alignment if available)
 
         Returns:
             Formatted prompt string
         """
         return SUGGESTION_PROMPT.format(
-            scope=scope,
             documentation=ChangeProcessor.format_changes_for_prompt(
                 processable_docs,
                 include_metadata=False,

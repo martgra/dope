@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-An AI‑powered command‑line tool to scan your code and documentation, generate structured summaries, and suggest or apply documentation updates based on code changes.
+DOPE is an AI-powered CLI tool for scanning code and documentation, generating structured summaries, and suggesting or applying documentation updates based on code changes. It now supports semantic change categorization via a ChangeCategory enum, configurable update triggers and freshness requirements for documentation sections, and automatic scope-based suggestion filtering.
 
 ## Quick Install
 
@@ -13,6 +13,7 @@ An AI‑powered command‑line tool to scan your code and documentation, generat
 - Python 3.13 (see `.python-version`)
 - An Azure OpenAI or OpenAI API token (export as `AGENT_TOKEN` or set `OPENAI_API_KEY`)
 - [Git](https://git-scm.com/) for code scanning
+- PyYAML (install via `pip install pyyaml`) for loading and validating scope templates.
 
 ### Installation
 
@@ -86,7 +87,7 @@ dope scan docs [--branch <branch>] [--concurrency <N>]   # Scan documentation fi
 dope scan code [--branch <branch>] [--concurrency <N>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings. (default concurrency: 5, controls parallel LLM calls) (Note: when run on the current branch, the command compares against HEAD and includes any staged or unstaged (uncommitted) changes in the analysis.)
 
 # Documentation Workflow
-dope suggest [--scope-file <scope.yaml>] [--branch <branch>]   # Generate documentation suggestions; optionally load a scope template from `scope.yaml` for targeted suggestions
+dope suggest [--branch <branch>]   # Generate documentation suggestions; suggestions are filtered and targeted based on automatically loaded project scope.
 dope apply -b <branch>               # Apply suggested changes
 dope status                          # Show current processing status
 
@@ -122,6 +123,10 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Intelligent file pre-filtering**: Files are automatically classified (SKIP, NORMAL, HIGH) and quantified by change magnitude to skip trivial changes and prioritize critical files (e.g., README, config, entry points) before invoking LLM processing.
 - **Documentation term indexing**: A `doc-terms.json` index is built during scanning to match code changes to related documentation terms, improving the focus and quality of subsequent suggestions and applies.
 - **All-in-one Workflow**: Use `dope update` to run the complete workflow (scan, suggest, apply) or preview all planned updates with `--dry-run`.
+- **Semantic change categorization**: Uses a ChangeCategory enum and infer_change_category function to classify code changes automatically.
+- **Configurable update triggers and freshness requirements**: Allows per-section configuration of triggers (code patterns, change types, magnitude, relevant terms) and minimum documentation freshness level via UpdateTriggers and FreshnessLevel.
+- **Automatic scope-based suggestion filtering**: Loads and applies project documentation scope templates and enables scope-based filtering in suggestion generation, configurable via new `scope_filter` settings.
+- **Improved suggestion relevance**: Leverages detailed change metadata (priority, change magnitude, scope relevance, category, and affected docs) in LLM prompting and change processing workflows.
 
 ### Configuration
 - **Quick Setup**: Get started with just 2-3 questions using `dope config init`

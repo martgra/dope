@@ -45,6 +45,26 @@ class AgentSettings(BaseModel):
         return self
 
 
+class ScopeFilterSettings(BaseModel):
+    """Settings for scope-based change filtering.
+
+    Controls how code changes are matched against scope section triggers.
+    Weights determine contribution to overall relevance score (should sum to ~1.0).
+    """
+
+    pattern_match_weight: float = Field(
+        default=0.4, description="Weight for matching code patterns (0-1)"
+    )
+    category_match_weight: float = Field(
+        default=0.3, description="Weight for matching change categories (0-1)"
+    )
+    magnitude_weight: float = Field(default=0.3, description="Weight for change magnitude (0-1)")
+    min_relevance_score: float = Field(
+        default=0.3,
+        description="Minimum relevance score (0-1) to include change in suggestions",
+    )
+
+
 class Settings(BaseSettings):
     """Main application settings.
 
@@ -56,6 +76,7 @@ class Settings(BaseSettings):
     docs: DocSettings = DocSettings()
     git: CodeRepoSettings = CodeRepoSettings()
     agent: AgentSettings | None = None
+    scope_filter: ScopeFilterSettings = ScopeFilterSettings()
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
 
     # State file path properties

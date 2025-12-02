@@ -32,6 +32,14 @@
 - Added `--concurrency` option (default 5) for `dope scan docs` and `dope scan code` commands, enabling parallel LLM calls during scans.
 - Enhanced empty-state handling: `get_suggestions` in the `suggestion_state` repository now immediately returns an empty `DocSuggestions` instance when no suggestion data is available.
 - Improved suggestion preview: in dry-run mode, the CLI's `update` command now displays a preview (first 80 characters) of each suggestion's `suggestion` attribute for better readability.
+- Added ChangeCategory enum and infer_change_category function for semantic classification of code changes (dope/core/classification.py).
+- Introduced FreshnessLevel enum and UpdateTriggers model, and added update_triggers and freshness_requirement fields to DocSectionTemplate and all scope templates to support dynamic documentation update triggers (dope/models/domain/scope.py and dope/services/scoper/scope_template/*).
+- Added load_scope_from_yaml to load and validate scope templates from YAML files (dope/core/config_io.py).
+- Added ScopeFilterSettings and the scope_filter attribute in Settings for tuning scope-based change filtering (dope/models/settings.py).
+- Enhanced DocChangeSuggester and service_factory to automatically load and apply project scopes and scope_filter_settings to suggestions (dope/services/suggester/suggester_service.py, dope/core/service_factory.py).
+- Updated CLI suggest and update commands to simplify scope usage by removing external --scope-file parameters (dope/cli/suggest.py, dope/cli/update.py).
+- Updated suggestion prompts to leverage detailed change metadata (priority, magnitude, scope relevance, category, and affected docs) for more accurate suggestions (dope/services/suggester/prompts.py).
+- Enhanced metadata output to include scope relevance, category, and affected docs sections for each change (dope/services/suggester/change_processor.py).
 
 # Version History
 

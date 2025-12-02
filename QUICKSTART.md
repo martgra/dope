@@ -76,8 +76,8 @@ dope scan docs --branch <branch-name> [--concurrency <N>]  # (default: 5)
 # Scan the code structure
 dope scan code --branch <branch-name> [--concurrency <N>]  # (default: 5)
 
-# Suggest documentation updates (optionally on a branch, with optional scope file)
-dope suggest --scope-file <scope.yaml> --branch <branch-name>
+# Suggest documentation updates (optionally on a branch)
+dope suggest --branch <branch-name>
 
 # Apply suggested documentation changes
 dope apply --branch <branch-name>

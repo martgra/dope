@@ -6,6 +6,7 @@ import yaml
 from pydantic_settings import BaseSettings
 
 from dope.models.constants import APP_NAME
+from dope.models.domain.scope import ScopeTemplate
 
 
 def load_settings_from_yaml(config_filepath: Path) -> dict:
@@ -19,6 +20,27 @@ def load_settings_from_yaml(config_filepath: Path) -> dict:
     """
     with config_filepath.open() as file:
         return yaml.safe_load(file)
+
+
+def load_scope_from_yaml(scope_filepath: Path) -> ScopeTemplate:
+    """Load scope template from YAML file.
+
+    Args:
+        scope_filepath: Path to scope YAML file
+
+    Returns:
+        ScopeTemplate object loaded from file
+
+    Raises:
+        FileNotFoundError: If scope file doesn't exist
+        ValueError: If scope file is invalid
+    """
+    if not scope_filepath.exists():
+        raise FileNotFoundError(f"Scope file not found: {scope_filepath}")
+
+    with scope_filepath.open() as file:
+        data = yaml.safe_load(file)
+        return ScopeTemplate(**data)
 
 
 def generate_local_config_file(config_filename: str, settings_to_write: BaseSettings) -> None:

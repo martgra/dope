@@ -3,11 +3,9 @@
 from pathlib import Path
 
 import typer
-import yaml
 
 from dope.cli.common import command_context, get_branch_option
 from dope.cli.ui import ProgressReporter
-from dope.models.domain.scope import ScopeTemplate
 
 app = typer.Typer(
     epilog="""
@@ -23,21 +21,6 @@ Examples:
   $ dope suggest
     """
 )
-
-
-def _load_scope(settings) -> str:
-    """Load scope template if available.
-
-    Args:
-        settings: Application settings
-
-    Returns:
-        Scope as JSON string, or empty string if not found
-    """
-    if settings.scope_path.is_file():
-        with settings.scope_path.open() as file:
-            return ScopeTemplate(**yaml.safe_load(file)).model_dump_json(indent=2)
-    return ""
 
 
 @app.callback(invoke_without_command=True)
@@ -58,9 +41,8 @@ def suggest(
         # Get current state
         doc_state = doc_scanner.get_state()
         code_state = code_scanner.get_state()
-        scope = _load_scope(cmd_ctx.settings)
 
         # Generate suggestions with progress indicator
         with ProgressReporter.spinner("Generating suggestions...") as progress:
             progress.add_task(description="Generating suggestions...", total=None)
-            suggester.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)
+            suggester.get_suggestions(docs_change=doc_state, code_change=code_state)

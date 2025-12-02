@@ -8,7 +8,6 @@ import typer
 
 from dope.cli.apply import _apply_change
 from dope.cli.common import command_context, get_branch_option
-from dope.cli.suggest import _load_scope
 from dope.cli.ui import ProgressReporter, StatusFormatter, info, success
 from dope.core.progress import track
 
@@ -86,9 +85,8 @@ def update(
         suggester = cmd_ctx.factory.suggester(cmd_ctx.tracker)
         doc_state = doc_scanner.get_state()
         code_state = code_scanner.get_state()
-        scope = _load_scope(cmd_ctx.settings)
 
-        suggester.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)
+        suggester.get_suggestions(docs_change=doc_state, code_change=code_state)
         success("Suggestions generated")
 
         # Phase 4: Apply or display

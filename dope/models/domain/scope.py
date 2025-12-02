@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 from dope.models.enums import (
@@ -6,6 +8,42 @@ from dope.models.enums import (
     SectionAudience,
     SectionTheme,
 )
+
+
+class FreshnessLevel(str, Enum):
+    """Freshness requirement for documentation sections.
+
+    Indicates how frequently a section should be updated relative to code changes.
+    """
+
+    CRITICAL = "critical"  # Must be updated immediately (e.g., breaking changes)
+    HIGH = "high"  # Should be updated within release cycle
+    MEDIUM = "medium"  # Can wait for minor versions
+    LOW = "low"  # Rarely needs updates
+
+
+class UpdateTriggers(BaseModel):
+    """Defines what code changes should trigger documentation updates.
+
+    Attributes:
+        code_patterns: Glob patterns for file paths that affect this section
+        change_types: Set of change categories that are relevant
+        min_magnitude: Minimum change magnitude (0-1) to trigger update
+        relevant_terms: Keywords indicating relevance to this section
+
+    Example:
+        >>> triggers = UpdateTriggers(
+        ...     code_patterns=["dope/cli/*.py", "README.md"],
+        ...     change_types={"cli", "configuration"},
+        ...     min_magnitude=0.3,
+        ...     relevant_terms={"command", "argument", "option"}
+        ... )
+    """
+
+    code_patterns: list[str] = Field(default_factory=list)
+    change_types: set[str] = Field(default_factory=set)
+    min_magnitude: float = Field(default=0.3)
+    relevant_terms: set[str] = Field(default_factory=set)
 
 
 class DocSectionTemplate(BaseModel):
@@ -17,6 +55,13 @@ class DocSectionTemplate(BaseModel):
     themes: list[SectionTheme] = Field(..., description="Theme of the section.")
     roles: list[SectionAudience] | None = Field(
         None, description="Roles which whom the section is relevant for", exclude=True
+    )
+    update_triggers: UpdateTriggers = Field(
+        default_factory=UpdateTriggers,
+        description="What code changes should trigger updates to this section",
+    )
+    freshness_requirement: FreshnessLevel = Field(
+        default=FreshnessLevel.MEDIUM, description="How frequently this section needs updates"
     )
 
 

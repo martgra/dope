@@ -216,7 +216,6 @@ class TestSuggestionWorkflow:
         result = suggester.get_suggestions(
             docs_change=doc_state,
             code_change=code_state,
-            scope="Python CLI tool for documentation",
         )
 
         assert isinstance(result, DocSuggestions)
@@ -237,13 +236,13 @@ class TestSuggestionWorkflow:
 
         # First call
         suggester.get_suggestions(
-            docs_change=doc_state, code_change=code_state, scope=""
+            docs_change=doc_state, code_change=code_state
         )
         first_call_count = mock_suggester_agent.run_sync.call_count
 
         # Second call with same input
         suggester.get_suggestions(
-            docs_change=doc_state, code_change=code_state, scope=""
+            docs_change=doc_state, code_change=code_state
         )
         second_call_count = mock_suggester_agent.run_sync.call_count
 
@@ -365,7 +364,6 @@ class TestFullPipeline:
         suggestions = suggester.get_suggestions(
             docs_change=doc_state,
             code_change=code_state,
-            scope="",
         )
 
         # Verify suggestions were generated

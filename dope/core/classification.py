@@ -6,8 +6,29 @@ processing priority and skip trivial files before expensive LLM operations.
 
 import fnmatch
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Literal
+
+
+class ChangeCategory(str, Enum):
+    """Semantic categorization of code changes.
+
+    Used to match changes against scope section update triggers.
+    """
+
+    API = "api"
+    CLI = "cli"
+    CONFIG = "configuration"
+    ARCHITECTURE = "architecture"
+    DEPLOYMENT = "deployment"
+    TESTING = "testing"
+    SECURITY = "security"
+    FEATURE = "feature"
+    BUGFIX = "bugfix"
+    REFACTOR = "refactor"
+    DOCUMENTATION = "documentation"
+
 
 # File patterns for automatic classification
 TRIVIAL_FILE_PATTERNS: dict[str, list[str]] = {
@@ -184,3 +205,74 @@ def calculate_magnitude_score(
         score *= 0.6  # Rename with some changes
 
     return score
+
+
+def infer_change_category(file_path: Path) -> ChangeCategory | None:
+    """Infer change category from file path patterns.
+
+    Args:
+        file_path: Path to analyze
+
+    Returns:
+        Inferred ChangeCategory or None if no clear match
+
+    Example:
+        >>> infer_change_category(Path("dope/cli/main.py"))
+        ChangeCategory.CLI
+        >>> infer_change_category(Path("pyproject.toml"))
+        ChangeCategory.CONFIG
+    """
+    path_str = str(file_path).lower()
+
+    # CLI patterns
+    if any(pattern in path_str for pattern in ["cli/", "commands/", "_cli.py"]):
+        return ChangeCategory.CLI
+
+    # API patterns
+    if any(pattern in path_str for pattern in ["api/", "endpoints/", "routes/", "views/"]):
+        return ChangeCategory.API
+
+    # Configuration patterns
+    if any(
+        pattern in path_str
+        for pattern in [
+            "config",
+            "pyproject.toml",
+            "setup.py",
+            "requirements.txt",
+            ".env",
+            "settings",
+        ]
+    ):
+        return ChangeCategory.CONFIG
+
+    # Architecture patterns
+    if any(
+        pattern in path_str
+        for pattern in ["__init__.py", "architecture/", "core/", "models/domain/"]
+    ):
+        return ChangeCategory.ARCHITECTURE
+
+    # Testing patterns
+    if any(
+        pattern in path_str
+        for pattern in ["test_", "_test.py", "tests/", "test/", ".spec.", "conftest.py"]
+    ):
+        return ChangeCategory.TESTING
+
+    # Security patterns
+    if any(pattern in path_str for pattern in ["security/", "auth", "crypto", "secrets"]):
+        return ChangeCategory.SECURITY
+
+    # Deployment patterns
+    if any(
+        pattern in path_str
+        for pattern in ["deploy", "docker", "kubernetes", "k8s", ".yml", ".yaml", "ci/"]
+    ):
+        return ChangeCategory.DEPLOYMENT
+
+    # Documentation patterns
+    if any(pattern in path_str for pattern in ["docs/", "readme", ".md", ".rst"]):
+        return ChangeCategory.DOCUMENTATION
+
+    return None
