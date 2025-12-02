@@ -10,11 +10,8 @@ from dope.core.logging import (
     DEFAULT_FORMAT,
     configure_logging,
     ensure_logging_configured,
-    get_cli_logger,
-    get_core_logger,
     get_log_level,
     get_logger,
-    get_service_logger,
 )
 
 
@@ -103,33 +100,6 @@ class TestGetLogger:
         logger1 = get_logger("test.module")
         logger2 = get_logger("test.module")
         assert logger1 is logger2
-
-
-class TestServiceLogger:
-    """Tests for get_service_logger function."""
-
-    def test_returns_service_logger(self):
-        """Test get_service_logger returns correctly named logger."""
-        logger = get_service_logger("describer")
-        assert logger.name == "dope.services.describer"
-
-
-class TestCliLogger:
-    """Tests for get_cli_logger function."""
-
-    def test_returns_cli_logger(self):
-        """Test get_cli_logger returns correctly named logger."""
-        logger = get_cli_logger()
-        assert logger.name == "dope.cli"
-
-
-class TestCoreLogger:
-    """Tests for get_core_logger function."""
-
-    def test_returns_core_logger(self):
-        """Test get_core_logger returns correctly named logger."""
-        logger = get_core_logger("usage")
-        assert logger.name == "dope.core.usage"
 
 
 class TestEnsureLoggingConfigured:

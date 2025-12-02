@@ -2,7 +2,7 @@ import json
 
 from pydantic.json import pydantic_encoder
 
-from dope.core.prompts import PromptBuilder
+from dope.core.prompts import format_file_content
 
 
 def _get_significance_label(magnitude: float) -> str:
@@ -78,7 +78,7 @@ class ChangeProcessor:
 
     @classmethod
     def format_changes_for_prompt(cls, state_dict: dict, include_metadata: bool = True) -> str:
-        """Format state into prompt string using PromptBuilder.
+        """Format state into prompt string.
 
         Args:
             state_dict: Dictionary of file paths to state data.
@@ -87,11 +87,10 @@ class ChangeProcessor:
         Returns:
             Formatted prompt string with all file summaries.
         """
-        builder = PromptBuilder()
-
         processable = cls.filter_processable_files(state_dict)
         sorted_files = cls.sort_by_priority(processable)
 
+        formatted_files = []
         for filepath, data in sorted_files:
             summary = json.dumps(
                 data.get("summary"),
@@ -102,8 +101,10 @@ class ChangeProcessor:
 
             if include_metadata:
                 metadata = _build_metadata_dict(data)
-                builder.add_file(filepath, summary, tag_name=filepath, **metadata)
+                formatted = format_file_content(filepath, summary, tag_name=filepath, **metadata)
             else:
-                builder.add_file(filepath, summary, tag_name=filepath)
+                formatted = format_file_content(filepath, summary, tag_name=filepath)
 
-        return builder.build(separator="\n")
+            formatted_files.append(formatted)
+
+        return "\n".join(formatted_files)
