@@ -34,7 +34,6 @@ CHANGE  # dope/models/enums.py - ChangeType.CHANGE
 DELETE  # dope/models/enums.py - ChangeType.DELETE
 
 # Protocol method signatures - define contracts for type checking
-user_prompt  # dope/services/suggester/suggester_service.py - Protocol param
 _.filter  # dope/consumers/doc_consumer.py - attribute used in filtering
 
 # Typer CLI commands - registered via decorators, called by CLI framework
@@ -68,7 +67,3 @@ _.update_file_state  # dope/repositories/describer_state.py
 _.remove_stale_files  # dope/repositories/describer_state.py
 _.get_files_needing_summary  # dope/repositories/describer_state.py
 _.get_processable_files  # dope/repositories/describer_state.py
-
-# Pydantic custom type schema - required by Pydantic API signature
-handler  # dope/models/internal.py, dope/models/shared.py - GetCoreSchemaHandler param
-source_type  # dope/models/internal.py, dope/models/shared.py - Pydantic schema param

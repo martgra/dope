@@ -99,5 +99,5 @@ source = ["dope"]
 [tool.vulture]
 make_whitelist = true
 min_confidence = 80
-paths = ["dope"]
+paths = ["dope", "vulture_whitelist.py"]
 sort_by_size = true

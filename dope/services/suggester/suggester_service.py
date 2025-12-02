@@ -17,7 +17,7 @@ from dope.services.suggester.prompts import SUGGESTION_PROMPT
 class SuggestionAgent(Protocol):
     """Protocol for suggestion generation agents."""
 
-    def run_sync(self, *, user_prompt: str, usage: Any) -> Any:
+    def run_sync(self, *, _user_prompt: str, usage: Any) -> Any:
         """Run the agent synchronously.
 
         Args:

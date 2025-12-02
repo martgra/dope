@@ -11,7 +11,7 @@ class FileSuffix(str):
 
     @classmethod
     def __get_pydantic_core_schema__(
-        cls, source_type: Any, handler: GetCoreSchemaHandler
+        cls, _source_type: Any, _handler: GetCoreSchemaHandler
     ) -> CoreSchema:
         """Get Pydantic core schema for validation."""
         return core_schema.no_info_after_validator_function(
