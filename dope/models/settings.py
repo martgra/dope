@@ -63,6 +63,10 @@ class ScopeFilterSettings(BaseModel):
         default=0.3,
         description="Minimum relevance score (0-1) to include change in suggestions",
     )
+    enable_pattern_enrichment: bool = Field(
+        default=True,
+        description="Extract code patterns from documentation for language-agnostic filtering",
+    )
 
 
 class Settings(BaseSettings):

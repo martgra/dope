@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from dope.core.classification import ChangeCategory, infer_change_category
+from dope.core.doc_terms import DocTermIndex
 from dope.models.domain.scope import ScopeTemplate
 from dope.models.enums import DocTemplateKey
 from dope.models.settings import ScopeFilterSettings
@@ -42,14 +43,20 @@ class ScopeAlignmentFilter:
     are relevant to which documentation sections. Calculates relevance
     scores based on pattern matching, change categories, and magnitude.
 
+    Optionally enriches scope patterns with doc-derived patterns for
+    language-agnostic filtering.
+
     Args:
         scope: Project scope template defining doc structure and triggers
         settings: Filter settings with scoring weights and thresholds
+        doc_term_index: Optional doc term index with extracted code patterns
 
     Example:
         >>> scope = load_scope()
         >>> settings = ScopeFilterSettings()
-        >>> filter = ScopeAlignmentFilter(scope, settings)
+        >>> doc_index = DocTermIndex(Path(".dope/doc-terms.json"))
+        >>> doc_index.load()
+        >>> filter = ScopeAlignmentFilter(scope, settings, doc_index)
         >>>
         >>> relevance = filter.get_relevant_sections(
         ...     Path("dope/cli/main.py"),
@@ -60,17 +67,69 @@ class ScopeAlignmentFilter:
         ...     print(f"{section.doc_key}.{section.section_name}: {section.relevance_score}")
     """
 
-    def __init__(self, scope: ScopeTemplate, settings: ScopeFilterSettings | None = None):
+    def __init__(
+        self,
+        scope: ScopeTemplate,
+        settings: ScopeFilterSettings | None = None,
+        doc_term_index: DocTermIndex | None = None,
+    ):
         """Initialize filter with scope and settings.
 
         Args:
             scope: Documentation scope template
             settings: Filter settings (uses defaults if None)
+            doc_term_index: Optional doc term index for pattern enrichment
         """
         self._scope = scope
         self._settings = settings or ScopeFilterSettings()
+        self._doc_term_index = doc_term_index
         self._pattern_index: dict[str, list[tuple[DocTemplateKey, str]]] = {}
+        self._enrich_triggers()
         self._build_pattern_index()
+
+    def _enrich_triggers(self) -> None:
+        """Enrich scope triggers with doc-derived patterns.
+
+        Merges patterns from DocTermIndex into UpdateTriggers for each section.
+        Doc-derived patterns are prioritized by appearing first in the list.
+        Only enriches if doc_term_index is available and pattern enrichment is enabled.
+        """
+        if not self._doc_term_index or not self._settings.enable_pattern_enrichment:
+            return
+
+        if not self._doc_term_index.code_patterns:
+            return
+
+        from dope.core.pattern_utils import merge_patterns
+
+        # Enrich each section's triggers with relevant doc patterns
+        for _doc_key, doc_template in self._scope.documentation_structure.items():
+            for _section_name, section in doc_template.sections.items():
+                triggers = section.update_triggers
+
+                # Find doc patterns for matching categories
+                doc_patterns_for_section: set[str] = set()
+
+                # Collect patterns from categories that match this section's change types
+                for category in triggers.change_types:
+                    if category in self._doc_term_index.code_patterns:
+                        doc_patterns_for_section.update(
+                            self._doc_term_index.code_patterns[category]
+                        )
+
+                # Also include general patterns if they exist
+                if "general" in self._doc_term_index.code_patterns:
+                    doc_patterns_for_section.update(self._doc_term_index.code_patterns["general"])
+
+                # Merge with existing scope patterns (doc patterns prioritized)
+                if doc_patterns_for_section:
+                    merged = merge_patterns(
+                        doc_patterns=doc_patterns_for_section,
+                        scope_patterns=triggers.code_patterns,
+                        prioritize_doc=True,
+                    )
+                    # Update triggers in place
+                    triggers.code_patterns = merged
 
     def _build_pattern_index(self) -> None:
         """Build inverted index: code_pattern -> [(doc_key, section_name), ...].

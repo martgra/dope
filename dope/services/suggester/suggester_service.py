@@ -79,8 +79,22 @@ class DocChangeSuggester:
         self._agent = agent
         self._usage_tracker = usage_tracker or UsageTracker()
 
+        # Load doc term index if pattern enrichment enabled
+        doc_term_index = None
+        if scope_filter_settings is None or scope_filter_settings.enable_pattern_enrichment:
+            from dope.core.doc_terms import DocTermIndex
+            from dope.models.settings import get_settings
+
+            settings = get_settings()
+            doc_term_index_path = settings.doc_terms_path
+            if doc_term_index_path.exists():
+                doc_term_index = DocTermIndex(doc_term_index_path)
+                doc_term_index.load()
+
         # Create scope filter if scope provided
-        self._scope_filter = ScopeAlignmentFilter(scope, scope_filter_settings) if scope else None
+        self._scope_filter = (
+            ScopeAlignmentFilter(scope, scope_filter_settings, doc_term_index) if scope else None
+        )
 
     @property
     def agent(self) -> SuggestionAgent:

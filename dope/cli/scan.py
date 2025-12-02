@@ -39,9 +39,20 @@ def docs(
     concurrency: Annotated[
         int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,
+    skip_pattern_enrichment: Annotated[
+        bool,
+        typer.Option(
+            "--skip-pattern-enrichment",
+            help="Skip extracting code patterns from documentation (faster)",
+        ),
+    ] = False,
 ):
     """Scan documentation files for changes."""
     with command_context() as ctx:
+        # Override pattern enrichment setting if flag provided
+        if skip_pattern_enrichment:
+            ctx.settings.scope_filter.enable_pattern_enrichment = False
+
         doc_scanner = ctx.factory.doc_scanner(docs_root, ctx.tracker)
 
         # Phase 1: Discover files and update state (hashes)
@@ -63,6 +74,8 @@ def docs(
             warning("All documentation files already processed")
 
         # Phase 3: Build term index for code scanning relevance
+        if ctx.settings.scope_filter.enable_pattern_enrichment:
+            info("Extracting code patterns from documentation...")
         doc_scanner.build_term_index()
 
 
@@ -75,9 +88,20 @@ def code(
     concurrency: Annotated[
         int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,
+    skip_pattern_enrichment: Annotated[
+        bool,
+        typer.Option(
+            "--skip-pattern-enrichment",
+            help="Skip loading code patterns from doc index (faster)",
+        ),
+    ] = False,
 ):
     """Scan code changes against a branch."""
     with command_context(branch=branch) as ctx:
+        # Override pattern enrichment setting if flag provided
+        if skip_pattern_enrichment:
+            ctx.settings.scope_filter.enable_pattern_enrichment = False
+
         code_scanner = ctx.factory.code_scanner(repo_root, ctx.branch, ctx.tracker)
 
         # Phase 1: Discover files, filter, and update state (hashes)

@@ -108,7 +108,13 @@ class DescriberService:
 
         from dope.core.doc_terms import DocTermIndexBuilder
 
-        builder = DocTermIndexBuilder(self._doc_term_index_path)
+        # Check if pattern enrichment is enabled via settings
+        from dope.models.settings import get_settings
+
+        settings = get_settings()
+        extract_patterns = settings.scope_filter.enable_pattern_enrichment
+
+        builder = DocTermIndexBuilder(self._doc_term_index_path, extract_patterns=extract_patterns)
         state = self._load_state()
         return builder.build_if_needed(state)
 
