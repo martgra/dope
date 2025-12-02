@@ -10,12 +10,13 @@ dependencies = [
     "gitpython>=3.1.44",
     "platformdirs>=4.3.7",
     "pydantic>=2.11.3",
-    "pydantic-ai>=0.1.2",
+    "pydantic-ai>=1.25.1",
     "pydantic-core>=2.33.1",
     "pydantic-settings>=2.9.0",
     "pyyaml>=6.0.2",
     "questionary>=2.1.0",
     "rich>=14.0.0",
+    "tenacity>=9.1.2",
     "typer>=0.15.3",
 ]
 
