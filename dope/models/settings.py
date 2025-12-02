@@ -68,6 +68,34 @@ class ScopeFilterSettings(BaseModel):
         description="Extract code patterns from documentation for language-agnostic filtering",
     )
 
+    # Adaptive detail level settings
+    high_detail_threshold: float = Field(
+        default=0.6,
+        description="Relevance threshold (0-1) for including full code change details",
+    )
+    medium_detail_threshold: float = Field(
+        default=0.3,
+        description="Relevance threshold (0-1) for including functional impact only",
+    )
+    enable_adaptive_pruning: bool = Field(
+        default=True,
+        description="Enable adaptive detail level based on relevance scores",
+    )
+
+    # Doc term filtering settings
+    doc_term_boost_weight: float = Field(
+        default=0.15,
+        description="Relevance boost (0-1) when code matches doc terms",
+    )
+    doc_term_match_threshold: int = Field(
+        default=5,
+        description="Minimum term matches required for relevance boost",
+    )
+    min_docs_threshold: int = Field(
+        default=3,
+        description="Minimum documentation files to include regardless of filtering",
+    )
+
 
 class Settings(BaseSettings):
     """Main application settings.

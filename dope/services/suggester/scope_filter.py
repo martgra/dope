@@ -78,7 +78,7 @@ class ScopeAlignmentFilter:
         Args:
             scope: Documentation scope template
             settings: Filter settings (uses defaults if None)
-            doc_term_index: Optional doc term index for pattern enrichment
+            doc_term_index: Optional doc term index for pattern enrichment and term boosting
         """
         self._scope = scope
         self._settings = settings or ScopeFilterSettings()
@@ -148,6 +148,7 @@ class ScopeAlignmentFilter:
         file_path: Path,
         magnitude: float,
         category: ChangeCategory | None = None,
+        code_content: str | None = None,
     ) -> list[SectionRelevance]:
         """Get documentation sections relevant to a code change.
 
@@ -158,6 +159,7 @@ class ScopeAlignmentFilter:
             file_path: Path to changed file
             magnitude: Change magnitude score (0-1)
             category: Optional change category (inferred if None)
+            code_content: Optional code content for doc term matching
 
         Returns:
             List of SectionRelevance objects sorted by score descending
@@ -188,6 +190,7 @@ class ScopeAlignmentFilter:
                     magnitude=magnitude,
                     category=category,
                     triggers=section.update_triggers,
+                    code_content=code_content,
                 )
 
                 # Only include if meets minimum threshold
@@ -205,12 +208,13 @@ class ScopeAlignmentFilter:
         # Sort by relevance descending
         return sorted(relevant, key=lambda x: x.relevance_score, reverse=True)
 
-    def _calculate_relevance(
+    def _calculate_relevance(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         file_path: Path,
         magnitude: float,
         category: ChangeCategory | None,
         triggers,
+        code_content: str | None = None,
     ) -> tuple[float, list[str], set[str]]:
         """Calculate relevance score for a file against section triggers.
 
@@ -218,12 +222,14 @@ class ScopeAlignmentFilter:
         - Pattern matching (file path matches trigger patterns)
         - Category matching (change category in trigger types)
         - Magnitude matching (change magnitude >= trigger threshold)
+        - Doc term matching (code content matches documentation terms)
 
         Args:
             file_path: Path to changed file
             magnitude: Change magnitude (0-1)
             category: Change category or None
             triggers: UpdateTriggers from section template
+            code_content: Optional code content for term matching boost
 
         Returns:
             Tuple of (score, matched_patterns, matched_categories)
@@ -252,7 +258,36 @@ class ScopeAlignmentFilter:
             magnitude_factor = min(magnitude / 1.0, 1.0)
             score += self._settings.magnitude_weight * magnitude_factor
 
+        # Apply doc term boost if available
+        if code_content and self._doc_term_index and self._doc_term_index.term_to_docs:
+            term_matches = self._count_term_matches(code_content)
+            if term_matches >= self._settings.doc_term_match_threshold:
+                score += self._settings.doc_term_boost_weight
+
         return (min(score, 1.0), matched_patterns, matched_categories)
+
+    def _count_term_matches(self, code_content: str) -> int:
+        """Count how many doc terms appear in code content.
+
+        Args:
+            code_content: Code change content to analyze
+
+        Returns:
+            Number of documentation terms found in code
+        """
+        if not self._doc_term_index:
+            return 0
+
+        # Extract terms from code content
+        code_terms = self._doc_term_index._extract_terms(code_content)
+
+        # Count matches with doc terms
+        match_count = 0
+        for term in code_terms:
+            if term in self._doc_term_index.term_to_docs:
+                match_count += 1
+
+        return match_count
 
     def filter_changes(
         self, changes: dict[str, dict]
@@ -294,11 +329,27 @@ class ScopeAlignmentFilter:
             # Infer category from path
             category = infer_change_category(Path(filepath))
 
+            # Extract code content for term matching (if summary available)
+            code_content = None
+            summary = change_data.get("summary")
+            if summary:
+                # Convert summary to string for term extraction
+                if isinstance(summary, dict):
+                    # Try to get a meaningful string representation
+                    import json
+
+                    from pydantic.json import pydantic_encoder
+
+                    code_content = json.dumps(summary, default=pydantic_encoder)
+                elif isinstance(summary, str):
+                    code_content = summary
+
             # Calculate relevance
             relevant_sections = self.get_relevant_sections(
                 file_path=Path(filepath),
                 magnitude=magnitude,
                 category=category,
+                code_content=code_content,
             )
 
             # Only keep changes with relevant sections

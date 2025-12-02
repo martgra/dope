@@ -29,7 +29,7 @@ class DocTermIndex:
         self.doc_hashes: dict[str, str] = {}  # Track doc versions
         self.code_patterns: dict[str, set[str]] = defaultdict(set)  # category -> patterns
 
-    def build_from_state(self, doc_state: dict, extract_patterns: bool = True) -> None:
+    def build_from_state(self, doc_state: dict, extract_patterns: bool = True) -> None:  # pylint: disable=too-many-locals
         """Build term index from documentation state.
 
         Extracts terms from:
@@ -295,6 +295,99 @@ class DocTermIndex:
                 return True
 
         return False
+
+    def filter_relevant_docs(  # pylint: disable=too-many-locals,too-many-branches
+        self,
+        code_changes: dict[str, dict],
+        doc_state: dict[str, dict],
+        min_match_threshold: int = 3,
+    ) -> dict[str, dict]:
+        """Filter documentation files based on relevance to code changes.
+
+        Uses term matching to identify docs that reference concepts touched by code changes.
+        Applies conservative filtering using weighted combination: includes docs if they have
+        sufficient term matches OR are high priority OR have scope relevance.
+
+        Args:
+            code_changes: Dictionary of code file paths to change data with summaries
+            doc_state: Dictionary of doc file paths to doc data with summaries
+            min_match_threshold: Minimum term matches required to include doc (default: 3)
+
+        Returns:
+            Filtered dictionary of relevant doc files with added 'term_relevance' metadata
+
+        Example:
+            >>> index = DocTermIndex(Path(".dope/doc-terms.json"))
+            >>> index.load()
+            >>> relevant_docs = index.filter_relevant_docs(
+            ...     code_changes={"dope/cli/main.py": {...}},
+            ...     doc_state={"docs/cli.md": {...}, "docs/api.md": {...}},
+            ...     min_match_threshold=3
+            ... )
+            >>> len(relevant_docs)  # Only docs with sufficient matches
+            1
+        """
+        if not self.term_to_docs or not code_changes:
+            # No index or no changes - return all docs (safe default)
+            return doc_state
+
+        # Extract all terms from code changes
+        all_code_terms = set()
+        for _file_path, change_data in code_changes.items():
+            # Extract terms from summary if available
+            summary = change_data.get("summary")
+            if summary:
+                # Get summary text from various possible structures
+                if isinstance(summary, dict):
+                    # CodeChanges model structure
+                    for change in summary.get("specific_changes", []):
+                        if isinstance(change, dict):
+                            all_code_terms.update(self._extract_terms(change.get("name", "")))
+                            all_code_terms.update(self._extract_terms(change.get("summary", "")))
+                    for impact in summary.get("functional_impact", []):
+                        all_code_terms.update(self._extract_terms(impact))
+                elif isinstance(summary, str):
+                    all_code_terms.update(self._extract_terms(summary))
+
+        # Score each doc based on term matches
+        doc_scores: dict[str, int] = {}
+        for doc_path in doc_state:
+            match_count = 0
+            for term in all_code_terms:
+                if term in self.term_to_docs and doc_path in self.term_to_docs[term]:
+                    match_count += 1
+            doc_scores[doc_path] = match_count
+
+        # Filter docs using conservative approach
+        filtered_docs = {}
+        for doc_path, doc_data in doc_state.items():
+            match_count = doc_scores.get(doc_path, 0)
+
+            # Conservative filtering: include if ANY condition met
+            include = False
+
+            # Condition 1: Sufficient term matches
+            if match_count >= min_match_threshold:
+                include = True
+
+            # Condition 2: High priority (likely README or critical doc)
+            if doc_data.get("priority") == "HIGH":
+                include = True
+
+            # Condition 3: Has scope relevance (from previous filtering)
+            if doc_data.get("scope_alignment", {}).get("max_relevance", 0) > 0:
+                include = True
+
+            if include:
+                # Add term relevance metadata
+                doc_data_copy = dict(doc_data)
+                doc_data_copy["term_relevance"] = {
+                    "match_count": match_count,
+                    "matched_terms": match_count > 0,
+                }
+                filtered_docs[doc_path] = doc_data_copy
+
+        return filtered_docs
 
 
 class DocTermIndexBuilder:

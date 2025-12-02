@@ -41,6 +41,12 @@
 - Updated suggestion prompts to leverage detailed change metadata (priority, magnitude, scope relevance, category, and affected docs) for more accurate suggestions (dope/services/suggester/prompts.py).
 - Enhanced metadata output to include scope relevance, category, and affected docs sections for each change (dope/services/suggester/change_processor.py).
 
+- Introduced DocTermIndex.filter_relevant_docs to score and filter documentation files by term relevance, scope alignment, and priority.
+- Added ChangeProcessor.format_changes_adaptive and helper _prune_summary_by_relevance for dynamic detail pruning of change summaries based on combined relevance scores.
+- Enhanced ScopeAlignmentFilter to use code content for term-matching boosts in relevance calculation.
+- Added detailed analytics logging in _log_analytics for monitoring filtering effectiveness and prompt token usage.
+- Added ScopeFilterSettings configuration fields (enable_adaptive_pruning, detail thresholds, term-boost weight, match threshold, min_docs_threshold) for fine-tuning adaptive pruning behavior.
+
 # Version History
 
 <!--

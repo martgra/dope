@@ -6,6 +6,8 @@
 
 DOPE is an AI-powered CLI tool for scanning code and documentation, generating structured summaries, and suggesting or applying documentation updates based on code changes. It now supports semantic change categorization via a ChangeCategory enum, configurable update triggers and freshness requirements for documentation sections, and automatic scope-based suggestion filtering.
 
+- **Adaptive suggestion formatting:** DOPE now dynamically adjusts the level of detail included in suggestions based on a combined relevance score (scope alignment, term relevance, and priority), pruning low-relevance changes to reduce token usage while preserving critical context.
+
 ## Quick Install
 
 ### Prerequisites
@@ -61,6 +63,21 @@ dope apply
 
 # (NEW) All-in-one step: run the full update workflow
 dope update --branch <branch-name> [--dry-run]
+```
+
+You can enable adaptive pruning and tune relevance thresholds in your configuration:
+```yaml
+scope_filter_settings:
+  enable_adaptive_pruning: true
+  high_detail_threshold: 0.8
+  medium_detail_threshold: 0.5
+  doc_term_boost_weight: 1.0
+  doc_term_match_threshold: 3
+  min_docs_threshold: 5
+```
+Then rerun:
+```
+dope suggest --branch <branch>
 ```
 
 > Scanning operations (`dope scan docs` and `dope scan code`) now generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.  
@@ -127,6 +144,9 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Configurable update triggers and freshness requirements**: Allows per-section configuration of triggers (code patterns, change types, magnitude, relevant terms) and minimum documentation freshness level via UpdateTriggers and FreshnessLevel.
 - **Automatic scope-based suggestion filtering**: Loads and applies project documentation scope templates and enables scope-based filtering in suggestion generation, configurable via new `scope_filter` settings.
 - **Improved suggestion relevance**: Leverages detailed change metadata (priority, change magnitude, scope relevance, category, and affected docs) in LLM prompting and change processing workflows.
+- **Doc-term-based filtering**: New `DocTermIndex.filter_relevant_docs` method identifies and boosts documentation files most relevant to code changes by matching extracted terms.
+- **Adaptive change formatting**: New `ChangeProcessor.format_changes_adaptive` prunes details for medium/low relevance changes to optimize prompt size.
+- **Suggestion analytics**: Built-in logging of filtering and token-usage analytics via a private `_log_analytics` method.
 
 ### Configuration
 - **Quick Setup**: Get started with just 2-3 questions using `dope config init`
