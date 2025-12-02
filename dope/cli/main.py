@@ -2,7 +2,7 @@
 
 import typer
 
-from dope.cli import apply, config, scan, scope, status, suggest
+from dope.cli import apply, config, scan, scope, status, suggest, update
 
 
 def run_cli():
@@ -10,10 +10,23 @@ def run_cli():
     app = typer.Typer(
         no_args_is_help=True,
         help="DOPE - AI-powered documentation management",
-        epilog="Run 'dope COMMAND --help' for more information on a command.",
+        epilog="""
+Quick Start:
+  1. dope config init              # Configure LLM provider
+  2. dope update                   # Scan and update docs (all-in-one)
+  3. dope status                   # Check current state
+
+Advanced Workflow:
+  1. dope scan docs && dope scan code
+  2. dope suggest
+  3. dope apply
+
+Run 'dope COMMAND --help' for more information on a command.
+        """,
     )
 
     # Add command groups
+    app.add_typer(update.app, name="update")
     app.add_typer(scan.app, name="scan")
     app.add_typer(suggest.app, name="suggest")
     app.add_typer(apply.app, name="apply")

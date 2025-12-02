@@ -4,13 +4,24 @@ from pathlib import Path
 
 import typer
 
-from dope.cli.common import get_branch_option, resolve_branch
-from dope.cli.factories import create_docs_changer, create_suggester
+from dope.cli.common import command_context, get_branch_option
 from dope.core.progress import track
-from dope.core.usage import UsageTracker
-from dope.core.utils import require_config
 
-app = typer.Typer()
+app = typer.Typer(
+    epilog="""
+Examples:
+  # Apply suggestions using configured branch
+  $ dope apply
+
+  # Apply suggestions against specific branch
+  $ dope apply --branch develop
+
+  # Full workflow
+  $ dope scan docs && dope scan code
+  $ dope suggest
+  $ dope apply
+    """
+)
 
 
 def _apply_change(path: Path, content: str) -> None:
@@ -37,20 +48,15 @@ def apply(
     if ctx.resilient_parsing:
         return
 
-    settings = require_config()
-    branch = resolve_branch(branch, settings)
-    tracker = UsageTracker()
+    with command_context(branch=branch) as cmd_ctx:
+        # Create services
+        docs_changer = cmd_ctx.factory.docs_changer(Path("."), cmd_ctx.branch, cmd_ctx.tracker)
+        suggester = cmd_ctx.factory.suggester()
+        suggest_state = suggester.get_state()
 
-    # Create services using factories
-    docs_changer = create_docs_changer(Path("."), branch, settings, tracker)
-    suggester = create_suggester(settings)
-    suggest_state = suggester.get_state()
-
-    # Apply each suggested change
-    for suggested_change in track(
-        suggest_state.changes_to_apply, description="Applying documentation changes"
-    ):
-        path, content = docs_changer.apply_suggestion(suggested_change)
-        _apply_change(path, content)
-
-    tracker.log()
+        # Apply each suggested change
+        for suggested_change in track(
+            suggest_state.changes_to_apply, description="Applying documentation changes"
+        ):
+            path, content = docs_changer.apply_suggestion(suggested_change)
+            _apply_change(path, content)

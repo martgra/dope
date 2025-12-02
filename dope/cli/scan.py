@@ -5,14 +5,28 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich import print as rprint
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, TaskProgressColumn, TextColumn
 
-from dope.cli.common import get_branch_option, resolve_branch
-from dope.cli.factories import create_code_scanner, create_doc_scanner
-from dope.core.usage import UsageTracker
-from dope.core.utils import require_config
+from dope.cli.common import command_context, get_branch_option
 
-app = typer.Typer(help="Scan documentation and code for changes")
+app = typer.Typer(
+    help="Scan documentation and code for changes",
+    epilog="""
+Examples:
+  # Scan docs in current directory
+  $ dope scan docs
+
+  # Scan docs with higher concurrency
+  $ dope scan docs --concurrency 10
+
+  # Scan code changes against develop branch
+  $ dope scan code --branch develop
+
+  # Scan code with custom repo root
+  $ dope scan code --root /path/to/repo --branch main
+    """,
+)
 
 # Default concurrency for parallel LLM API calls
 DEFAULT_CONCURRENCY = 5
@@ -28,33 +42,51 @@ def docs(
     ] = DEFAULT_CONCURRENCY,
 ):
     """Scan documentation files for changes."""
-    settings = require_config()
-    tracker = UsageTracker()
+    with command_context() as ctx:
+        doc_scanner = ctx.factory.doc_scanner(docs_root, ctx.tracker)
 
-    doc_scanner = create_doc_scanner(docs_root, settings, tracker)
+        # Phase 1: Discover files and update state (hashes)
+        rprint("[cyan]→ Discovering documentation files...[/cyan]")
+        state = doc_scanner.scan()
+        total_files = len(state)
+        rprint(f"[green]✓ Found {total_files} documentation files[/green]")
 
-    # Phase 1: Discover files and update state (hashes)
-    doc_scanner.scan()
+        # Phase 2: Generate summaries for files that need them (parallel)
+        files_to_process = doc_scanner.files_needing_summary()
+        if files_to_process:
+            rprint(f"[cyan]→ Generating summaries for {len(files_to_process)} files...[/cyan]")
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                MofNCompleteColumn(),
+            ) as progress:
+                task = progress.add_task("Scanning", total=len(files_to_process))
 
-    # Phase 2: Generate summaries for files that need them (parallel)
-    files_to_process = doc_scanner.files_needing_summary()
-    if files_to_process:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
-            progress.add_task(
-                f"Scanning {len(files_to_process)} documentation files...", total=None
-            )
-            asyncio.run(
-                doc_scanner.describe_files_parallel(files_to_process, max_concurrency=concurrency)
-            )
+                # Run with progress updates
+                async def scan_with_progress():
+                    state = doc_scanner._load_state()
+                    semaphore = asyncio.Semaphore(concurrency)
 
-    # Phase 3: Build term index for code scanning relevance
-    doc_scanner.build_term_index()
+                    async def process_file(file_path: str):
+                        async with semaphore:
+                            state_item = state.get(file_path, {}).copy()
+                            if not state_item.get("skipped") and not state_item.get("summary"):
+                                updated = await doc_scanner.describe_async(file_path, state_item)
+                                state[file_path] = updated
+                            progress.update(task, advance=1)
 
-    tracker.log()
+                    tasks = [process_file(fp) for fp in files_to_process]
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                    doc_scanner._save_state(state)
+
+                asyncio.run(scan_with_progress())
+            rprint(f"[green]✓ Completed {len(files_to_process)} summaries[/green]")
+        else:
+            rprint("[yellow]✓ All documentation files already processed[/yellow]")
+
+        # Phase 3: Build term index for code scanning relevance
+        doc_scanner.build_term_index()
 
 
 @app.command()
@@ -68,26 +100,50 @@ def code(
     ] = DEFAULT_CONCURRENCY,
 ):
     """Scan code changes against a branch."""
-    settings = require_config()
-    branch = resolve_branch(branch, settings)
-    tracker = UsageTracker()
+    with command_context(branch=branch) as ctx:
+        code_scanner = ctx.factory.code_scanner(repo_root, ctx.branch, ctx.tracker)
 
-    code_scanner = create_code_scanner(repo_root, branch, settings, tracker)
+        # Phase 1: Discover files, filter, and update state (hashes)
+        rprint(f"[cyan]→ Discovering code changes against branch '{ctx.branch}'...[/cyan]")
+        state = code_scanner.scan()
+        total_files = len(state)
+        skipped_files = sum(1 for item in state.values() if item.get("skipped"))
+        processable_files = total_files - skipped_files
+        rprint(
+            f"[green]✓ Found {total_files} changed files "
+            f"({processable_files} to process, {skipped_files} skipped)[/green]"
+        )
 
-    # Phase 1: Discover files, filter, and update state (hashes)
-    code_scanner.scan()
+        # Phase 2: Generate summaries for files that need them (parallel)
+        files_to_process = code_scanner.files_needing_summary()
+        if files_to_process:
+            rprint(f"[cyan]→ Analyzing {len(files_to_process)} code changes...[/cyan]")
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                MofNCompleteColumn(),
+            ) as progress:
+                task = progress.add_task("Scanning", total=len(files_to_process))
 
-    # Phase 2: Generate summaries for files that need them (parallel)
-    files_to_process = code_scanner.files_needing_summary()
-    if files_to_process:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
-            progress.add_task(f"Scanning {len(files_to_process)} code changes...", total=None)
-            asyncio.run(
-                code_scanner.describe_files_parallel(files_to_process, max_concurrency=concurrency)
-            )
+                # Run with progress updates
+                async def scan_with_progress():
+                    state = code_scanner._load_state()
+                    semaphore = asyncio.Semaphore(concurrency)
 
-    tracker.log()
+                    async def process_file(file_path: str):
+                        async with semaphore:
+                            state_item = state.get(file_path, {}).copy()
+                            if not state_item.get("skipped") and not state_item.get("summary"):
+                                updated = await code_scanner.describe_async(file_path, state_item)
+                                state[file_path] = updated
+                            progress.update(task, advance=1)
+
+                    tasks = [process_file(fp) for fp in files_to_process]
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                    code_scanner._save_state(state)
+
+                asyncio.run(scan_with_progress())
+            rprint(f"[green]✓ Completed {len(files_to_process)} code analyses[/green]")
+        else:
+            rprint("[yellow]✓ All code changes already analyzed[/yellow]")

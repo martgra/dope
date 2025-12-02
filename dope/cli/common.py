@@ -1,5 +1,6 @@
 """Shared CLI utilities and common patterns."""
 
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Annotated
 
@@ -65,3 +66,70 @@ def get_state_path(settings: Settings, filename: str) -> Path:
         Path('.dope/doc-state.json')
     """
     return settings.state_directory / filename
+
+
+class CommandContext:
+    """Context for command execution with automatic setup and cleanup."""
+
+    def __init__(self, settings: Settings, tracker, branch: str | None = None):
+        """Initialize command context.
+
+        Args:
+            settings: Application settings
+            tracker: Usage tracker instance
+            branch: Optional branch name (will be resolved to default if None)
+        """
+        from dope.core.service_factory import ServiceFactory
+
+        self.settings = settings
+        self.factory = ServiceFactory(settings)
+        self.tracker = tracker
+        self.branch = resolve_branch(branch, settings)
+
+    def __enter__(self):
+        """Enter context."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context and log usage."""
+        self.tracker.log()
+        return False
+
+
+@contextmanager
+def command_context(branch: str | None = None):
+    """Context manager for CLI commands with automatic setup and cleanup.
+
+    Handles:
+    - Configuration loading and validation
+    - Usage tracker creation and automatic logging
+    - Branch resolution
+
+    Args:
+        branch: Optional branch parameter (will use configured default if None)
+
+    Yields:
+        CommandContext: Context with settings, tracker, and resolved branch
+
+    Raises:
+        ConfigurationError: If no configuration found or agent not configured
+
+    Example:
+        >>> @app.command()
+        >>> def scan_docs(branch: str | None = None):
+        >>>     with command_context(branch=branch) as ctx:
+        >>>         scanner = ctx.settings.doc_scanner(Path("."), ctx.tracker)
+        >>>         scanner.scan()
+        >>>     # Usage is automatically logged on exit
+    """
+    from dope.core.usage import UsageTracker
+    from dope.core.utils import require_config
+
+    settings = require_config()
+    tracker = UsageTracker()
+
+    ctx = CommandContext(settings, tracker, branch)
+    try:
+        yield ctx
+    finally:
+        ctx.tracker.log()

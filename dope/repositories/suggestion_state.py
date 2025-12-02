@@ -40,6 +40,11 @@ class SuggestionRepository(JsonStateRepository):
         """
         state = self.load()
         suggestion_data = state.get("suggestion", {})
+
+        # If no suggestion data exists, return empty DocSuggestions
+        if not suggestion_data:
+            return DocSuggestions(changes_to_apply=[])
+
         return DocSuggestions.model_validate(suggestion_data)
 
     def save_suggestions(

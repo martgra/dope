@@ -46,13 +46,51 @@ class AgentSettings(BaseModel):
 
 
 class Settings(BaseSettings):
-    """Main application settings."""
+    """Main application settings.
+
+    This class stores application configuration including paths,
+    documentation settings, git settings, and LLM agent configuration.
+    """
 
     state_directory: Path = Path(user_cache_dir(appname=APP_NAME))
     docs: DocSettings = DocSettings()
     git: CodeRepoSettings = CodeRepoSettings()
     agent: AgentSettings | None = None
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
+
+    # State file path properties
+    @property
+    def doc_state_path(self) -> Path:
+        """Path to documentation state file."""
+        from dope.models.constants import DESCRIBE_DOCS_STATE_FILENAME
+
+        return self.state_directory / DESCRIBE_DOCS_STATE_FILENAME
+
+    @property
+    def code_state_path(self) -> Path:
+        """Path to code state file."""
+        from dope.models.constants import DESCRIBE_CODE_STATE_FILENAME
+
+        return self.state_directory / DESCRIBE_CODE_STATE_FILENAME
+
+    @property
+    def suggestion_state_path(self) -> Path:
+        """Path to suggestion state file."""
+        from dope.models.constants import SUGGESTION_STATE_FILENAME
+
+        return self.state_directory / SUGGESTION_STATE_FILENAME
+
+    @property
+    def doc_terms_path(self) -> Path:
+        """Path to documentation terms index file."""
+        from dope.models.constants import DOC_TERM_INDEX_FILENAME
+
+        return self.state_directory / DOC_TERM_INDEX_FILENAME
+
+    @property
+    def scope_path(self) -> Path:
+        """Path to scope configuration file."""
+        return self.state_directory / "scope.yaml"
 
 
 @lru_cache(maxsize=1)

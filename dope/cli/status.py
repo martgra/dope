@@ -6,15 +6,16 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from dope.cli.common import get_state_path
 from dope.core.utils import require_config
-from dope.models.constants import (
-    DESCRIBE_CODE_STATE_FILENAME,
-    DESCRIBE_DOCS_STATE_FILENAME,
-    SUGGESTION_STATE_FILENAME,
-)
 
-app = typer.Typer(help="Show current processing status")
+app = typer.Typer(
+    help="Show current processing status",
+    epilog="""
+Examples:
+  # Check current state of all components
+  $ dope status
+    """,
+)
 console = Console()
 
 
@@ -23,11 +24,11 @@ def status():
     """Show current status of scanned files and suggestions."""
     settings = require_config()
 
-    # Load state files
-    docs_state_path = get_state_path(settings, DESCRIBE_DOCS_STATE_FILENAME)
-    code_state_path = get_state_path(settings, DESCRIBE_CODE_STATE_FILENAME)
-    suggestions_state_path = get_state_path(settings, SUGGESTION_STATE_FILENAME)
-    scope_path = get_state_path(settings, "scope.yaml")
+    # Load state files using properties
+    docs_state_path = settings.doc_state_path
+    code_state_path = settings.code_state_path
+    suggestions_state_path = settings.suggestion_state_path
+    scope_path = settings.scope_path
 
     # Count items in each state
     docs_scanned = 0
@@ -90,6 +91,9 @@ def status():
 
     # Show next steps
     console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+    if docs_scanned == 0 and code_scanned == 0:
+        console.print("  • Run [blue]dope update[/blue] to scan and update everything")
+        console.print("    or use individual commands:")
     if docs_scanned == 0:
         console.print("  1. Run [blue]dope scan docs[/blue] to scan documentation")
     if code_scanned == 0:

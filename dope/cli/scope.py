@@ -9,10 +9,7 @@ import yaml
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from dope.cli.common import get_branch_option, resolve_branch
-from dope.cli.factories import create_scope_service
-from dope.core.usage import UsageTracker
-from dope.core.utils import require_config
+from dope.cli.common import command_context, get_branch_option
 from dope.models.domain.scope import (
     DocTemplate,
     ScopeTemplate,
@@ -20,7 +17,23 @@ from dope.models.domain.scope import (
 from dope.models.enums import DocTemplateKey, ProjectTier
 from dope.services.scoper.scope_template import get_scope
 
-app = typer.Typer(help="Manage documentation structure")
+app = typer.Typer(
+    help="Manage documentation structure",
+    epilog="""
+Examples:
+  # Auto-detect project size and create scope
+  $ dope scope create
+
+  # Interactive mode - choose sections manually
+  $ dope scope create --interactive
+
+  # Specify project size
+  $ dope scope create --project-size medium
+
+  # Apply the created scope
+  $ dope scope apply
+    """,
+)
 
 
 def _prompt_project_size() -> ProjectTier | None:
@@ -191,35 +204,31 @@ def create(
     branch: get_branch_option() = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
-    settings = require_config()
-    branch = resolve_branch(branch, settings)
-    tracker = UsageTracker()
+    with command_context(branch=branch) as ctx:
+        state_path: Path = ctx.settings.scope_path
+        service = ctx.factory.scope_service(Path("."), ctx.branch, ctx.tracker)
 
-    state_path: Path = settings.state_directory / "scope.yaml"
-    service = create_scope_service(Path("."), branch, settings, tracker)
+        size_enum = _determine_project_size(interactive, project_size, service)
+        doc_sections = _determine_doc_sections(interactive, size_enum)
 
-    size_enum = _determine_project_size(interactive, project_size, service)
-    doc_sections = _determine_doc_sections(interactive, size_enum)
+        code_structure = service.get_code_overview()
+        doc_files = service.get_doc_overview()
 
-    code_structure = service.get_code_overview()
-    doc_files = service.get_doc_overview()
+        scope_template = ScopeTemplate(
+            size=size_enum,
+            documentation_structure=doc_sections,
+        )
 
-    scope_template = ScopeTemplate(
-        size=size_enum,
-        documentation_structure=doc_sections,
-    )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task(description="Generating suggestion scope...", total=None)
+            scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-    ) as progress:
-        progress.add_task(description="Generating suggestion scope...", total=None)
-        scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
-
-    _save_state(scope_template, state_path)
-    print(f"Scope created at {str(state_path)}")
-    tracker.log()
+        _save_state(scope_template, state_path)
+        print(f"Scope created at {str(state_path)}")
 
 
 @app.command()
@@ -227,27 +236,23 @@ def apply(
     branch: get_branch_option() = None,
 ):
     """Apply the previously created documentation scope."""
-    settings = require_config()
-    branch = resolve_branch(branch, settings)
-    tracker = UsageTracker()
+    with command_context(branch=branch) as ctx:
+        state_path: Path = ctx.settings.scope_path
+        if not state_path.is_file():
+            print(f"State file not found at {state_path}. Please run 'scope create' first.")
+            raise typer.Abort()
 
-    state_path: Path = settings.state_directory / "scope.yaml"
-    if not state_path.is_file():
-        print(f"State file not found at {state_path}. Please run 'scope create' first.")
-        raise typer.Abort()
+        if not typer.confirm("Are you sure you want to apply the scoped changes?"):
+            print("Aborted.")
+            return
 
-    if not typer.confirm("Are you sure you want to apply the scoped changes?"):
-        print("Aborted.")
-        return
+        service = ctx.factory.scope_service(Path("."), ctx.branch, ctx.tracker)
+        scope_template = _load_state(state_path)
 
-    service = create_scope_service(Path("."), branch, settings, tracker)
-    scope_template = _load_state(state_path)
+        try:
+            service.apply_scope(scope_template)
+        except Exception as e:
+            print(f"Error applying scope: {e}")
+            raise typer.Abort() from e
 
-    try:
-        service.apply_scope(scope_template)
-    except Exception as e:
-        print(f"Error applying scope: {e}")
-        raise typer.Abort() from e
-
-    print("Applied the structure.")
-    tracker.log()
+        print("Applied the structure.")

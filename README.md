@@ -57,6 +57,9 @@ dope status
 
 # 5. Apply suggested changes
 dope apply
+
+# (NEW) All-in-one step: run the full update workflow
+dope update --branch <branch-name> [--dry-run]
 ```
 
 > Scanning operations (`dope scan docs` and `dope scan code`) now generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.  
@@ -80,17 +83,34 @@ dope config set KEY VALUE     # Update a single setting
 
 # Scanning Commands
 dope scan docs [--branch <branch>] [--concurrency <N>]   # Scan documentation files, build a `doc-terms.json` index in the state directory, and classify files for later filtering. (default concurrency: 5, controls parallel LLM calls)
-dope scan code [--branch <branch>] [--concurrency <N>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings. (default concurrency: 5, controls parallel LLM calls)
+dope scan code [--branch <branch>] [--concurrency <N>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings. (default concurrency: 5, controls parallel LLM calls) (Note: when run on the current branch, the command compares against HEAD and includes any staged or unstaged (uncommitted) changes in the analysis.)
 
 # Documentation Workflow
 dope suggest [--scope-file <scope.yaml>] [--branch <branch>]   # Generate documentation suggestions; optionally load a scope template from `scope.yaml` for targeted suggestions
 dope apply -b <branch>               # Apply suggested changes
 dope status                          # Show current processing status
 
+# All-in-one Workflow
+dope update --branch <branch-name> [--dry-run] [--concurrency <N>]  # Run the full documentation update workflow (scan docs, scan code, generate suggestions, then apply or preview changes) in a single step.
+
 # Documentation Structure
 dope scope create                    # Create documentation scope
 dope scope apply                     # Apply documentation scope
 ```
+
+**Note:** If you run `dope scan code --branch <branch-name>` on the current branch, the tool will compare against HEAD and include any staged or unstaged (uncommitted) changes in its analysis.
+
+### Branch Comparison
+
+Most commands support the `--branch` or `-b` option to specify which Git branch to compare against:
+
+```bash
+dope scan code -b develop        # Scan against develop branch
+dope suggest -b feature/new-api  # Generate suggestions for feature branch
+dope apply -b main              # Apply changes for main branch
+```
+
+If omitted, commands use your configured default branch (typically `main`).
 
 ## Key Features
 
@@ -101,6 +121,7 @@ dope scope apply                     # Apply documentation scope
 - **Status Tracking**: Monitor scan progress and pending suggestions with `dope status`
 - **Intelligent file pre-filtering**: Files are automatically classified (SKIP, NORMAL, HIGH) and quantified by change magnitude to skip trivial changes and prioritize critical files (e.g., README, config, entry points) before invoking LLM processing.
 - **Documentation term indexing**: A `doc-terms.json` index is built during scanning to match code changes to related documentation terms, improving the focus and quality of subsequent suggestions and applies.
+- **All-in-one Workflow**: Use `dope update` to run the complete workflow (scan, suggest, apply) or preview all planned updates with `--dry-run`.
 
 ### Configuration
 - **Quick Setup**: Get started with just 2-3 questions using `dope config init`
@@ -114,18 +135,6 @@ dope scope apply                     # Apply documentation scope
 - **Interactive Scope Creation**: Questionary-based project setup
 - **Tree Visualization**: View file structure with anytree integration
 - **Flexible File Types**: Support for MD, MDX, RST, AsciiDoc, Org, Wiki formats
-
-### Branch Comparison
-
-Most commands support the `--branch` or `-b` option to specify which Git branch to compare against:
-
-```bash
-dope scan code -b develop        # Scan against develop branch
-dope suggest -b feature/new-api  # Generate suggestions for feature branch
-dope apply -b main              # Apply changes for main branch
-```
-
-If omitted, commands use your configured default branch (typically `main`).
 
 ## Scope Commands
 

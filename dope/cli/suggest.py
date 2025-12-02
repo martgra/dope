@@ -6,13 +6,23 @@ import typer
 import yaml
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from dope.cli.common import get_branch_option, resolve_branch
-from dope.cli.factories import create_code_scanner, create_doc_scanner, create_suggester
-from dope.core.usage import UsageTracker
-from dope.core.utils import require_config
+from dope.cli.common import command_context, get_branch_option
 from dope.models.domain.scope import ScopeTemplate
 
-app = typer.Typer()
+app = typer.Typer(
+    epilog="""
+Examples:
+  # Generate suggestions using configured branch
+  $ dope suggest
+
+  # Generate suggestions against specific branch
+  $ dope suggest --branch develop
+
+  # Workflow: scan first, then suggest
+  $ dope scan docs && dope scan code
+  $ dope suggest
+    """
+)
 
 
 def _load_scope(settings) -> str:
@@ -24,9 +34,8 @@ def _load_scope(settings) -> str:
     Returns:
         Scope as JSON string, or empty string if not found
     """
-    scope_path = Path(settings.state_directory / "scope.yaml")
-    if scope_path.is_file():
-        with scope_path.open() as file:
+    if settings.scope_path.is_file():
+        with settings.scope_path.open() as file:
             return ScopeTemplate(**yaml.safe_load(file)).model_dump_json(indent=2)
     return ""
 
@@ -40,27 +49,22 @@ def suggest(
     if ctx.resilient_parsing:
         return
 
-    settings = require_config()
-    branch = resolve_branch(branch, settings)
-    tracker = UsageTracker()
+    with command_context(branch=branch) as cmd_ctx:
+        # Create services
+        suggester = cmd_ctx.factory.suggester(cmd_ctx.tracker)
+        code_scanner = cmd_ctx.factory.code_scanner(Path("."), cmd_ctx.branch, cmd_ctx.tracker)
+        doc_scanner = cmd_ctx.factory.doc_scanner(Path("."), cmd_ctx.tracker)
 
-    # Create services using factories
-    suggester = create_suggester(settings, tracker)
-    code_scanner = create_code_scanner(Path("."), branch, settings, tracker)
-    doc_scanner = create_doc_scanner(Path("."), settings, tracker)
+        # Get current state
+        doc_state = doc_scanner.get_state()
+        code_state = code_scanner.get_state()
+        scope = _load_scope(cmd_ctx.settings)
 
-    # Get current state
-    doc_state = doc_scanner.get_state()
-    code_state = code_scanner.get_state()
-    scope = _load_scope(settings)
-
-    # Generate suggestions with progress indicator
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-    ) as progress:
-        progress.add_task(description="Generating suggestions...", total=None)
-        suggester.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)
-
-    tracker.log()
+        # Generate suggestions with progress indicator
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task(description="Generating suggestions...", total=None)
+            suggester.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)

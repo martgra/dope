@@ -1,6 +1,10 @@
 # Unreleased
 
-- Added `dope scope` command group with `create` subcommand for interactive documentation‐scope generation
+- **Progress Visibility**: Enhanced progress feedback (real-time bars, M/N counts, skipped vs. processed file stats) in `scan` and `update` commands for better user experience.
+- **Uncommitted Changes Detection**: Fixed branch resolution in `CommandContext` to default correctly and allow `dope scan code` to detect both staged and unstaged changes when run on the current branch.
+- **Empty-state Handling in suggestion_state**: `load_suggestions` now returns an empty `DocSuggestions` instance when no suggestion data exists, preventing errors on missing or empty state.
+- **Suggestion Preview in CLI update command**: In dry-run mode, `dope update` shows a preview (first 80 characters) of each suggestion's text for easier inspection.
+- Added `dope scope` command group with `create` subcommand for interactive documentation‑scope generation
 - Introduced `ScopeService`, `DocScope`, and AI agents for scope definition
 - Added `get_structure` and repository metadata features (anytree)
 - Added `get_graphical_repo_tree` utility
@@ -25,6 +29,8 @@
 - Added `dope apply` command to apply suggested documentation changes via the DocsChanger service.
 - Added `dope config` command group with subcommands `init`, `show`, `validate`, and `set` to manage application configuration.
 - Added `--concurrency` option (default 5) for `dope scan docs` and `dope scan code` commands, enabling parallel LLM calls during scans.
+- Enhanced empty-state handling: `get_suggestions` in the `suggestion_state` repository now immediately returns an empty `DocSuggestions` instance when no suggestion data is available.
+- Improved suggestion preview: in dry-run mode, the CLI's `update` command now displays a preview (first 80 characters) of each suggestion's `suggestion` attribute for better readability.
 
 # Version History
 

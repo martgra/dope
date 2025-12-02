@@ -61,6 +61,10 @@ dope scan code --branch main --concurrency 8
 
 _Expected:_ Summary of code structure.
 
+> Note: When run on the current branch, `dope scan code` now compares against HEAD and includes any staged or unstaged (uncommitted) changes, so you can document work-in-progress modifications.
+
+The `dope scan code` command now detects and includes any staged or unstaged (uncommitted) changes when run on the current branch by comparing against HEAD, allowing you to document work-in-progress code changes.
+
 ## Next Steps
 
 Explore the main CLI commands—all support the `--branch <branch-name>` option for branch-based workflows:
@@ -86,6 +90,9 @@ dope scope create --project-size medium --output scope.yml --branch <branch-name
 
 # Apply a documentation scope from file
 dope scope apply --scope-file scope.yml --branch <branch-name>
+
+# Run the entire documentation update flow in one command
+dope update --branch <branch-name> [--dry-run]
 ```
 
 For `dope suggest` and `dope apply`, the commands utilize the generated `doc-terms.json` index and intelligent file pre-filtering, focusing suggestions and updates on high-priority documentation changes where code and documentation terms align.
