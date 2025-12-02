@@ -5,7 +5,6 @@ from typing import Annotated
 
 import typer
 from pydantic import HttpUrl, ValidationError
-from rich import print as rprint
 
 from dope.cli.config.defaults import create_default_settings
 from dope.cli.config.display import (
@@ -26,6 +25,7 @@ from dope.cli.config.interactive import (
     prompt_token,
 )
 from dope.cli.config.validation import display_validation_results, validate_config
+from dope.cli.ui import console, error, info, success, warning
 from dope.core.config_io import generate_local_cache, generate_local_config_file
 from dope.core.config_locator import locate_local_config_file
 from dope.core.utils import require_config
@@ -112,19 +112,21 @@ def init(
     local_config_path = locate_local_config_file(CONFIG_FILENAME)
 
     if local_config_path and not force:
-        rprint(f"[yellow]⚠️  Config already exists at {local_config_path}[/yellow]")
+        warning(f"Config already exists at {local_config_path}")
         if typer.confirm("Overwrite?"):
             force = True
         else:
-            rprint("[blue]Keeping existing config[/blue]")
+            info("Keeping existing config")
             raise typer.Exit()
 
     add_cache_to_git = False
 
     if not interactive:
         # QUICKSTART MODE - minimal questions
-        rprint("[bold cyan]🚀 Quick setup[/bold cyan] (use --interactive for full configuration)")
-        rprint("")
+        console.print(
+            "[bold cyan]🚀 Quick setup[/bold cyan] (use --interactive for full configuration)"
+        )
+        console.print("")
 
         # Only ask essential questions
         provider = prompt_provider()
@@ -134,25 +136,25 @@ def init(
         # Use smart defaults for everything else
         new_settings = create_default_settings(provider, base_url, token)
 
-        rprint("\n[green]✅ Config created with defaults:[/green]")
-        rprint(f"  📁 Docs root: [blue]{new_settings.docs.docs_root}[/blue]")
-        rprint(f"  🔧 Code root: [blue]{new_settings.git.code_repo_root}[/blue]")
-        rprint(f"  💾 State dir: [blue]{new_settings.state_directory}[/blue]")
-        rprint(f"  🌿 Default branch: [blue]{new_settings.git.default_branch}[/blue]")
-        rprint("\n[dim]💡 Run 'dope config show' to see all settings[/dim]")
-        rprint("[dim]💡 Run 'dope config init -i --force' for full customization[/dim]")
+        console.print("\n[green]✅ Config created with defaults:[/green]")
+        console.print(f"  📁 Docs root: [blue]{new_settings.docs.docs_root}[/blue]")
+        console.print(f"  🔧 Code root: [blue]{new_settings.git.code_repo_root}[/blue]")
+        console.print(f"  💾 State dir: [blue]{new_settings.state_directory}[/blue]")
+        console.print(f"  🌿 Default branch: [blue]{new_settings.git.default_branch}[/blue]")
+        console.print("\n[dim]💡 Run 'dope config show' to see all settings[/dim]")
+        console.print("[dim]💡 Run 'dope config init -i --force' for full customization[/dim]")
 
     else:
         # INTERACTIVE MODE - all questions
-        rprint("[bold cyan]🔧 Interactive setup[/bold cyan]")
-        rprint("")
+        console.print("[bold cyan]🔧 Interactive setup[/bold cyan]")
+        console.print("")
         new_settings, add_cache_to_git = interactive_setup()
 
     # Save config
     generate_local_cache(new_settings.state_directory, add_to_git=add_cache_to_git)
     generate_local_config_file(CONFIG_FILENAME, new_settings)
 
-    rprint(f"\n[green]✅ Configuration saved to {Path.cwd() / CONFIG_FILENAME}[/green]")
+    success(f"Configuration saved to {Path.cwd() / CONFIG_FILENAME}")
 
 
 @app.command()
@@ -204,13 +206,13 @@ def update_setting(
 
         generate_local_config_file(CONFIG_FILENAME, settings)
 
-        rprint(f"[green]✅ Updated {key}:[/green] {old_value} → {new_value}")
-        rprint(f"[dim]📄 Saved to {config_filepath}[/dim]")
+        success(f"Updated {key}: {old_value} → {new_value}")
+        info(f"Saved to {config_filepath}")
 
     except AttributeError as e:
-        rprint(f"[red]❌ Unknown setting: {key}[/red]")
-        rprint("[blue]💡 Run 'dope config show' to see available settings[/blue]")
+        error(f"Unknown setting: {key}")
+        info("Run 'dope config show' to see available settings")
         raise typer.Exit(1) from e
     except Exception as e:
-        rprint(f"[red]❌ Error: {e}[/red]")
+        error(f"Error: {e}")
         raise typer.Exit(1) from e

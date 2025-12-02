@@ -5,10 +5,9 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich import print as rprint
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TaskProgressColumn, TextColumn
 
 from dope.cli.common import command_context, get_branch_option
+from dope.cli.ui import ProgressReporter, info, success, warning
 
 app = typer.Typer(
     help="Scan documentation and code for changes",
@@ -46,44 +45,22 @@ def docs(
         doc_scanner = ctx.factory.doc_scanner(docs_root, ctx.tracker)
 
         # Phase 1: Discover files and update state (hashes)
-        rprint("[cyan]→ Discovering documentation files...[/cyan]")
+        info("Discovering documentation files...")
         state = doc_scanner.scan()
         total_files = len(state)
-        rprint(f"[green]✓ Found {total_files} documentation files[/green]")
+        success(f"Found {total_files} documentation files")
 
         # Phase 2: Generate summaries for files that need them (parallel)
         files_to_process = doc_scanner.files_needing_summary()
         if files_to_process:
-            rprint(f"[cyan]→ Generating summaries for {len(files_to_process)} files...[/cyan]")
-            with Progress(
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TaskProgressColumn(),
-                MofNCompleteColumn(),
-            ) as progress:
-                task = progress.add_task("Scanning", total=len(files_to_process))
-
-                # Run with progress updates
-                async def scan_with_progress():
-                    state = doc_scanner._load_state()
-                    semaphore = asyncio.Semaphore(concurrency)
-
-                    async def process_file(file_path: str):
-                        async with semaphore:
-                            state_item = state.get(file_path, {}).copy()
-                            if not state_item.get("skipped") and not state_item.get("summary"):
-                                updated = await doc_scanner.describe_async(file_path, state_item)
-                                state[file_path] = updated
-                            progress.update(task, advance=1)
-
-                    tasks = [process_file(fp) for fp in files_to_process]
-                    await asyncio.gather(*tasks, return_exceptions=True)
-                    doc_scanner._save_state(state)
-
-                asyncio.run(scan_with_progress())
-            rprint(f"[green]✓ Completed {len(files_to_process)} summaries[/green]")
+            info(f"Generating summaries for {len(files_to_process)} files...")
+            scan_with_progress = ProgressReporter.create_async_scanner(
+                doc_scanner, files_to_process, "Scanning", concurrency
+            )
+            asyncio.run(scan_with_progress())
+            success(f"Completed {len(files_to_process)} summaries")
         else:
-            rprint("[yellow]✓ All documentation files already processed[/yellow]")
+            warning("All documentation files already processed")
 
         # Phase 3: Build term index for code scanning relevance
         doc_scanner.build_term_index()
@@ -104,46 +81,24 @@ def code(
         code_scanner = ctx.factory.code_scanner(repo_root, ctx.branch, ctx.tracker)
 
         # Phase 1: Discover files, filter, and update state (hashes)
-        rprint(f"[cyan]→ Discovering code changes against branch '{ctx.branch}'...[/cyan]")
+        info(f"Discovering code changes against branch '{ctx.branch}'...")
         state = code_scanner.scan()
         total_files = len(state)
         skipped_files = sum(1 for item in state.values() if item.get("skipped"))
         processable_files = total_files - skipped_files
-        rprint(
-            f"[green]✓ Found {total_files} changed files "
-            f"({processable_files} to process, {skipped_files} skipped)[/green]"
+        success(
+            f"Found {total_files} changed files "
+            f"({processable_files} to process, {skipped_files} skipped)"
         )
 
         # Phase 2: Generate summaries for files that need them (parallel)
         files_to_process = code_scanner.files_needing_summary()
         if files_to_process:
-            rprint(f"[cyan]→ Analyzing {len(files_to_process)} code changes...[/cyan]")
-            with Progress(
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TaskProgressColumn(),
-                MofNCompleteColumn(),
-            ) as progress:
-                task = progress.add_task("Scanning", total=len(files_to_process))
-
-                # Run with progress updates
-                async def scan_with_progress():
-                    state = code_scanner._load_state()
-                    semaphore = asyncio.Semaphore(concurrency)
-
-                    async def process_file(file_path: str):
-                        async with semaphore:
-                            state_item = state.get(file_path, {}).copy()
-                            if not state_item.get("skipped") and not state_item.get("summary"):
-                                updated = await code_scanner.describe_async(file_path, state_item)
-                                state[file_path] = updated
-                            progress.update(task, advance=1)
-
-                    tasks = [process_file(fp) for fp in files_to_process]
-                    await asyncio.gather(*tasks, return_exceptions=True)
-                    code_scanner._save_state(state)
-
-                asyncio.run(scan_with_progress())
-            rprint(f"[green]✓ Completed {len(files_to_process)} code analyses[/green]")
+            info(f"Analyzing {len(files_to_process)} code changes...")
+            scan_with_progress = ProgressReporter.create_async_scanner(
+                code_scanner, files_to_process, "Scanning", concurrency
+            )
+            asyncio.run(scan_with_progress())
+            success(f"Completed {len(files_to_process)} code analyses")
         else:
-            rprint("[yellow]✓ All code changes already analyzed[/yellow]")
+            warning("All code changes already analyzed")

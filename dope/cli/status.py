@@ -3,9 +3,8 @@
 import json
 
 import typer
-from rich.console import Console
-from rich.table import Table
 
+from dope.cli.ui import StatusFormatter
 from dope.core.utils import require_config
 
 app = typer.Typer(
@@ -16,7 +15,6 @@ Examples:
   $ dope status
     """,
 )
-console = Console()
 
 
 @app.command()
@@ -55,53 +53,13 @@ def status():
 
     scope_exists = scope_path.exists()
 
-    # Create status table
-    table = Table(title="DOPE Status", show_header=True, header_style="bold cyan")
-    table.add_column("Component", style="cyan", no_wrap=True)
-    table.add_column("Status", style="green")
-
-    # Documentation status
-    if docs_scanned > 0:
-        table.add_row(
-            "Documentation Files",
-            f"{docs_summarized}/{docs_scanned} scanned and summarized",
-        )
-    else:
-        table.add_row("Documentation Files", "[dim]Not scanned yet[/dim]")
-
-    # Code status
-    if code_scanned > 0:
-        table.add_row("Code Files", f"{code_summarized}/{code_scanned} scanned and summarized")
-    else:
-        table.add_row("Code Files", "[dim]Not scanned yet[/dim]")
-
-    # Suggestions status
-    if suggestions_count > 0:
-        table.add_row("Suggestions", f"{suggestions_count} ready to apply")
-    else:
-        table.add_row("Suggestions", "[dim]No suggestions generated[/dim]")
-
-    # Scope status
-    if scope_exists:
-        table.add_row("Documentation Scope", "✓ Configured")
-    else:
-        table.add_row("Documentation Scope", "[dim]Not configured[/dim]")
-
-    console.print(table)
-
-    # Show next steps
-    console.print("\n[bold cyan]Next Steps:[/bold cyan]")
-    if docs_scanned == 0 and code_scanned == 0:
-        console.print("  • Run [blue]dope update[/blue] to scan and update everything")
-        console.print("    or use individual commands:")
-    if docs_scanned == 0:
-        console.print("  1. Run [blue]dope scan docs[/blue] to scan documentation")
-    if code_scanned == 0:
-        console.print("  2. Run [blue]dope scan code[/blue] to scan code changes")
-    if suggestions_count == 0 and (docs_scanned > 0 or code_scanned > 0):
-        console.print("  3. Run [blue]dope suggest[/blue] to generate suggestions")
-    if suggestions_count > 0:
-        console.print("  4. Run [blue]dope apply[/blue] to apply suggestions")
-
-    # Show state directory
-    console.print(f"\n📁 State directory: [blue]{settings.state_directory}[/blue]")
+    # Display status using formatter
+    StatusFormatter.display_status(
+        docs_scanned=docs_scanned,
+        docs_summarized=docs_summarized,
+        code_scanned=code_scanned,
+        code_summarized=code_summarized,
+        suggestions_count=suggestions_count,
+        scope_exists=scope_exists,
+        state_directory=settings.state_directory,
+    )

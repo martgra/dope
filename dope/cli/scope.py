@@ -6,10 +6,9 @@ from typing import Annotated
 import questionary
 import typer
 import yaml
-from rich import print
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from dope.cli.common import command_context, get_branch_option
+from dope.cli.ui import ProgressReporter, console, error, success
 from dope.models.domain.scope import (
     DocTemplate,
     ScopeTemplate,
@@ -51,7 +50,7 @@ def _prompt_project_size() -> ProjectTier | None:
     ).ask()
 
     if answer is None:
-        print("Project size selection canceled.")
+        console.print("Project size selection canceled.")
         raise typer.Abort()
 
     try:
@@ -88,7 +87,7 @@ def _prompt_docs_for_tier(tier: ProjectTier) -> dict[DocTemplateKey, DocTemplate
     ).ask()
 
     if selected is None:
-        print("Documentation selection canceled.")
+        console.print("Documentation selection canceled.")
         raise typer.Abort()
 
     return {key: options[key] for key in selected}
@@ -111,7 +110,7 @@ def _load_state(state_path: Path) -> ScopeTemplate:
             data = yaml.safe_load(f)
         return ScopeTemplate(**data)
     except (yaml.YAMLError, TypeError, FileNotFoundError) as e:
-        print(f"Failed to load state from {state_path}: {e}")
+        error(f"Failed to load state from {state_path}: {e}")
         raise typer.Abort() from e
 
 
@@ -130,7 +129,7 @@ def _save_state(scope: ScopeTemplate, state_path: Path) -> None:
         with state_path.open("w") as f:
             yaml.dump(scope.model_dump(mode="json"), f, sort_keys=False, width=1000)
     except OSError as e:
-        print(f"Failed to save state to {state_path}: {e}")
+        error(f"Failed to save state to {state_path}: {e}")
         raise typer.Abort() from e
 
 
@@ -166,11 +165,7 @@ def _determine_project_size(
     if size_enum is None:
         code_structure = service.get_code_overview()
         code_metadata = service.get_metadata()
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
+        with ProgressReporter.spinner("Determining project size...") as progress:
             progress.add_task(description="Determining project size...", total=None)
             size_enum = service.get_complexity(code_structure, code_metadata)
 
@@ -219,16 +214,12 @@ def create(
             documentation_structure=doc_sections,
         )
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
+        with ProgressReporter.spinner("Generating suggestion scope...") as progress:
             progress.add_task(description="Generating suggestion scope...", total=None)
             scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
 
         _save_state(scope_template, state_path)
-        print(f"Scope created at {str(state_path)}")
+        success(f"Scope created at {str(state_path)}")
 
 
 @app.command()
@@ -239,11 +230,11 @@ def apply(
     with command_context(branch=branch) as ctx:
         state_path: Path = ctx.settings.scope_path
         if not state_path.is_file():
-            print(f"State file not found at {state_path}. Please run 'scope create' first.")
+            error(f"State file not found at {state_path}. Please run 'scope create' first.")
             raise typer.Abort()
 
         if not typer.confirm("Are you sure you want to apply the scoped changes?"):
-            print("Aborted.")
+            console.print("Aborted.")
             return
 
         service = ctx.factory.scope_service(Path("."), ctx.branch, ctx.tracker)
@@ -252,7 +243,7 @@ def apply(
         try:
             service.apply_scope(scope_template)
         except Exception as e:
-            print(f"Error applying scope: {e}")
+            error(f"Error applying scope: {e}")
             raise typer.Abort() from e
 
-        print("Applied the structure.")
+        success("Applied the structure.")

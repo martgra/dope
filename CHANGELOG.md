@@ -1,5 +1,6 @@
 # Unreleased
 
+- **CLI Output Unification**: Centralized CLI user interface refactor. Direct calls to Rich progress and print in `scan`, `status`, `update`, `scope`, `suggest`, and other commands have been replaced with a unified UI abstraction (ProgressReporter and StatusFormatter) and standardized logging functions (`info`, `success`, `warning`, `error`) for more consistent command-line messaging and easier customization.
 - **Progress Visibility**: Enhanced progress feedback (real-time bars, M/N counts, skipped vs. processed file stats) in `scan` and `update` commands for better user experience.
 - **Uncommitted Changes Detection**: Fixed branch resolution in `CommandContext` to default correctly and allow `dope scan code` to detect both staged and unstaged changes when run on the current branch.
 - **Empty-state Handling in suggestion_state**: `load_suggestions` now returns an empty `DocSuggestions` instance when no suggestion data exists, preventing errors on missing or empty state.

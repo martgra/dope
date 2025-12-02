@@ -4,9 +4,9 @@ from pathlib import Path
 
 import typer
 import yaml
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from dope.cli.common import command_context, get_branch_option
+from dope.cli.ui import ProgressReporter
 from dope.models.domain.scope import ScopeTemplate
 
 app = typer.Typer(
@@ -61,10 +61,6 @@ def suggest(
         scope = _load_scope(cmd_ctx.settings)
 
         # Generate suggestions with progress indicator
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
+        with ProgressReporter.spinner("Generating suggestions...") as progress:
             progress.add_task(description="Generating suggestions...", total=None)
             suggester.get_suggestions(scope=scope, docs_change=doc_state, code_change=code_state)

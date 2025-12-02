@@ -1,144 +1,142 @@
-"""Interactive configuration prompts using questionary."""
+"""Interactive configuration prompts using questionary.
 
-import functools
-import sys
+DEPRECATED: This module is deprecated. Use dope.cli.ui.prompts instead.
+Kept for backwards compatibility.
+"""
+
 from pathlib import Path
 
-import questionary
-from git import Repo
-from pydantic import HttpUrl, SecretStr, ValidationError
-from questionary import Choice
+from pydantic import SecretStr
 
-from dope.models.constants import DEFAULT_DOC_SUFFIX, DOC_SUFFIX, EXCLUDE_DIRS
+from dope.cli.ui.prompts import (
+    handle_questionary_abort,
+    validate_url,
+)
+from dope.cli.ui.prompts import (
+    prompt_add_cache_to_git as _prompt_add_cache_to_git,
+)
+from dope.cli.ui.prompts import (
+    prompt_code_repo_root as _prompt_code_repo_root,
+)
+from dope.cli.ui.prompts import (
+    prompt_default_branch as _prompt_default_branch,
+)
+from dope.cli.ui.prompts import (
+    prompt_deployment_endpoint as _prompt_deployment_endpoint,
+)
+from dope.cli.ui.prompts import (
+    prompt_doc_root as _prompt_doc_root,
+)
+from dope.cli.ui.prompts import (
+    prompt_doc_types as _prompt_doc_types,
+)
+from dope.cli.ui.prompts import (
+    prompt_exclude_folders as _prompt_exclude_folders,
+)
+from dope.cli.ui.prompts import (
+    prompt_provider as _prompt_provider,
+)
+from dope.cli.ui.prompts import (
+    prompt_state_directory as _prompt_state_directory,
+)
+from dope.cli.ui.prompts import (
+    prompt_token as _prompt_token,
+)
 from dope.models.enums import Provider
 from dope.models.shared import FileSuffix
 
-
-def handle_questionary_abort(func):
-    """Decorator to handle questionary abort gracefully."""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        result = None
-        try:
-            result = func(*args, **kwargs)
-        except KeyboardInterrupt:
-            pass
-        except Exception as err:
-            raise err
-        finally:
-            if result is None:
-                sys.exit(0)
-        return result
-
-    return wrapper
+# Re-export for backwards compatibility
+__all__ = [
+    "handle_questionary_abort",
+    "prompt_doc_root",
+    "prompt_doc_types",
+    "prompt_provider",
+    "prompt_exclude_folders",
+    "prompt_default_branch",
+    "prompt_code_repo_root",
+    "validate_url",
+    "prompt_deployment_endpoint",
+    "prompt_token",
+    "prompt_state_directory",
+    "prompt_add_cache_to_git",
+]
 
 
-@handle_questionary_abort
 def prompt_doc_root() -> Path:
-    """Prompt for documentation root directory."""
-    return Path(
-        questionary.path(
-            "Set path to doc root folder", only_directories=True, default=str(Path(".").resolve())
-        ).ask()
-    )
+    """Prompt for documentation root directory.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_doc_root() instead.
+    """
+    return _prompt_doc_root()
 
 
-@handle_questionary_abort
 def prompt_doc_types() -> set[FileSuffix]:
-    """Prompt for documentation file types."""
-    choices = [
-        Choice(title=suffix, value=suffix, checked=suffix in DEFAULT_DOC_SUFFIX)
-        for suffix in sorted(DOC_SUFFIX)
-    ]
-    return set(questionary.checkbox("Select doc file types.", choices=choices).ask())
+    """Prompt for documentation file types.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_doc_types() instead.
+    """
+    return _prompt_doc_types()
 
 
-@handle_questionary_abort
 def prompt_provider() -> Provider:
-    """Prompt for LLM provider selection."""
-    return questionary.select(
-        message="Which LLM provider?",
-        choices=[Choice(title=provider.value, value=provider) for provider in Provider],
-    ).ask()
+    """Prompt for LLM provider selection.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_provider() instead.
+    """
+    return _prompt_provider()
 
 
-@handle_questionary_abort
 def prompt_exclude_folders(doc_root: Path) -> set[str]:
-    """Prompt for folders to exclude from documentation scanning."""
-    doc_root = Path(doc_root)
+    """Prompt for folders to exclude from documentation scanning.
 
-    def _check_folder(file: Path):
-        if file.name.startswith("."):
-            return True
-        return file.name in EXCLUDE_DIRS
-
-    choices = [
-        Choice(title=file.name, value=file.name, checked=_check_folder(file))
-        for file in doc_root.iterdir()
-        if file.is_dir()
-    ]
-    if choices:
-        result = questionary.checkbox(
-            message="Select folders to exclude from doc scan", choices=choices
-        )
-        return set(result.ask())
-    return set()
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_exclude_folders() instead.
+    """
+    return _prompt_exclude_folders(doc_root)
 
 
-@handle_questionary_abort
 def prompt_default_branch(repo_path: str) -> str:
-    """Prompt for default Git branch selection."""
-    repo = Repo(str(repo_path), search_parent_directories=True)
-    branches = [str(branch) for branch in repo.branches]
-    return questionary.select("Select default branch", choices=branches, default="main").ask()
+    """Prompt for default Git branch selection.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_default_branch() instead.
+    """
+    return _prompt_default_branch(repo_path)
 
 
-@handle_questionary_abort
 def prompt_code_repo_root() -> Path:
-    """Prompt for code repository root directory."""
-    suggested_root = Repo(".", search_parent_directories=True)
-    return Path(
-        questionary.path(
-            "Set path to code root folder",
-            only_directories=True,
-            default=str(Path(suggested_root.working_dir).resolve()),
-        ).ask()
-    )
+    """Prompt for code repository root directory.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_code_repo_root() instead.
+    """
+    return _prompt_code_repo_root()
 
 
-def validate_url(text: str) -> bool | str:
-    """Validate URL format."""
-    try:
-        HttpUrl(url=text)
-        return True
-    except ValidationError as e:
-        msg = e.errors()[0]["msg"]
-        return f"🚫 {msg}"
-
-
-@handle_questionary_abort
 def prompt_deployment_endpoint() -> str:
-    """Prompt for Azure deployment URL."""
-    return questionary.text(message="Azure deployment URL:", validate=validate_url).ask()
+    """Prompt for Azure deployment URL.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_deployment_endpoint() instead.
+    """
+    return _prompt_deployment_endpoint()
 
 
-@handle_questionary_abort
 def prompt_token() -> SecretStr:
-    """Prompt for API token."""
-    return SecretStr(questionary.password("Input API token").ask())
+    """Prompt for API token.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_token() instead.
+    """
+    return _prompt_token()
 
 
-@handle_questionary_abort
 def prompt_state_directory() -> Path:
-    """Prompt for state directory path."""
-    cache_dir = Path(".") / Path(".dope")
-    return Path(
-        questionary.path("Set state directory path", default=str(cache_dir.resolve())).ask()
-    )
+    """Prompt for state directory path.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_state_directory() instead.
+    """
+    return _prompt_state_directory()
 
 
-@handle_questionary_abort
 def prompt_add_cache_to_git() -> bool:
-    """Prompt whether to add cache directory to Git."""
-    return questionary.confirm("Add cache dir to git?").ask()
+    """Prompt whether to add cache directory to Git.
+
+    DEPRECATED: Use dope.cli.ui.prompts.prompt_add_cache_to_git() instead.
+    """
+    return _prompt_add_cache_to_git()
