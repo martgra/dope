@@ -1,0 +1,53 @@
+name: medium_web_service
+description: |
+  Mid-size internal web app — multiple services, tests, CI, several contributors.
+  Not massive, not tiny.
+metadata:
+  commits: 843
+  num_contributors: 8
+  branches: [main, develop, release-1.4, hotfix-1.3.2]
+  tags: [v1.0.0, v1.1.0, v1.2.0, v1.3.0, v1.3.1, v1.3.2, v1.4.0]
+  lines_of_code: 18400
+structure: |
+  app/
+    api/
+      routes/
+        users.py
+        auth.py
+        orders.py
+      middleware/
+        auth.py
+        logging.py
+    services/
+      user_service.py
+      order_service.py
+      payment_service.py
+    models/
+      user.py
+      order.py
+      product.py
+    db/
+      migrations/
+      session.py
+    core/
+      config.py
+      logging.py
+      cache.py
+  tests/
+    unit/
+    integration/
+    e2e/
+  .github/
+    workflows/
+      ci.yaml
+      release.yaml
+  docs/
+    architecture.md
+    api.md
+  Dockerfile
+  docker-compose.yaml
+  pyproject.toml
+  README.md
+  CONTRIBUTING.md
+  CHANGELOG.md
+expected: medium

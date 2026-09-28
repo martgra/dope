@@ -1,0 +1,12 @@
+name: trivial_hello
+description: Single-file hello-world script — the definition of trivial.
+metadata:
+  commits: 3
+  num_contributors: 1
+  branches: [main]
+  tags: []
+  lines_of_code: 42
+structure: |
+  hello.py
+  README.md
+expected: trivial

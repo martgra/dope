@@ -1,0 +1,74 @@
+name: large_saas
+description: |
+  Public SaaS backend — many services, distributed components, SLA targets,
+  a dozen active contributors. Between medium and enterprise-scale.
+metadata:
+  commits: 4287
+  num_contributors: 27
+  branches:
+    - main
+    - develop
+    - staging
+    - release-3.4
+    - release-3.5
+    - hotfix-3.4.7
+    - feature/multi-region
+    - feature/rate-limiting-v2
+    - dependabot/pip-fastapi
+    - dependabot/npm-react
+  tags: [v1.0, v2.0, v2.1, v2.2, v3.0, v3.1, v3.2, v3.3, v3.4.0, v3.4.7]
+  lines_of_code: 128500
+structure: |
+  services/
+    api-gateway/
+      src/
+        routes/
+        middleware/
+        auth/
+    user-service/
+      src/
+      migrations/
+    billing-service/
+      src/
+      integrations/stripe/
+    notification-service/
+      src/
+    analytics-service/
+      src/
+  frontend/
+    apps/
+      web/
+      admin/
+    packages/
+      ui/
+      hooks/
+      api-client/
+  infra/
+    terraform/
+      modules/
+      environments/
+        prod/
+        staging/
+        dev/
+    kubernetes/
+      helm-charts/
+    monitoring/
+      grafana/
+      alerts/
+  tests/
+    integration/
+    load/
+    smoke/
+  docs/
+    architecture/
+    api/
+    runbooks/
+    onboarding.md
+  .github/workflows/
+  Dockerfile
+  docker-compose.yaml
+  README.md
+  CONTRIBUTING.md
+  CHANGELOG.md
+  SECURITY.md
+expected: large

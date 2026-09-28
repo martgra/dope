@@ -1,0 +1,22 @@
+name: small_cli
+description: Small CLI utility — a few thousand LOC, one contributor, tests but no CI.
+metadata:
+  commits: 47
+  num_contributors: 2
+  branches: [main, dev]
+  tags: [v0.1.0, v0.2.0]
+  lines_of_code: 2350
+structure: |
+  cli_tool/
+    __init__.py
+    main.py
+    commands.py
+    config.py
+    utils.py
+  tests/
+    test_main.py
+    test_commands.py
+  pyproject.toml
+  README.md
+  LICENSE
+expected: small

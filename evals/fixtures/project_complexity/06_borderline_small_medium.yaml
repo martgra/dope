@@ -1,0 +1,28 @@
+name: borderline_small_medium
+description: |
+  Between small and medium — ~8k LOC, a handful of contributors, tests + CI
+  but no distributed components. Either label should count.
+metadata:
+  commits: 195
+  num_contributors: 4
+  branches: [main, develop]
+  tags: [v0.1.0, v0.2.0, v0.3.0, v0.4.0, v0.5.0]
+  lines_of_code: 7850
+structure: |
+  app/
+    __init__.py
+    api.py
+    models.py
+    services.py
+    db.py
+    config.py
+  tests/
+    unit/
+    integration/
+  .github/workflows/
+    ci.yaml
+  Dockerfile
+  pyproject.toml
+  README.md
+  CONTRIBUTING.md
+expected: [small, medium]
