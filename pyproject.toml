@@ -37,6 +37,9 @@ dev = [
     "ty>=0.0.13",
     "vulture>=2.14",
 ]
+evals = [
+    "pydantic-evals>=2.51.0",
+]
 test = [
     "faker>=37.1.0",
     "pytest>=8.4.2",

@@ -1,0 +1,30 @@
+name: add_unit_test
+description: Adds a new unit test file — internal, no docs needed.
+diff: |
+  diff --git a/tests/unit/services/test_scope_filter.py b/tests/unit/services/test_scope_filter.py
+  new file mode 100644
+  --- /dev/null
+  +++ b/tests/unit/services/test_scope_filter.py
+  @@ -0,0 +1,22 @@
+  +"""Unit tests for scope_filter._calculate_relevance."""
+  +
+  +import pytest
+  +
+  +from dope.services.suggester.scope_filter import ScopeAlignmentFilter
+  +
+  +
+  +def test_calculate_relevance_returns_zero_for_empty_diff():
+  +    f = ScopeAlignmentFilter(settings=None, scope=None)
+  +    assert f._calculate_relevance(diff="", section=None) == 0.0
+  +
+  +
+  +def test_calculate_relevance_matches_glob_patterns():
+  +    f = ScopeAlignmentFilter(settings=None, scope=None)
+  +    ...
+expected:
+  change_category: testing
+  change_type: add
+  is_breaking: false
+  is_user_facing: false
+  needs_docs: false
+  doc_priority: 0

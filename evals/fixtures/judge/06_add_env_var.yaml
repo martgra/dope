@@ -1,0 +1,22 @@
+name: add_env_var
+description: |
+  New configuration setting exposed via env var, with a Pydantic field on
+  the Settings tree. Users need to know it exists to opt in.
+diff: |
+  diff --git a/dope/models/settings.py b/dope/models/settings.py
+  --- a/dope/models/settings.py
+  +++ b/dope/models/settings.py
+  @@ -95,6 +95,9 @@ class ScopeFilterSettings(BaseModel):
+       min_docs_threshold: int = Field(
+           default=3, description="Minimum documentation files to include regardless of filtering"
+       )
+  +    max_llm_concurrency: int = Field(
+  +        default=5, description="Cap on parallel LLM calls per phase (env: SCOPE_FILTER__MAX_LLM_CONCURRENCY)"
+  +    )
+expected:
+  change_category: configuration
+  change_type: add
+  is_breaking: false
+  is_user_facing: true
+  needs_docs: true
+  doc_priority: 3

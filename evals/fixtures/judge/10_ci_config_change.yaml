@@ -1,0 +1,22 @@
+name: ci_config_change
+description: |
+  Adds a lint step to the GitHub Actions workflow. Internal / deployment
+  change; end users never see it.
+diff: |
+  diff --git a/.github/workflows/ci.yaml b/.github/workflows/ci.yaml
+  --- a/.github/workflows/ci.yaml
+  +++ b/.github/workflows/ci.yaml
+  @@ -32,3 +32,7 @@ jobs:
+
+         - name: Run tests
+           run: uv run pytest -q
+  +
+  +      - name: Run linter
+  +        run: uv run ruff check .
+expected:
+  change_category: [deployment, configuration]
+  change_type: [change_existing, add]
+  is_breaking: false
+  is_user_facing: false
+  needs_docs: false
+  doc_priority: 0

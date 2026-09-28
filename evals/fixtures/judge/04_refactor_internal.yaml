@@ -1,0 +1,27 @@
+name: refactor_internal
+description: |
+  Rename a private helper and extract a method. Pure internal refactor;
+  no behavior change, no public API surface touched.
+diff: |
+  diff --git a/dope/core/doc_terms.py b/dope/core/doc_terms.py
+  --- a/dope/core/doc_terms.py
+  +++ b/dope/core/doc_terms.py
+  @@ -60,12 +60,16 @@ class DocTermIndexBuilder:
+  -    def _tokenize(self, text: str) -> list[str]:
+  -        text = text.lower()
+  -        text = re.sub(r"[^a-z0-9 ]", " ", text)
+  -        return [w for w in text.split() if len(w) > 2]
+  +    def _tokenize(self, text: str) -> list[str]:
+  +        return [w for w in self._normalize(text).split() if len(w) > 2]
+  +
+  +    @staticmethod
+  +    def _normalize(text: str) -> str:
+  +        text = text.lower()
+  +        return re.sub(r"[^a-z0-9 ]", " ", text)
+expected:
+  change_category: refactor
+  change_type: change_existing
+  is_breaking: false
+  is_user_facing: false
+  needs_docs: false
+  doc_priority: 0

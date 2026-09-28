@@ -1,0 +1,23 @@
+name: security_patch
+description: |
+  Path-traversal fix on a file-read path. Behavior-visible (previously
+  malformed inputs now raise); non-breaking for well-formed callers.
+diff: |
+  diff --git a/dope/consumers/doc_consumer.py b/dope/consumers/doc_consumer.py
+  --- a/dope/consumers/doc_consumer.py
+  +++ b/dope/consumers/doc_consumer.py
+  @@ -34,7 +34,12 @@ class DocConsumer(BaseConsumer):
+       def get_content(self, file_path: Path) -> bytes:
+  -        return file_path.read_bytes()
+  +        resolved = file_path.resolve()
+  +        root = self.root_path.resolve()
+  +        if not resolved.is_relative_to(root):
+  +            raise ValueError(f"Refusing to read outside docs root: {resolved}")
+  +        return resolved.read_bytes()
+expected:
+  change_category: security
+  change_type: change_existing
+  is_breaking: false
+  is_user_facing: true
+  needs_docs: true
+  doc_priority: 4

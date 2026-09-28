@@ -1,0 +1,31 @@
+name: remove_deprecated_api
+description: |
+  Removes a deprecated public method that consumers may still call.
+  Clear breaking change that requires migration.
+diff: |
+  diff --git a/dope/repositories/json_state.py b/dope/repositories/json_state.py
+  --- a/dope/repositories/json_state.py
+  +++ b/dope/repositories/json_state.py
+  @@ -78,15 +78,3 @@ class JsonStateRepository:
+       def load(self) -> dict:
+           ...
+
+  -    def load_legacy(self) -> dict:
+  -        """Load state from the pre-2024 flat-file format.
+  -
+  -        .. deprecated:: 0.9
+  -            Use :meth:`load` instead; legacy support will be removed.
+  -        """
+  -        warnings.warn(
+  -            "load_legacy is deprecated; use load()", DeprecationWarning, stacklevel=2
+  -        )
+  -        if not self._legacy_path.exists():
+  -            return {}
+  -        return json.loads(self._legacy_path.read_text())
+expected:
+  change_category: [api, refactor]
+  change_type: delete
+  is_breaking: true
+  is_user_facing: true
+  needs_docs: true
+  doc_priority: 4

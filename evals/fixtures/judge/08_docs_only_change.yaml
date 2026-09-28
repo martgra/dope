@@ -1,0 +1,23 @@
+name: docs_only_change
+description: |
+  Pure README typo fix. This IS documentation, so needs_docs should be false
+  (nothing else needs updating) and priority should be minimal.
+diff: |
+  diff --git a/README.md b/README.md
+  --- a/README.md
+  +++ b/README.md
+  @@ -12,7 +12,7 @@ DOPE is an AI-powered CLI tool for scanning code and documentation.
+
+   ### Prerequisites
+
+  -- Python 3.13 (see `.python-verion`)
+  +- Python 3.13 (see `.python-version`)
+   - An Azure OpenAI or OpenAI API token (export as `AGENT_TOKEN` or set `OPENAI_API_KEY`)
+   - [Git](https://git-scm.com/) for code scanning
+expected:
+  change_category: documentation
+  change_type: change_existing
+  is_breaking: false
+  is_user_facing: false
+  needs_docs: false
+  doc_priority: 0

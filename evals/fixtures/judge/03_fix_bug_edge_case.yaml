@@ -1,0 +1,23 @@
+name: fix_bug_edge_case
+description: |
+  Fixes a null-handling bug in an existing user-facing command. Small behavior
+  change that a user might notice in an error message.
+diff: |
+  diff --git a/dope/services/suggester/suggester_service.py b/dope/services/suggester/suggester_service.py
+  --- a/dope/services/suggester/suggester_service.py
+  +++ b/dope/services/suggester/suggester_service.py
+  @@ -180,7 +180,10 @@ class DocChangeSuggester:
+       def _build_prompt(self, docs_change: dict, code_change: dict) -> str:
+  -        summary = docs_change["summary"]
+  +        summary = docs_change.get("summary")
+  +        if summary is None:
+  +            logger.warning("No documentation summary; suggestions may be limited.")
+  +            summary = {}
+           ...
+expected:
+  change_category: bugfix
+  change_type: change_existing
+  is_breaking: false
+  is_user_facing: true
+  needs_docs: false
+  doc_priority: 1

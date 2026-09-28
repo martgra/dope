@@ -1,0 +1,30 @@
+name: new_cli_command
+description: Adds a brand-new @app.command() to the CLI — a user-visible feature.
+diff: |
+  diff --git a/dope/cli/main.py b/dope/cli/main.py
+  --- a/dope/cli/main.py
+  +++ b/dope/cli/main.py
+  @@ -42,6 +42,17 @@ def scan_docs():
+       ...
+
+  +@app.command()
+  +def audit():
+  +    """Scan documentation for staleness without a triggering diff.
+  +
+  +    Runs the judge across each doc section and flags any that appear
+  +    outdated relative to the current codebase.
+  +    """
+  +    from dope.services.audit import run_audit
+  +    run_audit()
+  +
+  +
+   @app.command()
+   def status():
+       ...
+expected:
+  change_category: [feature, cli]
+  change_type: add
+  is_breaking: false
+  is_user_facing: true
+  needs_docs: true
+  doc_priority: 3

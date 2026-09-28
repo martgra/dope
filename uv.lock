@@ -621,6 +621,9 @@ dev = [
     { name = "ty" },
     { name = "vulture" },
 ]
+evals = [
+    { name = "pydantic-evals" },
+]
 test = [
     { name = "faker" },
     { name = "pytest" },
@@ -655,6 +658,7 @@ dev = [
     { name = "ty", specifier = ">=0.0.13" },
     { name = "vulture", specifier = ">=2.14" },
 ]
+evals = [{ name = "pydantic-evals", specifier = ">=2.51.0" }]
 test = [
     { name = "faker", specifier = ">=37.1.0" },
     { name = "pytest", specifier = ">=8.4.2" },
