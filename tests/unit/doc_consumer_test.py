@@ -1,6 +1,6 @@
 """Unit tests for doc_consumer module - documentation file discovery."""
 
-from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -117,9 +117,7 @@ class TestDiscoverFiles:
         """Test that directory exclusion is case-insensitive."""
         temp_file("Node_Modules/pkg/readme.md", "# Package")
 
-        consumer = DocConsumer(
-            temp_dir, file_type_filter={".md"}, exclude_dirs={"node_modules"}
-        )
+        consumer = DocConsumer(temp_dir, file_type_filter={".md"}, exclude_dirs={"node_modules"})
         files = consumer.discover_files()
 
         # Should exclude Node_Modules even though pattern is node_modules
@@ -194,3 +192,36 @@ class TestGetContent:
         result = consumer.get_content(file_path)
 
         assert result == binary_content
+
+
+def test_discover_files_excludes_git_ignored_relative_paths(temp_dir, temp_file, monkeypatch):
+    """Git ignored paths are excluded while tracked documentation remains discoverable."""
+    temp_file("included.md", "# Included")
+    temp_file("ignored.md", "# Ignored")
+    repo = Mock()
+    repo.working_tree_dir = str(temp_dir)
+    repo.git.ls_files.return_value = "ignored.md\n"
+    monkeypatch.setattr("dope.consumers.doc_consumer.Repo", lambda *args, **kwargs: repo)
+
+    consumer = DocConsumer(temp_dir, file_type_filter={".md"}, exclude_dirs=set())
+
+    discovered = consumer.discover_files()
+
+    assert {file_path.name for file_path in discovered} == {"included.md"}
+
+
+def test_discover_files_falls_back_to_filesystem_when_git_lookup_fails(
+    temp_dir, temp_file, monkeypatch
+):
+    """Repository discovery failures retain normal filesystem discovery."""
+    temp_file("guide.md", "# Guide")
+
+    def raise_lookup_error(*args, **kwargs):
+        raise RuntimeError("Git unavailable")
+
+    monkeypatch.setattr("dope.consumers.doc_consumer.Repo", raise_lookup_error)
+    consumer = DocConsumer(temp_dir, file_type_filter={".md"}, exclude_dirs=set())
+
+    discovered = consumer.discover_files()
+
+    assert [file_path.name for file_path in discovered] == ["guide.md"]

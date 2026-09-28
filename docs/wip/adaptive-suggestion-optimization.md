@@ -14,14 +14,14 @@ This document describes the adaptive optimization features implemented for the d
 
 ```python
 # Adaptive detail level thresholds
-high_detail_threshold: float = 0.6      # Full details for high-relevance files
-medium_detail_threshold: float = 0.3    # Functional impact only for medium relevance
-enable_adaptive_pruning: bool = True    # Toggle adaptive formatting
+high_detail_threshold: float = 0.6  # Full details for high-relevance files
+medium_detail_threshold: float = 0.3  # Functional impact only for medium relevance
+enable_adaptive_pruning: bool = True  # Toggle adaptive formatting
 
 # Doc term filtering
-doc_term_boost_weight: float = 0.15     # Relevance boost for term matches
-doc_term_match_threshold: int = 5       # Min term matches for boost
-min_docs_threshold: int = 3             # Safety net: min docs to include
+doc_term_boost_weight: float = 0.15  # Relevance boost for term matches
+doc_term_match_threshold: int = 5  # Min term matches for boost
+min_docs_threshold: int = 3  # Safety net: min docs to include
 ```
 
 ### 2. Bidirectional Doc-to-Code Relevance Scoring
@@ -42,9 +42,7 @@ min_docs_threshold: int = 3             # Safety net: min docs to include
 
 ```python
 filtered_docs = doc_term_index.filter_relevant_docs(
-    code_changes=code_state,
-    doc_state=doc_state,
-    min_match_threshold=3
+    code_changes=code_state, doc_state=doc_state, min_match_threshold=3
 )
 # Returns only docs relevant to code changes
 ```

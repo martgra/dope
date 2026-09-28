@@ -63,6 +63,7 @@ uv run pytest
 from pathlib import Path
 import json
 
+
 def load_resource(resource_id: str, cache_dir: Path) -> dict[str, str]:
     """
     Load a resource from cache or fetch from remote source.
@@ -127,9 +128,11 @@ class TestProcessor(unittest.TestCase):
 # ✅ Good
 class DocumentNotFoundError(LovligError):
     """Raised when a document cannot be found."""
+
     def __init__(self, doc_id: str):
         super().__init__(f"Document not found: {doc_id}")
         self.doc_id = doc_id
+
 
 # ❌ Bad
 raise Exception("not found")

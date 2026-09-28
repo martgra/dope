@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from dope.consumers.base import BaseConsumer
-from dope.core.classification import FileClassification, FileClassifier
+from dope.core.classification import ChangeMagnitude, FileClassification, FileClassifier
 from dope.core.usage import UsageTracker
 from dope.services.describer.strategies import (
     CodeAgentStrategy,
@@ -14,6 +14,34 @@ from dope.services.describer.strategies import (
     DocAgentStrategy,
     DocScanStrategy,
 )
+
+
+@pytest.fixture(name="decision_git_consumer")
+def decision_git_consumer_fixture():
+    """Create a Git consumer mock for function-style decision tests."""
+    from dope.consumers.git_consumer import GitConsumer
+
+    consumer = Mock(spec=GitConsumer)
+    consumer.root_path = Path("/mock/repo")
+    consumer.repo = MagicMock()
+    consumer.base_branch = "main"
+    return consumer
+
+
+@pytest.fixture(name="decision_classifier")
+def decision_classifier_fixture():
+    """Create a classifier mock for function-style decision tests."""
+    return Mock(spec=FileClassifier)
+
+
+@pytest.fixture(name="decision_strategy")
+def decision_strategy_fixture(decision_git_consumer, decision_classifier):
+    """Create a filtering-enabled strategy for function-style tests."""
+    return CodeScanStrategy(
+        consumer=decision_git_consumer,
+        classifier=decision_classifier,
+        enable_filtering=True,
+    )
 
 
 class TestDocScanStrategy:
@@ -105,9 +133,7 @@ class TestCodeScanStrategy:
         assert result["process"] is True
         assert "disabled" in result["reason"].lower()
 
-    def test_scan_files_with_filtering(
-        self, strategy, mock_git_consumer, mock_classifier
-    ):
+    def test_scan_files_with_filtering(self, strategy, mock_git_consumer, mock_classifier):
         """Test scan_files filters out trivial files."""
         mock_git_consumer.discover_files.return_value = [
             Path("test_api.py"),
@@ -116,9 +142,7 @@ class TestCodeScanStrategy:
 
         def classify_side_effect(path):
             if "test_" in str(path):
-                return FileClassification(
-                    classification="SKIP", reason="Test file"
-                )
+                return FileClassification(classification="SKIP", reason="Test file")
             return FileClassification(classification="NORMAL", reason="Regular file")
 
         mock_classifier.classify.side_effect = classify_side_effect
@@ -157,6 +181,77 @@ class TestCodeScanStrategy:
         assert len(result) == 2
         assert "skipped" not in result["test_api.py"]
         assert "skipped" not in result["api.py"]
+
+
+def test_get_change_magnitude_parses_numstat_and_rename_similarity(
+    decision_strategy, decision_git_consumer
+):
+    """Change magnitude retains line counts and detected rename similarity."""
+    decision_git_consumer.repo.git.diff.side_effect = [
+        "4\t2\tsrc/new_name.py",
+        " rename src/old_name.py => src/new_name.py (92%)",
+    ]
+
+    magnitude = decision_strategy._get_change_magnitude(Path("src/new_name.py"))
+
+    assert magnitude == ChangeMagnitude(
+        lines_added=4,
+        lines_deleted=2,
+        total_lines=6,
+        is_rename=True,
+        rename_similarity=92,
+        score=0.24,
+    )
+
+
+def test_get_change_magnitude_treats_binary_numstat_as_zero_lines(
+    decision_strategy, decision_git_consumer
+):
+    """Binary numstat markers retain the existing zero-line fallback."""
+    decision_git_consumer.repo.git.diff.side_effect = ["-\t-\tassets/logo.png", ""]
+
+    magnitude = decision_strategy._get_change_magnitude(Path("assets/logo.png"))
+
+    assert magnitude.lines_added == 0
+    assert magnitude.lines_deleted == 0
+    assert magnitude.total_lines == 0
+    assert magnitude.score == 0.0
+
+
+def test_should_process_file_keeps_high_priority_trivial_change(
+    decision_strategy, decision_classifier, decision_git_consumer
+):
+    """HIGH-priority files bypass the trivial-change filter."""
+    decision_classifier.classify.return_value = FileClassification(
+        classification="HIGH", reason="Critical file"
+    )
+    decision_git_consumer.repo.git.diff.side_effect = ["0\t0\tREADME.md", ""]
+    decision_git_consumer.get_normalized_diff.return_value = b"content change"
+
+    decision = decision_strategy.should_process_file(Path("README.md"))
+
+    assert decision["process"] is True
+    assert decision["priority"] == "HIGH"
+
+
+def test_should_process_file_continues_when_term_boost_fails(
+    decision_strategy, decision_classifier, decision_git_consumer
+):
+    """An optional term-index failure does not block significant changes."""
+    decision_classifier.classify.return_value = FileClassification(
+        classification="NORMAL", reason="Regular file"
+    )
+    decision_git_consumer.repo.git.diff.side_effect = ["30\t10\tsrc/engine.py", ""]
+    decision_git_consumer.get_normalized_diff.return_value = b"meaningful change"
+    decision_strategy._doc_term_index = Mock()
+    decision_strategy._doc_term_index.get_relevant_docs.side_effect = RuntimeError(
+        "index unavailable"
+    )
+
+    decision = decision_strategy.should_process_file(Path("src/engine.py"))
+
+    assert decision["process"] is True
+    assert decision["metadata"]["magnitude"] == 0.6
 
 
 class TestDocAgentStrategy:

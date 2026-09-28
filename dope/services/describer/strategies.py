@@ -5,6 +5,7 @@ and description behaviors without inheritance.
 """
 
 import logging
+import re
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -153,6 +154,50 @@ class CodeScanStrategy:
             if not self._doc_term_index.load():
                 self._doc_term_index = None
 
+    @staticmethod
+    def _parse_numstat(diff_output: str) -> tuple[int, int]:
+        """Extract added and deleted line counts from Git numstat output."""
+        if not diff_output:
+            return 0, 0
+
+        parts = diff_output.strip().split("\n", maxsplit=1)[0].split("\t")
+        if len(parts) < 2:
+            return 0, 0
+
+        added_str, deleted_str = parts[:2]
+        return 0 if added_str == "-" else int(added_str), 0 if deleted_str == "-" else int(
+            deleted_str
+        )
+
+    @staticmethod
+    def _parse_rename_summary(rename_output: str) -> tuple[bool, int | None]:
+        """Determine rename status and similarity from a Git summary."""
+        if "rename" not in rename_output.lower():
+            return False, None
+
+        match = re.search(r"(\d+)%", rename_output)
+        return True, int(match.group(1)) if match else None
+
+    def _apply_doc_term_boost(self, file_path: Path, magnitude: ChangeMagnitude) -> None:
+        """Boost a change score when its diff matches indexed documentation terms."""
+        if self._doc_term_index is None or magnitude.total_lines == 0:
+            return
+
+        try:
+            diff_content = self.consumer.get_normalized_diff(file_path).decode(
+                "utf-8", errors="ignore"
+            )
+            doc_matches = self._doc_term_index.get_relevant_docs(diff_content)
+            if not doc_matches:
+                return
+
+            magnitude.related_docs = [doc for doc, _ in doc_matches[:3]]
+            match_count = sum(count for _, count in doc_matches)
+            boost_factor = min(1.5, 1.0 + (match_count * 0.05))
+            magnitude.score = min(1.0, magnitude.score * boost_factor)
+        except Exception as error:
+            logger.debug("Failed to apply doc term boost for %s: %s", file_path, error)
+
     def _get_change_magnitude(self, file_path: Path) -> ChangeMagnitude:
         """Calculate the magnitude of changes in a file.
 
@@ -168,8 +213,6 @@ class CodeScanStrategy:
         Returns:
             ChangeMagnitude with detailed change metrics.
         """
-        import re
-
         repo = self.consumer.repo
         base_branch = self.consumer.base_branch
 
@@ -182,33 +225,11 @@ class CodeScanStrategy:
             str(file_path),
         )
 
-        # Parse numstat output: "added\tdeleted\tfilename"
-        lines_added = 0
-        lines_deleted = 0
-        is_rename = False
-        rename_similarity = None
-
-        if diff_output:
-            lines = diff_output.strip().split("\n")
-            if lines:
-                parts = lines[0].split("\t")
-                if len(parts) >= 2:
-                    # Handle binary files (marked as '-')
-                    added_str = parts[0]
-                    deleted_str = parts[1]
-
-                    lines_added = 0 if added_str == "-" else int(added_str)
-                    lines_deleted = 0 if deleted_str == "-" else int(deleted_str)
+        lines_added, lines_deleted = self._parse_numstat(diff_output)
 
         # Check for rename/move
         rename_output = repo.git.diff(base_branch, "-M90%", "--summary", "--", str(file_path))
-
-        if "rename" in rename_output.lower():
-            is_rename = True
-            # Try to extract similarity percentage
-            match = re.search(r"(\d+)%", rename_output)
-            if match:
-                rename_similarity = int(match.group(1))
+        is_rename, rename_similarity = self._parse_rename_summary(rename_output)
 
         # Calculate significance score using shared function
         total_lines = lines_added + lines_deleted
@@ -265,26 +286,7 @@ class CodeScanStrategy:
         # Step 2: Change magnitude analysis
         try:
             magnitude = self._get_change_magnitude(file_path)
-
-            # Apply doc term relevance boost if index is available
-            if self._doc_term_index is not None and magnitude.total_lines > 0:
-                try:
-                    # Get normalized diff for term matching
-                    diff_content = self.consumer.get_normalized_diff(file_path).decode(
-                        "utf-8", errors="ignore"
-                    )
-                    doc_matches = self._doc_term_index.get_relevant_docs(diff_content)
-
-                    if doc_matches:
-                        # Extract just doc paths
-                        magnitude.related_docs = [doc for doc, _ in doc_matches[:3]]
-
-                        # Boost score based on documentation relevance
-                        match_count = sum(count for _, count in doc_matches)
-                        boost_factor = min(1.5, 1.0 + (match_count * 0.05))
-                        magnitude.score = min(1.0, magnitude.score * boost_factor)
-                except Exception as e:
-                    logger.debug("Failed to apply doc term boost for %s: %s", file_path, e)
+            self._apply_doc_term_boost(file_path, magnitude)
 
         except Exception as e:
             # If we can't get magnitude, process it to be safe

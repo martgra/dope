@@ -1,3 +1,5 @@
+"""Filesystem discovery for documentation files."""
+
 import os
 from pathlib import Path
 
@@ -32,6 +34,22 @@ class DocConsumer(BaseConsumer):
             raise InvalidDirectoryError(str(root_path), "Not a valid directory")
         return root_path
 
+    @staticmethod
+    def _get_ignored_files(base_dir: Path) -> tuple[set[str] | None, Path | None]:
+        """Load Git ignored paths when the root belongs to a repository."""
+        try:
+            repo = Repo(base_dir, search_parent_directories=True)
+            if repo.working_tree_dir:
+                repo_root = Path(repo.working_tree_dir)
+                ignored_files = set(
+                    repo.git.ls_files("--others", "-i", "--exclude-standard").splitlines()
+                )
+                return ignored_files, repo_root
+        except (InvalidGitRepositoryError, Exception):
+            pass
+
+        return None, None
+
     def discover_files(self, file_filter=None, exclude_dirs=None) -> list[Path]:
         """Returns a list of Path objects."""
         base_dir = self.root_path
@@ -46,17 +64,7 @@ class DocConsumer(BaseConsumer):
         else:
             combined_excludes = self.exclude_dirs
 
-        ignored_files = None
-        repo_root = None
-        try:
-            repo = Repo(base_dir, search_parent_directories=True)
-            if repo.working_tree_dir:
-                repo_root = Path(repo.working_tree_dir)
-                ignored_files = set(
-                    repo.git.ls_files("--others", "-i", "--exclude-standard").splitlines()
-                )
-        except (InvalidGitRepositoryError, Exception):
-            ignored_files = None
+        ignored_files, repo_root = self._get_ignored_files(base_dir)
 
         discovered = []
         for dirpath, dirs, files in os.walk(base_dir):

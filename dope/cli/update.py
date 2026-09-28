@@ -31,6 +31,19 @@ Examples:
 DEFAULT_CONCURRENCY = 5
 
 
+def _process_pending_files(scanner, work_description: str, concurrency: int) -> None:
+    """Process scanner files that need summaries with progress reporting."""
+    files_to_process = scanner.files_needing_summary()
+    if not files_to_process:
+        return
+
+    info(f"Processing {len(files_to_process)} {work_description}...")
+    scan_with_progress = ProgressReporter.create_async_scanner(
+        scanner, files_to_process, "Scanning", concurrency
+    )
+    asyncio.run(scan_with_progress())
+
+
 @app.callback(invoke_without_command=True)
 def update(
     ctx: typer.Context,
@@ -54,15 +67,7 @@ def update(
         info("Scanning documentation...")
         doc_scanner = cmd_ctx.factory.doc_scanner(root_path, cmd_ctx.tracker)
         doc_scanner.scan()
-
-        files_to_process = doc_scanner.files_needing_summary()
-        if files_to_process:
-            info(f"Processing {len(files_to_process)} files...")
-            scan_with_progress = ProgressReporter.create_async_scanner(
-                doc_scanner, files_to_process, "Scanning", concurrency
-            )
-            asyncio.run(scan_with_progress())
-
+        _process_pending_files(doc_scanner, "files", concurrency)
         doc_scanner.build_term_index()
         success("Documentation scan complete")
 
@@ -70,14 +75,7 @@ def update(
         info(f"Scanning code changes (branch: {cmd_ctx.branch})...")
         code_scanner = cmd_ctx.factory.code_scanner(root_path, cmd_ctx.branch, cmd_ctx.tracker)
         code_scanner.scan()
-
-        files_to_process = code_scanner.files_needing_summary()
-        if files_to_process:
-            info(f"Processing {len(files_to_process)} code changes...")
-            scan_with_progress = ProgressReporter.create_async_scanner(
-                code_scanner, files_to_process, "Scanning", concurrency
-            )
-            asyncio.run(scan_with_progress())
+        _process_pending_files(code_scanner, "code changes", concurrency)
         success("Code scan complete")
 
         # Phase 3: Generate suggestions

@@ -122,19 +122,25 @@ Create protocol definitions for dependency injection:
 from typing import Protocol, Any
 from pathlib import Path
 
+
 class StateRepository(Protocol):
     """Protocol for state persistence."""
+
     def load(self) -> dict[str, Any]: ...
     def save(self, state: dict[str, Any]) -> None: ...
     def compute_hash(self, data: Any) -> str: ...
 
+
 class FileConsumer(Protocol):
     """Protocol for file discovery and content access."""
+
     def discover_files(self) -> list[Path]: ...
     def get_content(self, file_path: Path) -> bytes: ...
 
+
 class AgentRunner(Protocol):
     """Protocol for running LLM agents."""
+
     def run(self, prompt: str) -> Any: ...
 ```
 
@@ -212,6 +218,7 @@ class DocChangeSuggester:
             self._agent = get_suggester_agent()  # Global function
         return self._agent
 
+
 # AFTER: Dependency injection
 class DocChangeSuggester:
     def __init__(
@@ -238,6 +245,7 @@ def create_suggester(settings: Settings, tracker: UsageTracker) -> DocChangeSugg
         agent=create_suggester_agent(settings),
         usage_tracker=tracker,
     )
+
 
 # dope/cli/suggest.py - Now clean and simple
 @app.callback(invoke_without_command=True)

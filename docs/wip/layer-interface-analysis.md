@@ -200,8 +200,7 @@ Rename protocol to avoid collision:
 class FileClassifierProtocol(Protocol):  # Renamed from FileClassifier
     """Protocol for classifying files based on path patterns."""
 
-    def classify(self, file_path: Path) -> tuple[str, str]:
-        ...
+    def classify(self, file_path: Path) -> tuple[str, str]: ...
 ```
 
 ### Phase 3: Move Classification Out of Consumer (Medium Risk)
@@ -233,8 +232,7 @@ class CodeDescriberService(DescriberService):
         repository: DescriberRepository,  # Required, not optional
         classifier: FileClassifier,  # New: inject classifier
         usage_tracker: UsageTracker | None = None,
-    ):
-        ...
+    ): ...
 ```
 
 ### Phase 4: Require Repository Injection (Medium Risk)

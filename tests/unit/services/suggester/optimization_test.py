@@ -221,6 +221,41 @@ class TestDocTermFiltering:
         assert "docs/config.md" in filtered
 
 
+def test_filter_relevant_docs_returns_all_documents_without_an_index():
+    """Term filtering safely falls back when no index is available."""
+    index = DocTermIndex()
+    doc_state = {"docs/guide.md": {"priority": "NORMAL"}}
+    code_changes = {"src/example.py": {"summary": "An example change"}}
+
+    filtered = index.filter_relevant_docs(code_changes, doc_state)
+
+    assert filtered is doc_state
+
+
+def test_filter_relevant_docs_copies_metadata_for_included_document(mock_doc_term_index):
+    """Term relevance enriches an output copy without mutating state."""
+    doc_state = {
+        "docs/cli.md": {
+            "summary": {"sections": []},
+            "priority": "NORMAL",
+        }
+    }
+    code_changes = {"src/cli.py": {"summary": "CLI command"}}
+
+    filtered = mock_doc_term_index.filter_relevant_docs(
+        code_changes=code_changes,
+        doc_state=doc_state,
+        min_match_threshold=2,
+    )
+
+    assert filtered["docs/cli.md"] is not doc_state["docs/cli.md"]
+    assert filtered["docs/cli.md"]["term_relevance"] == {
+        "match_count": 2,
+        "matched_terms": True,
+    }
+    assert "term_relevance" not in doc_state["docs/cli.md"]
+
+
 class TestAdaptiveFormatting:
     """Tests for adaptive detail level formatting."""
 
@@ -437,10 +472,6 @@ class TestSuggesterIntegration:
         # Verify both prompts were generated (main goal is to ensure integration works)
         # Token reduction happens in real scenarios with larger datasets
         # In small test fixtures, added metadata can offset pruning benefits
-        assert tokens_no_opt > 0 and tokens_opt > 0
-
-        # Log actual reduction for visibility
-        reduction_pct = (
-            ((tokens_no_opt - tokens_opt) / tokens_no_opt * 100) if tokens_no_opt > 0 else 0
-        )
+        assert tokens_no_opt > 0
+        assert tokens_opt > 0
         # Note: In production with larger datasets, expect 20-40% reduction

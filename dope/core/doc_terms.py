@@ -296,7 +296,47 @@ class DocTermIndex:
 
         return False
 
-    def filter_relevant_docs(  # pylint: disable=too-many-locals,too-many-branches
+    def _extract_change_terms(self, code_changes: dict[str, dict]) -> set[str]:
+        """Extract terms from supported code-change summary formats."""
+        terms = set()
+
+        for change_data in code_changes.values():
+            summary = change_data.get("summary")
+            if isinstance(summary, dict):
+                for change in summary.get("specific_changes", []):
+                    if isinstance(change, dict):
+                        terms.update(self._extract_terms(change.get("name", "")))
+                        terms.update(self._extract_terms(change.get("summary", "")))
+                for impact in summary.get("functional_impact", []):
+                    terms.update(self._extract_terms(impact))
+            elif isinstance(summary, str):
+                terms.update(self._extract_terms(summary))
+
+        return terms
+
+    def _score_docs_by_terms(
+        self, code_terms: set[str], doc_state: dict[str, dict]
+    ) -> dict[str, int]:
+        """Count indexed term matches for each documentation file."""
+        return {
+            doc_path: sum(
+                doc_path in self.term_to_docs[term]
+                for term in code_terms
+                if term in self.term_to_docs
+            )
+            for doc_path in doc_state
+        }
+
+    @staticmethod
+    def _is_relevant(doc_data: dict, match_count: int, min_match_threshold: int) -> bool:
+        """Determine whether a document passes any relevance signal."""
+        return (
+            match_count >= min_match_threshold
+            or doc_data.get("priority") == "HIGH"
+            or doc_data.get("scope_alignment", {}).get("max_relevance", 0) > 0
+        )
+
+    def filter_relevant_docs(
         self,
         code_changes: dict[str, dict],
         doc_state: dict[str, dict],
@@ -331,54 +371,15 @@ class DocTermIndex:
             # No index or no changes - return all docs (safe default)
             return doc_state
 
-        # Extract all terms from code changes
-        all_code_terms = set()
-        for _file_path, change_data in code_changes.items():
-            # Extract terms from summary if available
-            summary = change_data.get("summary")
-            if summary:
-                # Get summary text from various possible structures
-                if isinstance(summary, dict):
-                    # CodeChanges model structure
-                    for change in summary.get("specific_changes", []):
-                        if isinstance(change, dict):
-                            all_code_terms.update(self._extract_terms(change.get("name", "")))
-                            all_code_terms.update(self._extract_terms(change.get("summary", "")))
-                    for impact in summary.get("functional_impact", []):
-                        all_code_terms.update(self._extract_terms(impact))
-                elif isinstance(summary, str):
-                    all_code_terms.update(self._extract_terms(summary))
-
-        # Score each doc based on term matches
-        doc_scores: dict[str, int] = {}
-        for doc_path in doc_state:
-            match_count = 0
-            for term in all_code_terms:
-                if term in self.term_to_docs and doc_path in self.term_to_docs[term]:
-                    match_count += 1
-            doc_scores[doc_path] = match_count
+        all_code_terms = self._extract_change_terms(code_changes)
+        doc_scores = self._score_docs_by_terms(all_code_terms, doc_state)
 
         # Filter docs using conservative approach
         filtered_docs = {}
         for doc_path, doc_data in doc_state.items():
             match_count = doc_scores.get(doc_path, 0)
 
-            # Conservative filtering: include if ANY condition met
-            include = False
-
-            # Condition 1: Sufficient term matches
-            if match_count >= min_match_threshold:
-                include = True
-
-            # Condition 2: High priority (likely README or critical doc)
-            if doc_data.get("priority") == "HIGH":
-                include = True
-
-            # Condition 3: Has scope relevance (from previous filtering)
-            if doc_data.get("scope_alignment", {}).get("max_relevance", 0) > 0:
-                include = True
-
-            if include:
+            if self._is_relevant(doc_data, match_count, min_match_threshold):
                 # Add term relevance metadata
                 doc_data_copy = dict(doc_data)
                 doc_data_copy["term_relevance"] = {
