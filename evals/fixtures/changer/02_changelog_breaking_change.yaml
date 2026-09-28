@@ -1,0 +1,40 @@
+name: changelog_breaking_change
+description: |
+  CHANGELOG's Unreleased section needs a breaking-change note added.
+  Rewrite must place it under the right heading and use the project's
+  keep-a-changelog convention.
+existing_doc:
+  path: CHANGELOG.md
+  content: |
+    # Changelog
+
+    All notable changes to this project will be documented in this file.
+
+    ## [Unreleased]
+
+    ### Added
+
+    - Support for parallel scanning via `--concurrency` flag.
+
+    ## [0.3.0] — 2026-01-15
+
+    ### Changed
+
+    - Renamed configuration key `min_score` to `min_relevance_score`.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add an entry under Unreleased documenting the breaking removal of
+      the `JsonStateRepository.load_legacy` method. Users must migrate
+      to `load` and, for pre-2024 state files, run the migration script.
+      Use a "### Removed" subsection (create it if missing) and the
+      project's existing keep-a-changelog format.
+    code_references: [dope/repositories/json_state.py]
+code_files:
+  dope/repositories/json_state.py: |
+    class JsonStateRepository:
+        def load(self) -> dict:
+            ...
+
+        # load_legacy was removed in this change; the deprecated method
+        # that supported the pre-2024 flat file format is now gone.

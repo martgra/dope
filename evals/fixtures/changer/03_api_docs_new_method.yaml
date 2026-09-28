@@ -1,0 +1,52 @@
+name: api_docs_new_method
+description: |
+  docs/api.md needs a new public method documented under the right
+  class. Rewrite must land it in the Repositories section without
+  duplicating the existing method signatures.
+existing_doc:
+  path: docs/api.md
+  content: |
+    # API Reference
+
+    ## Repositories
+
+    ### `JsonStateRepository`
+
+    #### `load() -> dict`
+
+    Loads the current state from the configured path. Returns an empty
+    dict if the file does not exist yet.
+
+    #### `save(state: dict) -> None`
+
+    Persists `state` to the configured path atomically.
+
+    ## Consumers
+
+    ### `DocConsumer`
+
+    Wraps documentation-file I/O for the scanning pipeline.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Document the new public method `load_partial(keys: list[str]) -> dict`
+      on `JsonStateRepository`. It returns only the entries whose keys are
+      in the argument list; missing keys are absent from the result. This
+      is a backward-compatible addition — do not touch `load` or `save`.
+    code_references: [dope/repositories/json_state.py]
+code_files:
+  dope/repositories/json_state.py: |
+    class JsonStateRepository:
+        def load(self) -> dict:
+            ...
+
+        def save(self, state: dict) -> None:
+            ...
+
+        def load_partial(self, keys: list[str]) -> dict:
+            """Return only the entries whose keys are in ``keys``.
+
+            Missing keys are omitted from the result.
+            """
+            state = self.load()
+            return {k: state[k] for k in keys if k in state}

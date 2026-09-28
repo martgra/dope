@@ -1,0 +1,46 @@
+name: quickstart_new_env_var
+description: |
+  QUICKSTART needs a new optional environment variable added under
+  Prerequisites. Rewrite must clearly mark it as optional.
+existing_doc:
+  path: QUICKSTART.md
+  content: |
+    # Quickstart
+
+    ## Prerequisites
+
+    - Python 3.13+
+    - Git
+    - An OpenAI or Azure API key exported as `OPENAI_API_KEY` or `AGENT_TOKEN`.
+
+    ## Installation
+
+    ```bash
+    pip install .
+    ```
+
+    ## First run
+
+    ```bash
+    dope config init
+    dope update
+    ```
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Under Prerequisites, add a note that `SCOPE_FILTER__MAX_LLM_CONCURRENCY`
+      is a new *optional* environment variable that caps parallel LLM
+      calls per phase (default 5). It is not required — dope works
+      without it. Do not modify the OPENAI_API_KEY or AGENT_TOKEN lines
+      and keep the existing bullet order.
+    code_references: [dope/models/settings.py]
+code_files:
+  dope/models/settings.py: |
+    class ScopeFilterSettings(BaseModel):
+        max_llm_concurrency: int = Field(
+            default=5,
+            description=(
+                "Cap on parallel LLM calls per phase "
+                "(env: SCOPE_FILTER__MAX_LLM_CONCURRENCY)"
+            ),
+        )

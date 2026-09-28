@@ -1,0 +1,46 @@
+name: readme_add_command
+description: |
+  README needs a new CLI command added to the Commands section. The
+  rewrite must incorporate the addition without dropping existing
+  commands or restructuring unrelated sections.
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE
+
+    DOPE is an AI-powered CLI for scanning code and documentation.
+
+    ## Installation
+
+    ```bash
+    pip install .
+    ```
+
+    ## Commands
+
+    - `dope scan` — scan the codebase and docs
+    - `dope suggest` — generate documentation suggestions
+    - `dope apply` — apply the pending suggestions
+
+    ## Configuration
+
+    Configure via `.doperc.yaml` in the project root.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add a new `dope audit` command to the Commands section that scans
+      docs for staleness independently of a triggering diff. Preserve
+      the existing entries and their ordering; do not restructure other
+      sections.
+    code_references: [dope/cli/main.py]
+code_files:
+  dope/cli/main.py: |
+    @app.command()
+    def audit():
+        """Scan documentation for staleness without a triggering diff.
+
+        Runs the judge over each doc section and flags any that appear
+        outdated relative to the current codebase.
+        """
+        from dope.services.audit import run_audit
+        run_audit()

@@ -16,7 +16,7 @@ def get_suggester_agent() -> Agent[None, DocSuggestions]:
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
-    model = get_model(settings.agent.provider, "gpt-5.6-terra")
+    model = get_model(settings.agent.provider, "gpt-5.6-luna")
     agent = Agent(model=model, output_type=DocSuggestions)
 
     @agent.system_prompt
