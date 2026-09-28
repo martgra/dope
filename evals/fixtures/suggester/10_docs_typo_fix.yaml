@@ -1,0 +1,38 @@
+name: docs_typo_fix
+description: |
+  Pure README typo/wording fix. Should produce NO suggestions -
+  documentation was itself the change. Discriminates on: false-positive
+  resistance when the change lives IN the docs.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Prerequisites
+          summary: Lists Python and API-key requirements.
+          references: [Python 3.13, OPENAI_API_KEY]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder.
+          references: []
+code_change:
+  README.md:
+    hash: r2
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.1
+      lines_added: 1
+      lines_deleted: 1
+    summary:
+      specific_changes:
+        - name: prerequisites_typo
+          summary: Fixes a typo in the Prerequisites section - ".python-verion" to ".python-version".
+      functional_impact:
+        - Docs-only wording fix. No code behavior change.
+      programming_language: Markdown
+expected:
+  suggestions: []

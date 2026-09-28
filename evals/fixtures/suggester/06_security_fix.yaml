@@ -1,0 +1,57 @@
+name: security_fix
+description: |
+  Path-traversal fix in a public consumer. CHANGELOG required (security
+  fixes always merit a note); SECURITY.md required (describes hardening);
+  README optional. Discriminates on: does the model surface the security
+  angle to the right doc file rather than a generic README update?
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE is an AI-powered CLI for scanning code and docs.
+          references: [dope]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder for pending changes.
+          references: []
+  SECURITY.md:
+    hash: s1
+    summary:
+      sections:
+        - section_name: Reporting
+          summary: How to report a vulnerability.
+          references: [security@example.com]
+        - section_name: Hardening
+          summary: Empty section documenting security-relevant code paths.
+          references: []
+code_change:
+  dope/consumers/doc_consumer.py:
+    hash: d1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.3
+      lines_added: 5
+      lines_deleted: 1
+    summary:
+      specific_changes:
+        - name: get_content
+          summary: Rejects file paths that resolve outside the configured docs root. Raises ValueError on traversal attempts.
+      functional_impact:
+        - Fixes a path-traversal risk on the doc-read API.
+        - Well-formed callers unaffected; malformed inputs now raise ValueError.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+    - documentation_file_path: SECURITY.md
+      change_type: change_existing
+    - documentation_file_path: README.md
+      change_type: change_existing
+      optional: true

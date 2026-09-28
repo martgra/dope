@@ -37,15 +37,19 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic_ai import Agent
 from pydantic_ai.usage import RunUsage
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 
 from dope.core.usage import UsageTracker
+from dope.exceptions import AgentNotConfiguredError
+from dope.llms.model_factory import get_model
 from dope.models.domain.documentation import DocSuggestions
 from dope.models.enums import ChangeType
+from dope.models.settings import get_settings
 from dope.services.suggester import change_processor
-from dope.services.suggester.prompts import SUGGESTION_PROMPT
+from dope.services.suggester.prompts import SUGGESTION_PROMPT, SYSTEM_PROMPT
 from dope.services.suggester.suggester_agents import get_suggester_agent
 
 FIXTURES = Path(__file__).parent / "fixtures" / "suggester"
@@ -194,19 +198,50 @@ def _build_prompt(inputs: SuggesterInput) -> str:
     return SUGGESTION_PROMPT.format(documentation=docs_formatted, code_changes=code_formatted)
 
 
-async def _run_suggester(inputs: SuggesterInput) -> DocSuggestions:
-    """Task under evaluation; also stashes per-case usage for CostMetrics."""
-    tracker = UsageTracker()
-    prompt = _build_prompt(inputs)
-    result = await get_suggester_agent().run(user_prompt=prompt, usage=tracker.usage)
-    _usage_by_case[id(inputs)] = tracker.usage
-    return result.output
+def build_suggester_agent(model_name: str | None = None) -> Agent[None, DocSuggestions]:
+    """Construct a suggester agent for the given model name.
+
+    Passing ``None`` returns the production factory's agent (currently
+    ``gpt-5.6-terra``); any other model name builds a fresh Agent with the
+    same output_type + system prompt but a different underlying model.
+    Used by :mod:`evals.suggester_ab` to A/B compare model tiers on the
+    exact same fixture set.
+    """
+    if model_name is None:
+        return get_suggester_agent()
+    settings = get_settings()
+    if settings.agent is None:
+        raise AgentNotConfiguredError()
+    agent = Agent(
+        model=get_model(settings.agent.provider, model_name),
+        output_type=DocSuggestions,
+    )
+
+    @agent.system_prompt
+    def _add_prompt() -> str:
+        return SYSTEM_PROMPT
+
+    return agent
+
+
+def make_run_suggester(model_name: str | None = None):
+    """Factory that binds a model to the task wrapper used by evaluate_sync."""
+    agent = build_suggester_agent(model_name)
+
+    async def _run(inputs: SuggesterInput) -> DocSuggestions:
+        tracker = UsageTracker()
+        prompt = _build_prompt(inputs)
+        result = await agent.run(user_prompt=prompt, usage=tracker.usage)
+        _usage_by_case[id(inputs)] = tracker.usage
+        return result.output
+
+    return _run
 
 
 def main() -> None:
     """Build the dataset, run the suggester agent on every fixture, print report."""
     dataset = build_dataset()
-    report = dataset.evaluate_sync(_run_suggester, max_concurrency=MAX_CONCURRENCY)
+    report = dataset.evaluate_sync(make_run_suggester(), max_concurrency=MAX_CONCURRENCY)
     report.print(include_input=False, include_output=True, include_durations=True)
 
 

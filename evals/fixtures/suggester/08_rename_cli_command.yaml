@@ -1,0 +1,53 @@
+name: rename_cli_command
+description: |
+  Renames `dope suggest` to `dope propose`. Breaking for users' scripts.
+  README (command reference) and CHANGELOG both required; a migration
+  guide entry would be nice-to-have.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Command Reference
+          summary: Lists CLI commands including `dope suggest` and `dope apply`.
+          references: [dope suggest, dope apply]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder for pending changes.
+          references: []
+  docs/migration.md:
+    hash: m1
+    summary:
+      sections:
+        - section_name: Recent Migrations
+          summary: History of user-facing renames and behavior changes.
+          references: []
+code_change:
+  dope/cli/main.py:
+    hash: c2
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.45
+      lines_added: 4
+      lines_deleted: 4
+    summary:
+      specific_changes:
+        - name: suggest_command
+          summary: Renames the `suggest` command to `propose`. Old name removed - no alias.
+      functional_impact:
+        - Breaking - scripts invoking `dope suggest` now fail.
+        - Users must update to `dope propose`.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: README.md
+      change_type: change_existing
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+    - documentation_file_path: docs/migration.md
+      change_type: change_existing
+      optional: true

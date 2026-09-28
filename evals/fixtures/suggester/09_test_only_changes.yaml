@@ -1,0 +1,52 @@
+name: test_only_changes
+description: |
+  Test file additions only. Should produce NO suggestions - tests never
+  need doc updates. Discriminates on: false-positive resistance.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE overview.
+          references: [dope]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder.
+          references: []
+code_change:
+  tests/unit/services/test_new_helper.py:
+    hash: t1
+    priority: NORMAL
+    metadata:
+      classification: NORMAL
+      magnitude: 0.2
+      lines_added: 45
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: test_helper_returns_zero_for_empty
+          summary: New unit test covering the empty-input branch of a helper.
+      functional_impact:
+        - No production behavior change.
+      programming_language: Python
+  tests/unit/services/test_edge_case.py:
+    hash: t2
+    priority: NORMAL
+    metadata:
+      classification: NORMAL
+      magnitude: 0.1
+      lines_added: 20
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: test_edge_case
+          summary: Adds a regression test for a previously fixed bug.
+      functional_impact:
+        - No production behavior change.
+      programming_language: Python
+expected:
+  suggestions: []

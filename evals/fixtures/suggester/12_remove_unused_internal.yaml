@@ -1,0 +1,39 @@
+name: remove_unused_internal
+description: |
+  Removes a private helper that had no external callers. No public
+  surface change. Should produce NO suggestions (or CHANGELOG-only at
+  most). Discriminates on: recognizing internal-only removals as
+  non-newsworthy.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE overview.
+          references: [dope]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder.
+          references: []
+code_change:
+  dope/core/doc_terms.py:
+    hash: d1
+    priority: NORMAL
+    metadata:
+      classification: NORMAL
+      magnitude: 0.15
+      lines_added: 0
+      lines_deleted: 8
+    summary:
+      specific_changes:
+        - name: _dead_helper
+          summary: Removes an unused private helper `_dead_helper` that had no callers in the codebase.
+      functional_impact:
+        - Dead-code cleanup. No behavior change.
+      programming_language: Python
+expected:
+  suggestions: []

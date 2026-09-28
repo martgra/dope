@@ -1,0 +1,46 @@
+name: performance_optimization
+description: |
+  Internal performance improvement - no API change, users see faster
+  scans but no interface change. CHANGELOG optional (nice to mention),
+  no other docs need updating. Discriminates on: not over-suggesting when
+  the change is silent to users.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE overview.
+          references: [dope]
+        - section_name: Performance
+          summary: Notes on typical scan durations.
+          references: []
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder.
+          references: []
+code_change:
+  dope/core/doc_terms.py:
+    hash: d1
+    priority: NORMAL
+    metadata:
+      classification: NORMAL
+      magnitude: 0.35
+      lines_added: 12
+      lines_deleted: 8
+    summary:
+      specific_changes:
+        - name: build_index
+          summary: Replaces the O(n^2) term-indexing loop with a hash-set intersection. ~5x faster on large repos.
+      functional_impact:
+        - Faster document term-indexing on repos with many docs.
+        - No API or behavior change; output is byte-identical.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+      optional: true

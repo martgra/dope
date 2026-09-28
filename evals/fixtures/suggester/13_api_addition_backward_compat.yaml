@@ -1,0 +1,52 @@
+name: api_addition_backward_compat
+description: |
+  Adds a new optional method to a public class. Backward compatible - no
+  existing callers break. docs/api.md required (new method must be
+  documented). CHANGELOG required (additions belong there). README not
+  needed for a single method addition.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE overview.
+          references: [dope]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder.
+          references: []
+  docs/api.md:
+    hash: a1
+    summary:
+      sections:
+        - section_name: Repositories
+          summary: API reference for JsonStateRepository.load and load_legacy methods.
+          references: [JsonStateRepository, load, load_legacy]
+code_change:
+  dope/repositories/json_state.py:
+    hash: j1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.2
+      lines_added: 8
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: load_partial
+          summary: "New public method `load_partial(keys: list[str]) -> dict` on JsonStateRepository that returns a filtered subset of the state."
+      functional_impact:
+        - Backward-compatible additive change. Existing callers unaffected.
+        - Enables consumers to load only the state entries they need.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: docs/api.md
+      change_type: change_existing
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+      optional: true

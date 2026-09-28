@@ -1,0 +1,51 @@
+name: deprecation_warning
+description: |
+  Adds a DeprecationWarning to a method without removing it. Non-breaking.
+  CHANGELOG required; docs/api.md required (must call out the deprecation
+  even though the method still works). Discriminates on: does the model
+  correctly treat this as non-breaking and avoid over-suggesting?
+docs_change:
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder for pending changes.
+          references: []
+  docs/api.md:
+    hash: a1
+    summary:
+      sections:
+        - section_name: Repositories
+          summary: Documents JsonStateRepository.load and load_legacy methods.
+          references: [JsonStateRepository, load_legacy]
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE overview.
+          references: [dope]
+code_change:
+  dope/repositories/json_state.py:
+    hash: j1
+    priority: NORMAL
+    metadata:
+      classification: NORMAL
+      magnitude: 0.15
+      lines_added: 5
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: load_legacy
+          summary: Adds a DeprecationWarning to load_legacy pointing users at `load`. Method still functions as before.
+      functional_impact:
+        - Non-breaking. Callers see a warning; behavior is unchanged.
+        - Signals removal in a future release.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+    - documentation_file_path: docs/api.md
+      change_type: change_existing
