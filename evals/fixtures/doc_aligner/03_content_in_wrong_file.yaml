@@ -1,0 +1,53 @@
+name: content_in_wrong_file
+description: |
+  README contains extended architecture prose that per the scope
+  belongs in docs/architecture.md instead. The aligner should keep the
+  readme sections that DO belong (overview, install), and emit a
+  ``changes_in_other_files`` entry moving the architecture content to
+  its right home.
+scope_summary: |
+  size: medium
+  documentation_structure:
+    readme:
+      description: "Landing page: overview + install only"
+      sections:
+        overview: "Short project summary"
+        installation: "How to install"
+    architecture_overview:
+      description: "System architecture reference: modules, data flow, extensibility"
+      sections:
+        modules: "The major modules and their responsibilities"
+        data_flow: "How data moves through the system"
+        extensibility: "How to add a new service or provider"
+filepath: README.md
+file_content: |
+  # DOPE
+
+  ## Overview
+
+  DOPE is an AI-powered CLI for keeping documentation in sync with code.
+
+  ## Installation
+
+  ```bash
+  pip install .
+  ```
+
+  ## Architecture
+
+  ### Modules
+
+  DOPE is split into consumers, services, and repositories. Consumers
+  handle file I/O; services orchestrate LLM calls; repositories persist
+  state.
+
+  ### Data flow
+
+  A scan collects file hashes, runs describer agents, feeds their
+  summaries to the suggester, and stores the resulting suggestions
+  for `dope apply`.
+
+  ### Extensibility
+
+  Adding a new LLM provider is a matter of subclassing the base
+  provider and registering it in the model factory.

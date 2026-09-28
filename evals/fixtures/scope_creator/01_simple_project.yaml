@@ -1,0 +1,20 @@
+name: simple_project
+description: |
+  A tiny project with three obvious doc-to-file mappings — README,
+  CONTRIBUTING, and QUICKSTART all live at their conventional paths.
+scope_documents: [readme, contributing, quickstart]
+doc_structure: |
+  README.md
+  CONTRIBUTING.md
+  QUICKSTART.md
+code_structure: |
+  src/
+    __init__.py
+    main.py
+  tests/
+    test_main.py
+  pyproject.toml
+expected:
+  readme: README.md
+  contributing: CONTRIBUTING.md
+  quickstart: QUICKSTART.md

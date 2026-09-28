@@ -1,0 +1,17 @@
+name: missing_files
+description: |
+  The scope requests documents that do not exist in the repo. The model
+  is allowed to invent reasonable paths (docs/security.md, docs/faq.md)
+  since the prompt permits new files. Tests: correct handling of
+  scope-requested-but-not-present docs.
+scope_documents: [readme, security_compliance, faq_troubleshooting]
+doc_structure: |
+  README.md
+code_structure: |
+  src/
+    core.py
+    auth.py
+expected:
+  readme: README.md
+  security_compliance: [docs/security.md, SECURITY.md, docs/security_compliance.md]
+  faq_troubleshooting: [docs/faq.md, FAQ.md, docs/faq_troubleshooting.md, docs/troubleshooting.md]

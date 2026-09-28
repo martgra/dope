@@ -1,0 +1,36 @@
+name: readme_mostly_aligned
+description: |
+  README already has most of the sections the scope calls for; the
+  aligner should preserve existing content and only add the missing
+  License section. It should NOT rewrite the intro or reorder sections.
+scope_summary: |
+  size: small
+  documentation_structure:
+    readme:
+      description: "Landing page with overview, install, usage, license"
+      sections:
+        overview: "Short project summary"
+        installation: "How to install"
+        usage: "Minimal usage example"
+        license: "License name and pointer to LICENSE file"
+filepath: README.md
+file_content: |
+  # DOPE
+
+  ## Overview
+
+  DOPE is an AI-powered CLI for keeping documentation in sync with code.
+
+  ## Installation
+
+  ```bash
+  pip install .
+  ```
+
+  ## Usage
+
+  ```bash
+  dope scan
+  dope suggest
+  dope apply
+  ```

@@ -1,0 +1,24 @@
+name: docs_subdir
+description: |
+  Docs mostly live under a docs/ subdirectory; README and CHANGELOG at
+  root. Tests the model's ability to look past the root for candidate
+  paths.
+scope_documents: [readme, changelog, api_reference, architecture_overview]
+doc_structure: |
+  README.md
+  CHANGELOG.md
+  docs/
+    api.md
+    architecture.md
+    contributing.md
+code_structure: |
+  app/
+    services/
+    models/
+    api/
+  tests/
+expected:
+  readme: README.md
+  changelog: CHANGELOG.md
+  api_reference: docs/api.md
+  architecture_overview: docs/architecture.md

@@ -1,0 +1,20 @@
+name: empty_readme_needs_structure
+description: |
+  README exists but is essentially empty. Scope says the readme doc
+  should have overview, installation, usage, and license sections. The
+  aligner must scaffold these sections in the correct order.
+scope_summary: |
+  size: small
+  documentation_structure:
+    readme:
+      description: "Landing page with overview, install, usage, license"
+      sections:
+        overview: "Short project summary (what and why)"
+        installation: "How to install / run locally"
+        usage: "Minimal example of running the tool"
+        license: "License name and pointer to LICENSE file"
+filepath: README.md
+file_content: |
+  # Project
+
+  TODO: write this.
