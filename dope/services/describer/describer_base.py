@@ -1,69 +1,49 @@
 """Services for scanning files and generating descriptions."""
 
+import asyncio
 import hashlib
 import logging
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dope.consumers.base import BaseConsumer
+from dope.core.classification import ChangeMagnitude, FileClassifier, calculate_magnitude_score
+from dope.core.doc_terms import DocTermIndex
 from dope.core.usage import UsageTracker
-from dope.repositories.describer_state import DescriberRepository
-from dope.services.describer.strategies import (
-    AgentStrategy,
-    DocAgentStrategy,
-    DocScanStrategy,
-    ScanStrategy,
+from dope.repositories.json_state import JsonStateRepository
+from dope.services.describer.describer_agents import (
+    Deps,
+    get_code_change_agent,
+    get_doc_summarization_agent,
 )
+from dope.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
 if TYPE_CHECKING:
     from dope.consumers.git_consumer import GitConsumer
-    from dope.core.classification import FileClassifier
 
 
 logger = logging.getLogger(__name__)
 
 
 class DescriberService:
-    """Scanner service using repository pattern for state management.
-
-    This service uses the Strategy pattern for scanning and description behaviors,
-    allowing composition of different strategies without inheritance.
-
-    Args:
-        consumer: File consumer for discovering and reading files.
-        repository: Repository for state persistence (required).
-        usage_tracker: Optional tracker for LLM usage statistics.
-        doc_term_index_path: Optional path to doc term index file.
-        scan_strategy: Optional custom scan strategy (defaults to DocScanStrategy).
-        agent_strategy: Optional custom agent strategy (defaults to DocAgentStrategy).
-    """
+    """Scan files, generate summaries, and persist their state."""
 
     def __init__(
         self,
         *,
         consumer: BaseConsumer,
-        repository: DescriberRepository,
+        repository: JsonStateRepository,
         usage_tracker: UsageTracker | None = None,
         doc_term_index_path: Path | None = None,
-        scan_strategy: ScanStrategy | None = None,
-        agent_strategy: AgentStrategy | None = None,
-    ):
-        """Initialize a describer service.
-
-        Args:
-            consumer: File consumer for discovery and content access.
-            repository: Repository for persisted description state.
-            usage_tracker: Optional tracker for LLM token usage.
-            doc_term_index_path: Optional path to the documentation term index.
-            scan_strategy: Optional file scanning strategy.
-            agent_strategy: Optional LLM description strategy.
-        """
+        extract_term_patterns: bool = True,
+    ) -> None:
+        """Initialize the service with its I/O and summary dependencies."""
         self._consumer = consumer
         self._repository = repository
         self._usage_tracker = usage_tracker or UsageTracker()
         self._doc_term_index_path = doc_term_index_path
-        self._scan_strategy = scan_strategy or DocScanStrategy()
-        self._agent_strategy = agent_strategy or DocAgentStrategy()
+        self._extract_term_patterns = extract_term_patterns
 
     @property
     def consumer(self) -> BaseConsumer:
@@ -71,7 +51,7 @@ class DescriberService:
         return self._consumer
 
     @property
-    def repository(self) -> DescriberRepository:
+    def repository(self) -> JsonStateRepository:
         """Get the state repository."""
         return self._repository
 
@@ -80,70 +60,68 @@ class DescriberService:
         """Get the usage tracker."""
         return self._usage_tracker
 
-    @property
-    def scan_strategy(self) -> ScanStrategy:
-        """Get the scan strategy."""
-        return self._scan_strategy
-
-    @property
-    def agent_strategy(self) -> AgentStrategy:
-        """Get the agent strategy."""
-        return self._agent_strategy
-
-    def _compute_hash(self, file_path: Path) -> str:
-        content = self._consumer.get_content(file_path)
-        return hashlib.md5(content).hexdigest()
-
     def _scan_files(self) -> dict:
-        """Scan files using the configured strategy."""
-        return self._scan_strategy.scan_files(self._consumer)
+        """Scan documentation files and return their content hashes."""
+        return {
+            str(file_path): {"hash": hashlib.md5(self._consumer.get_content(file_path)).hexdigest()}
+            for file_path in self._consumer.discover_files()
+        }
+
+    def _run_agent(self, file_path: str, content: bytes) -> dict:
+        """Generate a documentation summary with the configured LLM agent."""
+        prompt = SUMMARIZATION_TEMPLATE.format(
+            file_path=file_path,
+            content=content.decode("utf-8", errors="ignore"),
+        )
+        return (
+            get_doc_summarization_agent()
+            .run_sync(
+                user_prompt=prompt,
+                usage=self._usage_tracker.usage,
+            )
+            .output.model_dump()
+        )
+
+    async def _run_agent_async(self, file_path: str, content: bytes) -> dict:
+        """Generate a documentation summary asynchronously."""
+        prompt = SUMMARIZATION_TEMPLATE.format(
+            file_path=file_path,
+            content=content.decode("utf-8", errors="ignore"),
+        )
+        result = await get_doc_summarization_agent().run(
+            user_prompt=prompt,
+            usage=self._usage_tracker.usage,
+        )
+        return result.output.model_dump()
 
     def _load_state(self) -> dict:
-        """Load the scanner state using repository."""
         return self._repository.load()
 
     def _save_state(self, state: dict) -> None:
-        """Save the state using repository."""
         self._repository.save(state)
 
     def build_term_index(self) -> bool:
-        """Build and save doc term index from current state.
-
-        This should be called explicitly after scanning documentation files.
-        Only rebuilds if the index is stale or doesn't exist.
-
-        Returns:
-            True if index was rebuilt, False if cache was valid.
-        """
+        """Build the documentation term index when its state is stale."""
         if not self._doc_term_index_path:
             return False
 
         from dope.core.doc_terms import DocTermIndexBuilder
 
-        # Check if pattern enrichment is enabled via settings
-        from dope.models.settings import get_settings
-
-        settings = get_settings()
-        extract_patterns = settings.scope_filter.enable_pattern_enrichment
-
-        builder = DocTermIndexBuilder(self._doc_term_index_path, extract_patterns=extract_patterns)
-        state = self._load_state()
-        return builder.build_if_needed(state)
+        builder = DocTermIndexBuilder(
+            self._doc_term_index_path,
+            extract_patterns=self._extract_term_patterns,
+        )
+        return builder.build_if_needed(self._load_state())
 
     def _update_state(self, new_items: dict, current_state: dict) -> dict:
-        """Update state handling both processed and skipped files."""
-        for key in list(current_state.keys()):
+        for key in list(current_state):
             if key not in new_items:
                 del current_state[key]
 
         for key, value in new_items.items():
-            # Handle skipped files
             if value.get("skipped"):
                 current_state[key] = value
-                continue
-
-            # Handle processed files
-            if key not in current_state or current_state[key].get("hash") != value["hash"]:
+            elif key not in current_state or current_state[key].get("hash") != value["hash"]:
                 current_state[key] = {
                     "hash": value["hash"],
                     "summary": None,
@@ -151,258 +129,335 @@ class DescriberService:
                     "metadata": value.get("metadata", {}),
                 }
             else:
-                # Preserve existing summary, update metadata
                 current_state[key]["priority"] = value.get("priority")
                 current_state[key]["metadata"] = value.get("metadata", {})
-
         return current_state
 
     def scan(self) -> dict:
-        """Perform scanning by updating the state based on discovered files and their hashes."""
-        old_state = self._load_state()
-        new_items = self._scan_files()
-        updated_state = self._update_state(new_items, old_state)
+        """Update persisted state from discovered files."""
+        updated_state = self._update_state(self._scan_files(), self._load_state())
         self._save_state(updated_state)
         return updated_state
 
     def get_state(self) -> dict:
-        """Return current state from repository."""
+        """Return current persisted state."""
         return self._load_state()
 
     def save_state(self, state: dict) -> None:
-        """Save state to repository (public method for CLI compatibility).
-
-        Args:
-            state: State dictionary to persist.
-        """
+        """Save state for CLI compatibility."""
         self._save_state(state)
 
     def files_needing_summary(self) -> list[str]:
-        """Get list of file paths that need summaries generated.
-
-        Returns files that:
-        - Are not skipped
-        - Have no summary yet
-
-        Returns:
-            List of file path strings needing summaries.
-        """
-        state = self._load_state()
+        """Return non-skipped files with no summary."""
         return [
-            filepath
-            for filepath, data in state.items()
+            file_path
+            for file_path, data in self._load_state().items()
             if not data.get("skipped") and data.get("summary") is None
         ]
 
     def describe_and_save(self, file_path: str) -> dict:
-        """Describe a single file and persist the result.
-
-        This method:
-        1. Loads current state
-        2. Generates summary for the file
-        3. Saves updated state immediately
-
-        Args:
-            file_path: Path to the file to describe.
-
-        Returns:
-            Updated state item for the file.
-        """
+        """Describe a single pending file and persist the result."""
         state = self._load_state()
         state_item = state.get(file_path, {})
-
-        # Skip if already has summary or is skipped
         if state_item.get("skipped") or state_item.get("summary"):
             return state_item
-
-        # Generate summary
-        updated_item = self.describe(file_path=file_path, state_item=state_item)
-
-        # Persist immediately
-        state[file_path] = updated_item
+        state[file_path] = self.describe(file_path, state_item)
         self._save_state(state)
+        return state[file_path]
 
-        return updated_item
-
-    def describe(self, file_path, state_item) -> dict:
-        """For each file with a missing summary, generate one using the agent.
-
-        Skips files marked as skipped in the filtering phase.
-        """
-        # Skip files that were filtered out
-        if state_item.get("skipped"):
+    def describe(self, file_path: str, state_item: dict) -> dict:
+        """Generate a summary unless the item is skipped or already summarized."""
+        if state_item.get("skipped") or state_item.get("summary"):
             return state_item
-
-        if not state_item["summary"]:
-            content = self._consumer.get_content(self._consumer.root_path / file_path)
-            try:
-                state_item["summary"] = self._agent_strategy.run_agent(
-                    file_path=file_path,
-                    content=content,
-                    usage_tracker=self._usage_tracker,
-                    consumer=self._consumer,
-                )
-            except Exception as e:
-                logger.warning("Failed to generate summary for %s: %s", file_path, e)
-                state_item["summary"] = None
+        content = self._consumer.get_content(self._consumer.root_path / file_path)
+        try:
+            state_item["summary"] = self._run_agent(file_path, content)
+        except Exception as error:
+            logger.warning("Failed to generate summary for %s: %s", file_path, error)
+            state_item["summary"] = None
         return state_item
 
     async def describe_async(self, file_path: str, state_item: dict) -> dict:
-        """Generate summary for a file asynchronously.
-
-        Args:
-            file_path: Path to the file.
-            state_item: Current state item for the file.
-
-        Returns:
-            Updated state item with summary.
-        """
-        if state_item.get("skipped"):
+        """Generate a summary asynchronously unless it is already available."""
+        if state_item.get("skipped") or state_item.get("summary"):
             return state_item
-
-        if not state_item["summary"]:
-            content = self._consumer.get_content(self._consumer.root_path / file_path)
-            try:
-                state_item["summary"] = await self._agent_strategy.run_agent_async(
-                    file_path=file_path,
-                    content=content,
-                    usage_tracker=self._usage_tracker,
-                    consumer=self._consumer,
-                )
-            except Exception as e:
-                logger.warning("Failed to generate summary for %s: %s", file_path, e)
-                state_item["summary"] = None
+        content = self._consumer.get_content(self._consumer.root_path / file_path)
+        try:
+            state_item["summary"] = await self._run_agent_async(file_path, content)
+        except Exception as error:
+            logger.warning("Failed to generate summary for %s: %s", file_path, error)
+            state_item["summary"] = None
         return state_item
 
     async def describe_files_parallel(
-        self,
-        file_paths: list[str],
-        max_concurrency: int = 5,
+        self, file_paths: list[str], max_concurrency: int = 5
     ) -> dict[str, dict]:
-        """Describe multiple files in parallel and save results.
-
-        Uses asyncio.Semaphore to limit concurrent LLM API calls.
-
-        Args:
-            file_paths: List of file paths to describe.
-            max_concurrency: Maximum concurrent API calls (default: 5).
-
-        Returns:
-            Dictionary mapping file paths to their updated state items.
-        """
-        import asyncio
-
+        """Describe files concurrently and persist completed state."""
         state = self._load_state()
         semaphore = asyncio.Semaphore(max_concurrency)
-        results: dict[str, dict] = {}
 
         async def process_file(file_path: str) -> tuple[str, dict]:
             async with semaphore:
-                state_item = state.get(file_path, {}).copy()
-                if state_item.get("skipped") or state_item.get("summary"):
-                    return file_path, state_item
-                updated = await self.describe_async(file_path, state_item)
-                return file_path, updated
+                item = state.get(file_path, {}).copy()
+                return file_path, await self.describe_async(file_path, item)
 
-        tasks = [process_file(fp) for fp in file_paths]
-        completed = await asyncio.gather(*tasks, return_exceptions=True)
-
+        results: dict[str, dict] = {}
+        completed = await asyncio.gather(
+            *(process_file(path) for path in file_paths), return_exceptions=True
+        )
         for result in completed:
             if isinstance(result, BaseException):
                 logger.warning("Parallel describe failed for a file: %s", result)
                 continue
-            file_path, updated_item = result
-            results[file_path] = updated_item
-            state[file_path] = updated_item
-
+            file_path, item = result
+            results[file_path] = item
+            state[file_path] = item
         self._save_state(state)
         return results
 
 
 class CodeDescriberService(DescriberService):
-    """Code describer service with intelligent filtering.
-
-    This service handles code file scanning and description, with support for
-    intelligent filtering based on file classification and change magnitude.
-
-    Uses CodeScanStrategy and CodeAgentStrategy via composition instead of
-    method overriding.
-
-    Args:
-        consumer: GitConsumer instance for code operations.
-        repository: Repository for state persistence (required).
-        classifier: File classifier for determining processing priority.
-        usage_tracker: Optional tracker for LLM usage statistics.
-        enable_filtering: Enable intelligent pre-filtering (default: True).
-        doc_term_index_path: Optional path to doc term index for context-aware scoring.
-    """
+    """Describer service configured for code scanning and filtering."""
 
     def __init__(
         self,
         *,
         consumer: "GitConsumer",
-        repository: DescriberRepository,
+        repository: JsonStateRepository,
         classifier: "FileClassifier | None" = None,
         usage_tracker: UsageTracker | None = None,
         enable_filtering: bool = True,
         doc_term_index_path: Path | None = None,
-    ):
-        """Initialize a code describer service.
-
-        Args:
-            consumer: Git consumer for repository operations.
-            repository: Repository for persisted description state.
-            classifier: Optional classifier for code-file priority.
-            usage_tracker: Optional tracker for LLM token usage.
-            enable_filtering: Whether to filter trivial code changes.
-            doc_term_index_path: Optional path to the documentation term index.
-        """
-        from dope.core.classification import FileClassifier
-        from dope.services.describer.strategies import CodeAgentStrategy, CodeScanStrategy
-
-        # Create strategies for code scanning and description
-        scan_strategy = CodeScanStrategy(
-            consumer=consumer,
-            classifier=classifier or FileClassifier(),
-            enable_filtering=enable_filtering,
-            doc_term_index_path=doc_term_index_path,
-        )
-        agent_strategy = CodeAgentStrategy(consumer=consumer)
-
+        extract_term_patterns: bool = True,
+    ) -> None:
+        """Initialize code-specific scanning and summary strategies."""
         super().__init__(
             consumer=consumer,
             repository=repository,
             usage_tracker=usage_tracker,
             doc_term_index_path=doc_term_index_path,
-            scan_strategy=scan_strategy,
-            agent_strategy=agent_strategy,
+            extract_term_patterns=extract_term_patterns,
         )
+        self._git_consumer = consumer
+        self._classifier = classifier or FileClassifier()
+        self._enable_filtering = enable_filtering
+        self._doc_term_index: DocTermIndex | None = None
 
-        # Store reference for backward compatibility with tests
-        self._git_consumer: GitConsumer = consumer
+        if doc_term_index_path and doc_term_index_path.exists():
+            self._doc_term_index = DocTermIndex(doc_term_index_path)
+            if not self._doc_term_index.load():
+                self._doc_term_index = None
 
     @property
     def enable_filtering(self) -> bool:
         """Whether intelligent filtering is enabled."""
-        from dope.services.describer.strategies import CodeScanStrategy
-
-        if isinstance(self._scan_strategy, CodeScanStrategy):
-            return self._scan_strategy.enable_filtering
-        return False
+        return self._enable_filtering
 
     def should_process_file(self, file_path: Path) -> dict:
-        """Decide if a file needs LLM processing using multiple signals.
+        """Decide whether a changed code file needs LLM processing."""
+        if not self._enable_filtering:
+            return {"process": True, "reason": "Filtering disabled", "priority": "NORMAL"}
 
-        Delegates to the CodeScanStrategy.
+        classification = self._classifier.classify(file_path)
+        if classification.classification == "SKIP":
+            return {
+                "process": False,
+                "reason": classification.reason,
+                "priority": None,
+                "metadata": {"classification": classification.classification},
+            }
 
-        Args:
-            file_path: Path to the file to evaluate
+        try:
+            magnitude = self._get_change_magnitude(file_path)
+            self._apply_doc_term_boost(file_path, magnitude)
+        except Exception as error:
+            logger.warning(
+                "Could not determine change magnitude for %s: %s. Processing anyway.",
+                file_path,
+                error,
+            )
+            return {
+                "process": True,
+                "reason": "Could not determine magnitude",
+                "priority": classification.classification,
+            }
 
-        Returns:
-            dict with process decision, reason, priority, and metadata.
-        """
-        from dope.services.describer.strategies import CodeScanStrategy
+        if magnitude.is_rename and magnitude.rename_similarity and magnitude.rename_similarity > 95:
+            return {
+                "process": False,
+                "reason": f"Pure rename ({magnitude.rename_similarity}% similarity)",
+                "priority": None,
+                "metadata": {
+                    "classification": classification.classification,
+                    "magnitude": magnitude.score,
+                    "rename_similarity": magnitude.rename_similarity,
+                },
+            }
+        if magnitude.score < 0.2 and classification.classification != "HIGH":
+            return {
+                "process": False,
+                "reason": (
+                    f"Trivial change ({magnitude.total_lines} lines, score: {magnitude.score:.2f})"
+                ),
+                "priority": None,
+                "metadata": {
+                    "classification": classification.classification,
+                    "magnitude": magnitude.score,
+                    "lines_changed": magnitude.total_lines,
+                },
+            }
 
-        if isinstance(self._scan_strategy, CodeScanStrategy):
-            return self._scan_strategy.should_process_file(file_path)
-        return {"process": True, "reason": "No filtering strategy", "priority": "NORMAL"}
+        try:
+            if not self._git_consumer.get_normalized_diff(file_path):
+                return {
+                    "process": False,
+                    "reason": "Whitespace/formatting changes only",
+                    "priority": None,
+                    "metadata": {
+                        "classification": classification.classification,
+                        "magnitude": magnitude.score,
+                    },
+                }
+        except Exception as error:
+            logger.debug(
+                "Could not normalize diff for %s: %s. Processing anyway.", file_path, error
+            )
+
+        metadata = {
+            "classification": classification.classification,
+            "magnitude": magnitude.score,
+            "lines_added": magnitude.lines_added,
+            "lines_deleted": magnitude.lines_deleted,
+            "is_rename": magnitude.is_rename,
+        }
+        if magnitude.related_docs:
+            metadata["related_docs"] = magnitude.related_docs
+        return {
+            "process": True,
+            "reason": f"Significant change ({magnitude.total_lines} lines changed)",
+            "priority": classification.classification,
+            "metadata": metadata,
+        }
+
+    @staticmethod
+    def _parse_numstat(diff_output: str) -> tuple[int, int]:
+        """Extract added and deleted line counts from Git numstat output."""
+        if not diff_output:
+            return 0, 0
+        parts = diff_output.strip().split("\n", maxsplit=1)[0].split("\t")
+        if len(parts) < 2:
+            return 0, 0
+        added, deleted = parts[:2]
+        return 0 if added == "-" else int(added), 0 if deleted == "-" else int(deleted)
+
+    @staticmethod
+    def _parse_rename_summary(rename_output: str) -> tuple[bool, int | None]:
+        """Determine rename status and similarity from a Git summary."""
+        if "rename" not in rename_output.lower():
+            return False, None
+        match = re.search(r"(\d+)%", rename_output)
+        return True, int(match.group(1)) if match else None
+
+    def _get_change_magnitude(self, file_path: Path) -> ChangeMagnitude:
+        """Calculate a file's change magnitude from Git's diff output."""
+        diff_output = self._git_consumer.repo.git.diff(
+            self._git_consumer.base_branch,
+            "-M90%",
+            "--numstat",
+            "--",
+            str(file_path),
+        )
+        lines_added, lines_deleted = self._parse_numstat(diff_output)
+        rename_output = self._git_consumer.repo.git.diff(
+            self._git_consumer.base_branch,
+            "-M90%",
+            "--summary",
+            "--",
+            str(file_path),
+        )
+        is_rename, rename_similarity = self._parse_rename_summary(rename_output)
+        return ChangeMagnitude(
+            lines_added=lines_added,
+            lines_deleted=lines_deleted,
+            total_lines=lines_added + lines_deleted,
+            is_rename=is_rename,
+            rename_similarity=rename_similarity,
+            score=calculate_magnitude_score(
+                lines_added=lines_added,
+                lines_deleted=lines_deleted,
+                is_rename=is_rename,
+                rename_similarity=rename_similarity,
+            ),
+        )
+
+    def _apply_doc_term_boost(self, file_path: Path, magnitude: ChangeMagnitude) -> None:
+        """Boost a score when the normalized diff matches indexed terms."""
+        if self._doc_term_index is None or magnitude.total_lines == 0:
+            return
+        try:
+            diff_content = self._git_consumer.get_normalized_diff(file_path).decode(
+                "utf-8", errors="ignore"
+            )
+            doc_matches = self._doc_term_index.get_relevant_docs(diff_content)
+            if not doc_matches:
+                return
+            magnitude.related_docs = [doc for doc, _ in doc_matches[:3]]
+            boost_factor = min(1.5, 1.0 + sum(count for _, count in doc_matches) * 0.05)
+            magnitude.score = min(1.0, magnitude.score * boost_factor)
+        except Exception as error:
+            logger.debug("Failed to apply doc term boost for %s: %s", file_path, error)
+
+    def _scan_files(self) -> dict:
+        """Scan changed code files and preserve filtering metadata."""
+        file_hashes = {}
+        for file_path in self._git_consumer.discover_files():
+            if not self._enable_filtering:
+                content = self._git_consumer.get_content(file_path)
+                file_hashes[str(file_path)] = {"hash": hashlib.md5(content).hexdigest()}
+                continue
+
+            decision = self.should_process_file(file_path)
+            if not decision["process"]:
+                file_hashes[str(file_path)] = {
+                    "hash": None,
+                    "skipped": True,
+                    "skip_reason": decision["reason"],
+                    "metadata": decision.get("metadata", {}),
+                }
+                continue
+            content = self._git_consumer.get_content(file_path)
+            file_hashes[str(file_path)] = {
+                "hash": hashlib.md5(content).hexdigest(),
+                "priority": decision.get("priority"),
+                "metadata": decision.get("metadata", {}),
+            }
+        return file_hashes
+
+    def _run_agent(self, file_path: str, content: bytes) -> dict:
+        """Generate a code-change summary with Git context."""
+        prompt = SUMMARIZATION_TEMPLATE.format(
+            file_path=file_path,
+            content=content.decode("utf-8", errors="ignore"),
+        )
+        return (
+            get_code_change_agent()
+            .run_sync(
+                user_prompt=prompt,
+                deps=Deps(consumer=self._git_consumer),
+                usage=self._usage_tracker.usage,
+            )
+            .output.model_dump()
+        )
+
+    async def _run_agent_async(self, file_path: str, content: bytes) -> dict:
+        """Generate a code-change summary asynchronously with Git context."""
+        prompt = SUMMARIZATION_TEMPLATE.format(
+            file_path=file_path,
+            content=content.decode("utf-8", errors="ignore"),
+        )
+        result = await get_code_change_agent().run(
+            user_prompt=prompt,
+            deps=Deps(consumer=self._git_consumer),
+            usage=self._usage_tracker.usage,
+        )
+        return result.output.model_dump()

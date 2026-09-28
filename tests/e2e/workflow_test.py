@@ -76,13 +76,13 @@ class TestDocumentationScanWorkflow:
         # Excluded directory
         assert len([f for f in files if "node_modules" in str(f)]) == 0
 
-    @patch("dope.services.describer.strategies.get_doc_summarization_agent")
+    @patch("dope.services.describer.describer_base.get_doc_summarization_agent")
     def test_scan_generates_summaries(
         self, mock_get_agent, doc_project, temp_dir, mock_scan_agent
     ):
         """Test full scan workflow generates summaries."""
         from dope.consumers.doc_consumer import DocConsumer
-        from dope.repositories.describer_state import DescriberRepository
+        from dope.repositories.json_state import JsonStateRepository
         from dope.services.describer.describer_base import DescriberService
 
         mock_get_agent.return_value = mock_scan_agent
@@ -93,7 +93,7 @@ class TestDocumentationScanWorkflow:
             exclude_dirs={"node_modules"},
         )
 
-        repository = DescriberRepository(temp_dir / "doc-state.json")
+        repository = JsonStateRepository(temp_dir / "doc-state.json")
         service = DescriberService(
             consumer=consumer,
             repository=repository,
@@ -280,8 +280,8 @@ class TestApplyWorkflow:
 class TestFullPipeline:
     """Integration test for complete pipeline."""
 
-    @patch("dope.services.describer.strategies.get_doc_summarization_agent")
-    @patch("dope.services.describer.strategies.get_code_change_agent")
+    @patch("dope.services.describer.describer_base.get_doc_summarization_agent")
+    @patch("dope.services.describer.describer_base.get_code_change_agent")
     def test_scan_to_suggest_pipeline(
         self,
         mock_code_agent_factory,
@@ -310,19 +310,19 @@ class TestFullPipeline:
         git_consumer = GitConsumer(repo_path, "main")
 
         # Create services
-        from dope.repositories.describer_state import DescriberRepository
+        from dope.repositories.json_state import JsonStateRepository
         from dope.services.describer.describer_base import (
             CodeDescriberService,
             DescriberService,
         )
 
-        doc_repository = DescriberRepository(temp_dir / "doc-state.json")
+        doc_repository = JsonStateRepository(temp_dir / "doc-state.json")
         doc_service = DescriberService(
             consumer=doc_consumer,
             repository=doc_repository,
         )
 
-        code_repository = DescriberRepository(temp_dir / "code-state.json")
+        code_repository = JsonStateRepository(temp_dir / "code-state.json")
         code_service = CodeDescriberService(
             consumer=git_consumer,
             repository=code_repository,

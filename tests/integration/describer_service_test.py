@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from dope.core.classification import FileClassification, FileClassifier
-from dope.repositories.describer_state import DescriberRepository
+from dope.repositories.json_state import JsonStateRepository
 from dope.services.describer.describer_base import CodeDescriberService, DescriberService
 
 
@@ -20,8 +20,8 @@ class TestDescriberServiceWorkflow:
 
     @pytest.fixture
     def repository(self, temp_dir):
-        """Create a DescriberRepository instance."""
-        return DescriberRepository(temp_dir / "state.json")
+        """Create a state repository instance."""
+        return JsonStateRepository(temp_dir / "state.json")
 
     @pytest.fixture
     def service(self, repository, mock_file_consumer, mock_usage_tracker):
@@ -71,7 +71,7 @@ class TestDescriberServiceWorkflow:
     def test_save_state_creates_directories(self, temp_dir, mock_file_consumer):
         """Test repository creates parent directories."""
         nested_path = temp_dir / "nested" / "deep" / "state.json"
-        repository = DescriberRepository(nested_path)
+        repository = JsonStateRepository(nested_path)
         service = DescriberService(
             consumer=mock_file_consumer,
             repository=repository,
@@ -106,7 +106,7 @@ class TestDescriberServiceWorkflow:
         assert result["skipped"] is True
         assert result.get("summary") is None
 
-    @patch("dope.services.describer.strategies.get_doc_summarization_agent")
+    @patch("dope.services.describer.describer_base.get_doc_summarization_agent")
     def test_describe_generates_summary(self, mock_get_agent, service, mock_agent):
         """Test describe generates summary for file without one."""
         mock_get_agent.return_value = mock_agent
@@ -124,8 +124,8 @@ class TestCodeDescriberServiceFiltering:
 
     @pytest.fixture
     def repository(self, temp_dir):
-        """Create a DescriberRepository instance."""
-        return DescriberRepository(temp_dir / "state.json")
+        """Create a state repository instance."""
+        return JsonStateRepository(temp_dir / "state.json")
 
     @pytest.fixture
     def mock_classifier(self):
@@ -221,7 +221,7 @@ class TestCodeDescriberServiceFiltering:
         self, temp_dir, mock_git_consumer, mock_usage_tracker
     ):
         """Test that disabling filtering processes all files."""
-        repository = DescriberRepository(temp_dir / "state.json")
+        repository = JsonStateRepository(temp_dir / "state.json")
         service = CodeDescriberService(
             consumer=mock_git_consumer,
             repository=repository,
@@ -240,7 +240,7 @@ class TestStateManagement:
 
     def test_load_state_returns_empty_when_no_file(self, temp_dir, mock_file_consumer):
         """Test get_state returns empty dict when file doesn't exist."""
-        repository = DescriberRepository(temp_dir / "nonexistent.json")
+        repository = JsonStateRepository(temp_dir / "nonexistent.json")
         service = DescriberService(
             consumer=mock_file_consumer,
             repository=repository,
@@ -255,7 +255,7 @@ class TestStateManagement:
         state_path = temp_dir / "state.json"
         state_path.write_text(json.dumps({"file.md": {"hash": "abc"}}))
 
-        repository = DescriberRepository(state_path)
+        repository = JsonStateRepository(state_path)
         service = DescriberService(
             consumer=mock_file_consumer,
             repository=repository,
@@ -270,7 +270,7 @@ class TestStateManagement:
         state_path = temp_dir / "state.json"
         state_path.write_text(json.dumps({"file.md": {"hash": "abc"}}))
 
-        repository = DescriberRepository(state_path)
+        repository = JsonStateRepository(state_path)
         service = DescriberService(
             consumer=mock_file_consumer,
             repository=repository,
@@ -286,8 +286,8 @@ class TestFilesNeedingSummary:
 
     @pytest.fixture
     def repository(self, temp_dir):
-        """Create a DescriberRepository instance."""
-        return DescriberRepository(temp_dir / "state.json")
+        """Create a state repository instance."""
+        return JsonStateRepository(temp_dir / "state.json")
 
     @pytest.fixture
     def service(self, repository, mock_file_consumer, mock_usage_tracker):
@@ -332,8 +332,8 @@ class TestDescribeAndSave:
 
     @pytest.fixture
     def repository(self, temp_dir):
-        """Create a DescriberRepository instance."""
-        return DescriberRepository(temp_dir / "state.json")
+        """Create a state repository instance."""
+        return JsonStateRepository(temp_dir / "state.json")
 
     @pytest.fixture
     def service(self, repository, mock_file_consumer, mock_usage_tracker):
@@ -344,7 +344,7 @@ class TestDescribeAndSave:
             usage_tracker=mock_usage_tracker,
         )
 
-    @patch("dope.services.describer.strategies.get_doc_summarization_agent")
+    @patch("dope.services.describer.describer_base.get_doc_summarization_agent")
     def test_generates_and_persists_summary(self, mock_get_agent, service, repository, mock_agent):
         """Test describe_and_save generates summary and saves immediately."""
         mock_get_agent.return_value = mock_agent
@@ -387,8 +387,8 @@ class TestBuildTermIndex:
 
     @pytest.fixture
     def repository(self, temp_dir):
-        """Create a DescriberRepository instance."""
-        return DescriberRepository(temp_dir / "state.json")
+        """Create a state repository instance."""
+        return JsonStateRepository(temp_dir / "state.json")
 
     def test_builds_index_when_configured(self, temp_dir, mock_file_consumer, repository):
         """Test build_term_index builds index when path is configured."""
@@ -461,8 +461,8 @@ class TestDescribeFilesParallel:
 
     @pytest.fixture
     def repository(self, temp_dir):
-        """Create a DescriberRepository instance."""
-        return DescriberRepository(temp_dir / "state.json")
+        """Create a state repository instance."""
+        return JsonStateRepository(temp_dir / "state.json")
 
     @pytest.fixture
     def service(self, repository, mock_file_consumer, mock_usage_tracker):
@@ -473,7 +473,7 @@ class TestDescribeFilesParallel:
             usage_tracker=mock_usage_tracker,
         )
 
-    @patch("dope.services.describer.strategies.get_doc_summarization_agent")
+    @patch("dope.services.describer.describer_base.get_doc_summarization_agent")
     def test_processes_multiple_files_in_parallel(
         self, mock_get_agent, service, repository, mock_async_agent
     ):

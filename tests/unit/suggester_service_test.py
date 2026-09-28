@@ -13,7 +13,7 @@ from dope.models.domain.documentation import (
 )
 from dope.models.enums import ChangeType
 from dope.repositories import SuggestionRepository
-from dope.services.suggester.change_processor import ChangeProcessor
+from dope.services.suggester import change_processor as ChangeProcessor
 from dope.services.suggester.suggester_service import DocChangeSuggester
 
 

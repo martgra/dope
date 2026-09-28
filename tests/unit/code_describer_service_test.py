@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from dope.consumers.git_consumer import GitConsumer
-from dope.core.classification import ChangeMagnitude, FileClassification, FileClassifier
-from dope.repositories.describer_state import DescriberRepository
+from dope.core.classification import FileClassification, FileClassifier
+from dope.repositories.json_state import JsonStateRepository
 from dope.services.describer.describer_base import CodeDescriberService
 
 
@@ -23,8 +23,8 @@ def mock_consumer_fixture():
 
 @pytest.fixture(name="mock_repository")
 def mock_repository_fixture():
-    """Create a mock DescriberRepository."""
-    repo = Mock(spec=DescriberRepository)
+    """Create a mock JSON state repository."""
+    repo = Mock(spec=JsonStateRepository)
     repo.load.return_value = {}
     return repo
 
@@ -308,10 +308,7 @@ class TestDescribe:
         mock_consumer.get_content.return_value = b"file content"
         mock_consumer.root_path = Path("/mock")
 
-        # Mock the agent strategy
-        with patch.object(
-            service._agent_strategy, "run_agent", return_value={"changes": ["something"]}
-        ):
+        with patch.object(service, "_run_agent", return_value={"changes": ["something"]}):
             result = service.describe("api.py", state_item)
 
         assert result["summary"] == {"changes": ["something"]}
@@ -355,9 +352,7 @@ class TestIntegration:
         assert state["api.py"]["hash"] is not None
 
         # Describe
-        with patch.object(
-            service._agent_strategy, "run_agent", return_value={"changes": ["something"]}
-        ):
+        with patch.object(service, "_run_agent", return_value={"changes": ["something"]}):
             for file_path, state_item in state.items():
                 state[file_path] = service.describe(file_path, state_item)
 

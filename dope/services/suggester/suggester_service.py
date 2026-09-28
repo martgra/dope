@@ -4,6 +4,7 @@ This service orchestrates the generation of documentation update suggestions
 based on code and documentation changes.
 """
 
+from pathlib import Path
 from typing import Any, Protocol
 
 from pydantic_ai.usage import RunUsage
@@ -14,7 +15,7 @@ from dope.models.domain.documentation import DocSuggestions
 from dope.models.domain.scope import ScopeTemplate
 from dope.models.settings import ScopeFilterSettings
 from dope.repositories import SuggestionRepository
-from dope.services.suggester.change_processor import ChangeProcessor
+from dope.services.suggester import change_processor
 from dope.services.suggester.prompts import SUGGESTION_PROMPT
 from dope.services.suggester.scope_filter import ScopeAlignmentFilter
 
@@ -64,6 +65,7 @@ class DocChangeSuggester:
         repository: SuggestionRepository,
         scope: ScopeTemplate | None = None,
         scope_filter_settings: ScopeFilterSettings | None = None,
+        doc_term_index_path: Path | None = None,
         agent: SuggestionAgent | None = None,
         usage_tracker: UsageTrackerProtocol | None = None,
     ):
@@ -73,6 +75,7 @@ class DocChangeSuggester:
             repository: Repository for state persistence
             scope: Optional project scope for filtering
             scope_filter_settings: Optional filter settings
+            doc_term_index_path: Optional path to the persisted term index
             agent: Optional pre-configured agent (lazy-loaded if not provided)
             usage_tracker: Optional usage tracker
         """
@@ -82,13 +85,12 @@ class DocChangeSuggester:
         self._usage_tracker = usage_tracker or UsageTracker()
         self._doc_term_index = None
 
-        # Load doc term index if pattern enrichment enabled
-        if scope_filter_settings is None or scope_filter_settings.enable_pattern_enrichment:
+        # Load doc term index if pattern enrichment is enabled.
+        if doc_term_index_path and (
+            scope_filter_settings is None or scope_filter_settings.enable_pattern_enrichment
+        ):
             from dope.core.doc_terms import DocTermIndex
-            from dope.models.settings import get_settings
 
-            settings = get_settings()
-            doc_term_index_path = settings.doc_terms_path
             if doc_term_index_path.exists():
                 self._doc_term_index = DocTermIndex(doc_term_index_path)
                 self._doc_term_index.load()
@@ -150,8 +152,8 @@ class DocChangeSuggester:
         }
 
         # Filter to processable files only
-        processable_code = ChangeProcessor.filter_processable_files(code_change)
-        processable_docs = ChangeProcessor.filter_processable_files(docs_change)
+        processable_code = change_processor.filter_processable_files(code_change)
+        processable_docs = change_processor.filter_processable_files(docs_change)
 
         analytics["processable_code_files"] = len(processable_code)
         analytics["processable_doc_files"] = len(processable_docs)
@@ -173,8 +175,8 @@ class DocChangeSuggester:
         # Apply minimum docs threshold (safety net)
         if len(processable_docs) < self._scope_filter_settings.min_docs_threshold:
             # Restore top N docs by priority if we filtered too aggressively
-            all_processable = ChangeProcessor.filter_processable_files(docs_change)
-            sorted_docs = ChangeProcessor.sort_by_priority(all_processable)
+            all_processable = change_processor.filter_processable_files(docs_change)
+            sorted_docs = change_processor.sort_by_priority(all_processable)
 
             # Take top N that aren't already included
             current_paths = set(processable_docs.keys())
@@ -245,20 +247,20 @@ class DocChangeSuggester:
         """
         # Use adaptive formatting if enabled
         if self._scope_filter_settings.enable_adaptive_pruning:
-            code_formatted = ChangeProcessor.format_changes_adaptive(
+            code_formatted = change_processor.format_changes_adaptive(
                 processable_code,
                 include_metadata=True,
                 high_detail_threshold=self._scope_filter_settings.high_detail_threshold,
                 medium_detail_threshold=self._scope_filter_settings.medium_detail_threshold,
             )
         else:
-            code_formatted = ChangeProcessor.format_changes_for_prompt(
+            code_formatted = change_processor.format_changes_for_prompt(
                 processable_code,
                 include_metadata=True,
             )
 
         return SUGGESTION_PROMPT.format(
-            documentation=ChangeProcessor.format_changes_for_prompt(
+            documentation=change_processor.format_changes_for_prompt(
                 processable_docs,
                 include_metadata=False,
             ),

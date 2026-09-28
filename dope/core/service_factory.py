@@ -46,7 +46,7 @@ class ServiceFactory:
             Configured DescriberService instance
         """
         from dope.consumers.doc_consumer import DocConsumer
-        from dope.repositories import DescriberRepository
+        from dope.repositories import JsonStateRepository
         from dope.services.describer.describer_base import DescriberService
 
         consumer = DocConsumer(
@@ -54,12 +54,13 @@ class ServiceFactory:
             file_type_filter=self.settings.docs.doc_filetypes,
             exclude_dirs=self.settings.docs.exclude_dirs,
         )
-        repository = DescriberRepository(self.settings.doc_state_path)
+        repository = JsonStateRepository(self.settings.doc_state_path)
         return DescriberService(
             consumer=consumer,
             repository=repository,
             usage_tracker=usage_tracker,
             doc_term_index_path=self.settings.doc_terms_path,
+            extract_term_patterns=self.settings.scope_filter.enable_pattern_enrichment,
         )
 
     def code_scanner(
@@ -79,16 +80,17 @@ class ServiceFactory:
             Configured CodeDescriberService instance
         """
         from dope.consumers.git_consumer import GitConsumer
-        from dope.repositories import DescriberRepository
+        from dope.repositories import JsonStateRepository
         from dope.services.describer.describer_base import CodeDescriberService
 
         consumer = GitConsumer(root_path, branch)
-        repository = DescriberRepository(self.settings.code_state_path)
+        repository = JsonStateRepository(self.settings.code_state_path)
         return CodeDescriberService(
             consumer=consumer,
             repository=repository,
             usage_tracker=usage_tracker,
             doc_term_index_path=self.settings.doc_terms_path,
+            extract_term_patterns=self.settings.scope_filter.enable_pattern_enrichment,
         )
 
     def suggester(
@@ -125,6 +127,7 @@ class ServiceFactory:
             repository=repository,
             scope=scope,
             scope_filter_settings=self.settings.scope_filter,
+            doc_term_index_path=self.settings.doc_terms_path,
             usage_tracker=usage_tracker,
         )
 
