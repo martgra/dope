@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from dope.models.settings import Settings, get_settings
 
 
@@ -11,6 +9,16 @@ def test_get_settings_returns_settings_instance():
     """Test that get_settings() returns a Settings instance."""
     settings = get_settings()
     assert isinstance(settings, Settings)
+
+
+def test_settings_ignores_unknown_dotenv_keys(tmp_path):
+    """Test that legacy dotenv keys do not prevent settings initialization."""
+    dotenv_file = tmp_path / ".env"
+    dotenv_file.write_text("agent_api_version=2024-12-01-preview\n")
+
+    settings = Settings(_env_file=dotenv_file)
+
+    assert settings.agent is None
 
 
 def test_get_settings_caches_result():

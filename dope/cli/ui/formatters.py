@@ -38,17 +38,20 @@ class ConfigFormatter:
         table.add_row("[bold]Docs Settings[/bold]", "")
         table.add_row("  Docs Root", str(settings.docs.docs_root))
         table.add_row("  File Types", ", ".join(sorted(settings.docs.doc_filetypes)))
-        exclude_list = sorted(list(settings.docs.exclude_dirs))
+        exclude_list = sorted(settings.docs.exclude_dirs)
         exclude_display = ", ".join(exclude_list[:5]) + (", ..." if len(exclude_list) > 5 else "")
         table.add_row("  Excluded Dirs", exclude_display)
         table.add_row("", "")
 
         # Agent settings
         table.add_row("[bold]LLM Settings[/bold]", "")
-        table.add_row("  Provider", settings.agent.provider.value)
-        if settings.agent.base_url:
-            table.add_row("  Base URL", str(settings.agent.base_url))
-        table.add_row("  Token", "[dim]●●●●●●●●[/dim] (hidden)")
+        if settings.agent is None:
+            table.add_row("  Status", "Not configured")
+        else:
+            table.add_row("  Provider", settings.agent.provider.value)
+            if settings.agent.base_url:
+                table.add_row("  Base URL", str(settings.agent.base_url))
+            table.add_row("  Token", "[dim]●●●●●●●●[/dim] (hidden)")
 
         console.print(table)
 

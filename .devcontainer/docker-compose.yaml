@@ -2,7 +2,7 @@ services:
   app:
     build:
       args:
-        VARIANT: 3.13-bookworm
+        VARIANT: 3.14-trixie
       context: ..
       dockerfile: .devcontainer/Dockerfile
     command: sleep infinity
@@ -18,3 +18,4 @@ volumes:
   dope_cache: null
   dope_commandhistory: null
   dope_extensions: null
+

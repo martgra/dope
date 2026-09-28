@@ -6,6 +6,8 @@ based on code and documentation changes.
 
 from typing import Any, Protocol
 
+from pydantic_ai.usage import RunUsage
+
 from dope.core.protocols import UsageTrackerProtocol
 from dope.core.usage import UsageTracker
 from dope.models.domain.documentation import DocSuggestions
@@ -20,7 +22,7 @@ from dope.services.suggester.scope_filter import ScopeAlignmentFilter
 class SuggestionAgent(Protocol):  # pylint: disable=too-few-public-methods
     """Protocol for suggestion generation agents."""
 
-    def run_sync(self, *, _user_prompt: str, usage: Any) -> Any:
+    def run_sync(self, user_prompt: str | None = None, *, usage: RunUsage | None = None) -> Any:
         """Run the agent synchronously.
 
         Args:
@@ -30,6 +32,7 @@ class SuggestionAgent(Protocol):  # pylint: disable=too-few-public-methods
         Returns:
             Agent result with .output attribute
         """
+        del user_prompt
 
 
 class DocChangeSuggester:

@@ -1,0 +1,4 @@
+[tools]
+uv = "latest"
+github-cli = "latest"
+claude = "latest"

@@ -109,7 +109,11 @@ class Settings(BaseSettings):
     git: CodeRepoSettings = CodeRepoSettings()
     agent: AgentSettings | None = None
     scope_filter: ScopeFilterSettings = ScopeFilterSettings()
-    model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_nested_delimiter="__",
+        extra="ignore",
+    )
 
     # State file path properties
     @property

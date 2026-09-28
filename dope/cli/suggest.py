@@ -4,7 +4,7 @@ from pathlib import Path
 
 import typer
 
-from dope.cli.common import command_context, get_branch_option
+from dope.cli.common import BranchOption, command_context
 from dope.cli.ui import ProgressReporter
 
 app = typer.Typer(
@@ -26,7 +26,7 @@ Examples:
 @app.callback(invoke_without_command=True)
 def suggest(
     ctx: typer.Context,
-    branch: get_branch_option() = None,
+    branch: BranchOption = None,
 ):
     """Generate documentation update suggestions based on code and doc changes."""
     if ctx.resilient_parsing:

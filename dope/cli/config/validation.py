@@ -44,10 +44,12 @@ def validate_config(settings: Settings) -> tuple[list[str], list[str]]:
         errors.append(f"Docs root doesn't exist: {settings.docs.docs_root}")
 
     # Check LLM configuration
-    if not settings.agent.token:
+    agent = settings.agent
+    if agent is None:
+        errors.append("LLM agent not configured")
+    elif not agent.token:
         errors.append("LLM token not configured")
-
-    if settings.agent.provider == Provider.AZURE and not settings.agent.base_url:
+    elif agent.provider == Provider.AZURE and not agent.base_url:
         errors.append("Azure provider requires base_url to be set")
 
     return errors, warnings

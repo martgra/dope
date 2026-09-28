@@ -4,7 +4,7 @@ from pathlib import Path
 
 import typer
 
-from dope.cli.common import command_context, get_branch_option
+from dope.cli.common import BranchOption, command_context
 from dope.core.progress import track
 
 app = typer.Typer(
@@ -42,7 +42,7 @@ def _apply_change(path: Path, content: str) -> None:
 @app.callback(invoke_without_command=True)
 def apply(
     ctx: typer.Context,
-    branch: get_branch_option() = None,
+    branch: BranchOption = None,
 ):
     """Apply previously generated documentation suggestions to files."""
     if ctx.resilient_parsing:

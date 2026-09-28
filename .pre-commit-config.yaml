@@ -19,7 +19,7 @@ exclude: |
 ############################################################
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0 # Latest stable as of 2025-09
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         name: Trim Trailing Whitespace
@@ -51,7 +51,7 @@ repos:
         args: ["--maxkb=500"] # Policy: reject very large blobs
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.2
+    rev: v0.16.9
     hooks:
       - id: ruff
         name: Ruff Linter (autofix)
@@ -74,6 +74,15 @@ repos:
         always_run: true
         stages: [pre-push, manual]
         # Optional faster feedback: args: ["-q", "--maxfail=1"]
+      - id: ty
+        name: ty (type checker)
+        entry: uv run ty check
+        language: system
+        types: [python]
+        files: ^dope/
+        pass_filenames: false
+        args: ['dope/']
+        stages: [pre-push, manual]
       - id: pylint
         name: Pylint (design checks)
         entry: uv run pylint
@@ -104,7 +113,7 @@ repos:
         stages: [pre-push, manual]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.22
+    rev: "0.12.19"
     hooks:
       - id: uv-lock
         name: Validate pyproject / lock
@@ -112,7 +121,7 @@ repos:
         pass_filenames: false
 
   - repo: https://github.com/pysentry/pysentry-pre-commit
-    rev: v0.3.12
+    rev: v0.5.0
     hooks:
       - id: pysentry # default pysentry settings
         stages: [pre-push, manual]

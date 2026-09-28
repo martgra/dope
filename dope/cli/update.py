@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from dope.cli.apply import _apply_change
-from dope.cli.common import command_context, get_branch_option
+from dope.cli.common import BranchOption, command_context
 from dope.cli.ui import ProgressReporter, StatusFormatter, info, success
 from dope.core.progress import track
 
@@ -38,7 +38,7 @@ def update(
         bool,
         typer.Option("--dry-run", help="Show suggestions without applying changes"),
     ] = False,
-    branch: get_branch_option() = None,
+    branch: BranchOption = None,
     concurrency: Annotated[
         int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,

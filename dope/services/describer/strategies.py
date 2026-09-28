@@ -26,6 +26,7 @@ from dope.services.describer.prompts import SUMMARIZATION_TEMPLATE
 
 if TYPE_CHECKING:
     from dope.consumers.git_consumer import GitConsumer
+    from dope.core.doc_terms import DocTermIndex
 
 
 logger = logging.getLogger(__name__)
@@ -82,6 +83,16 @@ class AgentStrategy(Protocol):
         """
         ...
 
+    async def run_agent_async(
+        self,
+        file_path: str,
+        content: bytes,
+        usage_tracker: UsageTracker,
+        consumer: BaseConsumer | None = None,
+    ) -> dict:
+        """Run the appropriate LLM agent asynchronously."""
+        ...
+
 
 @dataclass
 class DocScanStrategy:
@@ -127,7 +138,7 @@ class CodeScanStrategy:
     classifier: FileClassifier | None = None
     enable_filtering: bool = True
     doc_term_index_path: Path | None = None
-    _doc_term_index: object | None = None
+    _doc_term_index: "DocTermIndex | None" = None
 
     def __post_init__(self):
         """Initialize classifier and load doc term index."""
@@ -240,6 +251,7 @@ class CodeScanStrategy:
             return {"process": True, "reason": "Filtering disabled", "priority": "NORMAL"}
 
         # Step 1: Path-based classification (fast, no git operations)
+        assert self.classifier is not None
         classification = self.classifier.classify(file_path)
 
         if classification.classification == "SKIP":
@@ -255,7 +267,7 @@ class CodeScanStrategy:
             magnitude = self._get_change_magnitude(file_path)
 
             # Apply doc term relevance boost if index is available
-            if self._doc_term_index and magnitude.total_lines > 0:
+            if self._doc_term_index is not None and magnitude.total_lines > 0:
                 try:
                     # Get normalized diff for term matching
                     diff_content = self.consumer.get_normalized_diff(file_path).decode(

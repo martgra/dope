@@ -1,12 +1,16 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v1.0.4
+_commit: v1.1.1
 _src_path: gh:martgra/python_template
+ai_coding_tools:
+- claude
 github_username: martgra
+package_name: dope
+project_description: A Python project
 project_name: dope
 use_agents: true
 use_devcontainer: true
 use_github_actions: true
-use_proxy: true
+use_ty: true
 use_vscode: true
 user_email: martgra@gmail.com
 user_name: Martin Gran

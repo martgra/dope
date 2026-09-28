@@ -8,26 +8,14 @@ import typer
 
 from dope.models.settings import Settings
 
-
-def get_branch_option() -> type[str | None]:
-    """Create standardized branch option annotation for CLI commands.
-
-    Returns:
-        Type annotation for branch parameter with consistent help text
-
-    Example:
-        >>> @app.command()
-        >>> def my_command(branch: Annotated[str | None, get_branch_option()] = None):
-        >>>     branch = resolve_branch(branch, settings)
-    """
-    return Annotated[
-        str | None,
-        typer.Option(
-            "--branch",
-            "-b",
-            help="Branch to compare against (defaults to configured branch)",
-        ),
-    ]
+type BranchOption = Annotated[
+    str | None,
+    typer.Option(
+        "--branch",
+        "-b",
+        help="Branch to compare against (defaults to configured branch)",
+    ),
+]
 
 
 def resolve_branch(branch: str | None, settings: Settings) -> str:

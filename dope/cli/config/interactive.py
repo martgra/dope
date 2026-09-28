@@ -48,17 +48,17 @@ from dope.models.shared import FileSuffix
 # Re-export for backwards compatibility
 __all__ = [
     "handle_questionary_abort",
+    "prompt_add_cache_to_git",
+    "prompt_code_repo_root",
+    "prompt_default_branch",
+    "prompt_deployment_endpoint",
     "prompt_doc_root",
     "prompt_doc_types",
-    "prompt_provider",
     "prompt_exclude_folders",
-    "prompt_default_branch",
-    "prompt_code_repo_root",
-    "validate_url",
-    "prompt_deployment_endpoint",
-    "prompt_token",
+    "prompt_provider",
     "prompt_state_directory",
-    "prompt_add_cache_to_git",
+    "prompt_token",
+    "validate_url",
 ]
 
 
@@ -94,12 +94,12 @@ def prompt_exclude_folders(doc_root: Path) -> set[str]:
     return _prompt_exclude_folders(doc_root)
 
 
-def prompt_default_branch(repo_path: str) -> str:
+def prompt_default_branch(repo_path: str | Path) -> str:
     """Prompt for default Git branch selection.
 
     DEPRECATED: Use dope.cli.ui.prompts.prompt_default_branch() instead.
     """
-    return _prompt_default_branch(repo_path)
+    return _prompt_default_branch(str(repo_path))
 
 
 def prompt_code_repo_root() -> Path:

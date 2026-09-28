@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from dope.cli.common import command_context, get_branch_option
+from dope.cli.common import BranchOption, command_context
 from dope.cli.ui import ProgressReporter, info, success, warning
 
 app = typer.Typer(
@@ -84,7 +84,7 @@ def code(
     repo_root: Annotated[
         Path, typer.Option("--root", help="Root directory of code repository")
     ] = Path("."),
-    branch: get_branch_option() = None,
+    branch: BranchOption = None,
     concurrency: Annotated[
         int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,

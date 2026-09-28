@@ -1,7 +1,9 @@
+"""Factories for configured Pydantic AI models."""
+
 from functools import lru_cache
 from typing import Literal
 
-from pydantic_ai.models.openai import OpenAIModel, OpenAIModelName
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIModelName
 from pydantic_ai.providers.azure import AzureProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -39,4 +41,4 @@ def _get_openai_provider(provider):
 def get_model(provider: Literal[Provider.OPENAI, Provider.AZURE], model_name: OpenAIModelName):
     """Get Open AI model."""
     if provider in (Provider.OPENAI, Provider.AZURE):
-        return OpenAIModel(model_name, provider=_get_openai_provider(provider))
+        return OpenAIChatModel(model_name, provider=_get_openai_provider(provider))

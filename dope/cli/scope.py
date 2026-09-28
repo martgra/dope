@@ -7,7 +7,7 @@ import questionary
 import typer
 import yaml
 
-from dope.cli.common import command_context, get_branch_option
+from dope.cli.common import BranchOption, command_context
 from dope.cli.ui import ProgressReporter, console, error, success
 from dope.models.domain.scope import (
     DocTemplate,
@@ -196,7 +196,7 @@ def create(
     project_size: Annotated[
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
-    branch: get_branch_option() = None,
+    branch: BranchOption = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
     with command_context(branch=branch) as ctx:
@@ -219,12 +219,12 @@ def create(
             scope_template = service.suggest_structure(scope_template, doc_files, code_structure)
 
         _save_state(scope_template, state_path)
-        success(f"Scope created at {str(state_path)}")
+        success(f"Scope created at {state_path!s}")
 
 
 @app.command()
 def apply(
-    branch: get_branch_option() = None,
+    branch: BranchOption = None,
 ):
     """Apply the previously created documentation scope."""
     with command_context(branch=branch) as ctx:

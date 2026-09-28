@@ -1,3 +1,5 @@
+"""Services for scanning files and generating descriptions."""
+
 import hashlib
 import logging
 from pathlib import Path
@@ -46,6 +48,16 @@ class DescriberService:
         scan_strategy: ScanStrategy | None = None,
         agent_strategy: AgentStrategy | None = None,
     ):
+        """Initialize a describer service.
+
+        Args:
+            consumer: File consumer for discovery and content access.
+            repository: Repository for persisted description state.
+            usage_tracker: Optional tracker for LLM token usage.
+            doc_term_index_path: Optional path to the documentation term index.
+            scan_strategy: Optional file scanning strategy.
+            agent_strategy: Optional LLM description strategy.
+        """
         self._consumer = consumer
         self._repository = repository
         self._usage_tracker = usage_tracker or UsageTracker()
@@ -296,7 +308,7 @@ class DescriberService:
         completed = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in completed:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.warning("Parallel describe failed for a file: %s", result)
                 continue
             file_path, updated_item = result
@@ -335,6 +347,16 @@ class CodeDescriberService(DescriberService):
         enable_filtering: bool = True,
         doc_term_index_path: Path | None = None,
     ):
+        """Initialize a code describer service.
+
+        Args:
+            consumer: Git consumer for repository operations.
+            repository: Repository for persisted description state.
+            classifier: Optional classifier for code-file priority.
+            usage_tracker: Optional tracker for LLM token usage.
+            enable_filtering: Whether to filter trivial code changes.
+            doc_term_index_path: Optional path to the documentation term index.
+        """
         from dope.core.classification import FileClassifier
         from dope.services.describer.strategies import CodeAgentStrategy, CodeScanStrategy
 

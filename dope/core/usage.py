@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from pydantic_ai.usage import Usage
+from pydantic_ai.usage import RunUsage
 from rich.console import Console
 
 console = Console(stderr=True)
@@ -16,7 +16,7 @@ class UsageTracker:
     Each command creates its own tracker and passes it to services.
     """
 
-    usage: Usage = field(default_factory=Usage)
+    usage: RunUsage = field(default_factory=RunUsage)
 
     def log(self) -> None:
         """Log current usage statistics to stderr."""
