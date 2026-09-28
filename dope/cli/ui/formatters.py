@@ -142,7 +142,8 @@ class StatusFormatter:
         # Show next steps
         console.print("\n[bold cyan]Next Steps:[/bold cyan]")
         if docs_scanned == 0 and code_scanned == 0:
-            console.print("  • Run [blue]dope update[/blue] to scan and update everything")
+            console.print("  • Run [blue]dope update[/blue] to scan and preview updates")
+            console.print("  • Run [blue]dope update --apply[/blue] to apply generated updates")
             console.print("    or use individual commands:")
         if docs_scanned == 0:
             console.print("  1. Run [blue]dope scan docs[/blue] to scan documentation")
@@ -172,4 +173,4 @@ class StatusFormatter:
                     preview = text[:80] if len(text) > 80 else text
                     console.print(f"    - {preview}...")
         console.print(f"\n[yellow]Total changes: {len(changes)}[/yellow]")
-        console.print("[yellow]Run without --dry-run to apply changes[/yellow]")
+        console.print("[yellow]Run 'dope update --apply' to apply changes[/yellow]")

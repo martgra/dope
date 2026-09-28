@@ -3,6 +3,7 @@
 import typer
 
 from dope.cli import apply, config, scan, scope, status, suggest, update
+from dope.exceptions import DopeError
 
 
 def run_cli():
@@ -13,8 +14,9 @@ def run_cli():
         epilog="""
 Quick Start:
   1. dope config init              # Configure LLM provider
-  2. dope update                   # Scan and update docs (all-in-one)
-  3. dope status                   # Check current state
+  2. dope update                   # Scan and preview documentation updates
+  3. dope update --apply           # Apply the generated updates
+  4. dope status                   # Check current state
 
 Advanced Workflow:
   1. dope scan docs && dope scan code
@@ -36,14 +38,11 @@ Run 'dope COMMAND --help' for more information on a command.
 
     try:
         app()
-    except Exception as e:
-        # Check if it's a ConfigurationError (imported locally to avoid circular imports if any)
-        if type(e).__name__ == "ConfigurationError":
-            from rich import print as rprint
+    except DopeError as error:
+        from rich import print as rprint
 
-            rprint(f"[red]❌ {e}[/red]")
-            raise typer.Exit(1) from e
-        raise
+        rprint(f"[red]Error: {error}[/red]")
+        raise typer.Exit(1) from error
 
 
 if __name__ == "__main__":

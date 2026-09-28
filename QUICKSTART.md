@@ -25,7 +25,7 @@ After installing, run:
 dope config init
 ```
 
-This will walk you through interactive prompts for setting up the state directory, code repo root, docs root, excludes, file types, LLM provider, endpoint, and token.
+This quick setup prompts for an LLM provider and token, then detects sensible project defaults. For full customization of paths, excludes, and file types, use `dope config init --interactive`.
 
 You can force overwrite an existing configuration with:
 
@@ -50,7 +50,7 @@ To scan your documentation files:
 
 ```bash
 # Run a parallel documentation scan with up to 10 concurrent LLM calls
-dope scan docs --branch main --concurrency 10
+dope scan docs --concurrency 10
 ```
 
 _Expected:_ Lists documentation files.
@@ -82,7 +82,7 @@ Explore the main CLI commands—all support the `--branch <branch-name>` option 
 
 ```bash
 # Scan documentation files
-dope scan docs --branch <branch-name> [--concurrency <N>]  # (default: 5)
+dope scan docs [--concurrency <N>]  # (default: 5)
 
 # Scan the code structure
 dope scan code --branch <branch-name> [--concurrency <N>]  # (default: 5)
@@ -100,10 +100,11 @@ dope scope create --branch <branch-name>
 dope scope create --project-size medium --output scope.yml --branch <branch-name>
 
 # Apply a documentation scope from file
-dope scope apply --scope-file scope.yml --branch <branch-name>
+dope scope apply --state-file scope.yml --branch <branch-name>
 
 # Run the entire documentation update flow in one command
-dope update --branch <branch-name> [--dry-run]
+dope update --branch <branch-name>              # Preview suggested changes
+dope update --branch <branch-name> --apply      # Apply suggested changes
 ```
 
 For `dope suggest` and `dope apply`, the commands utilize the generated `doc-terms.json` index and intelligent file pre-filtering, focusing suggestions and updates on high-priority documentation changes where code and documentation terms align.

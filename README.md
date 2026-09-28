@@ -49,7 +49,7 @@ dope config init
 dope config init -i
 
 # 2. Scan your documentation and code
-dope scan docs --branch <branch-name> [--concurrency <N>]
+dope scan docs [--concurrency <N>]
 dope scan code --branch <branch-name> [--concurrency <N>]
 
 # 3. Generate suggestions
@@ -61,9 +61,14 @@ dope status
 # 5. Apply suggested changes
 dope apply
 
-# (NEW) All-in-one step: run the full update workflow
-dope update --branch <branch-name> [--dry-run]
+# (NEW) All-in-one step: scan and preview the full update workflow
+dope update --branch <branch-name>
+
+# Apply the generated changes
+dope update --branch <branch-name> --apply
 ```
+
+Commands use the documentation and code roots saved by `dope config init`. The `scan docs --root` and `scan code --root` options override those roots for a single scan.
 
 You can enable adaptive pruning and tune relevance thresholds in your configuration:
 ```yaml
@@ -100,7 +105,7 @@ dope config validate          # Validate configuration
 dope config set KEY VALUE     # Update a single setting
 
 # Scanning Commands
-dope scan docs [--branch <branch>] [--concurrency <N>]   # Scan documentation files, build a `doc-terms.json` index in the state directory, and classify files for later filtering. (default concurrency: 5, controls parallel LLM calls)
+dope scan docs [--concurrency <N>]                       # Scan documentation files and build a `doc-terms.json` index in the state directory. (default concurrency: 5, controls parallel LLM calls)
 dope scan code [--branch <branch>] [--concurrency <N>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings. (default concurrency: 5, controls parallel LLM calls) (Note: when run on the current branch, the command compares against HEAD and includes any staged or unstaged (uncommitted) changes in the analysis.)
 
 # Documentation Workflow
@@ -109,7 +114,8 @@ dope apply -b <branch>               # Apply suggested changes
 dope status                          # Show current processing status
 
 # All-in-one Workflow
-dope update --branch <branch-name> [--dry-run] [--concurrency <N>]  # Run the full documentation update workflow (scan docs, scan code, generate suggestions, then apply or preview changes) in a single step.
+dope update --branch <branch-name> [--concurrency <N>]             # Run the full documentation workflow and preview suggested changes.
+dope update --branch <branch-name> --apply [--concurrency <N>]     # Run the workflow and apply suggested changes.
 
 # Documentation Structure
 dope scope create                    # Create documentation scope
@@ -139,7 +145,7 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Status Tracking**: Monitor scan progress and pending suggestions with `dope status`
 - **Intelligent file pre-filtering**: Files are automatically classified (SKIP, NORMAL, HIGH) and quantified by change magnitude to skip trivial changes and prioritize critical files (e.g., README, config, entry points) before invoking LLM processing.
 - **Documentation term indexing**: A `doc-terms.json` index is built during scanning to match code changes to related documentation terms, improving the focus and quality of subsequent suggestions and applies.
-- **All-in-one Workflow**: Use `dope update` to run the complete workflow (scan, suggest, apply) or preview all planned updates with `--dry-run`.
+- **All-in-one Workflow**: Use `dope update` to run the complete workflow and preview planned updates. Add `--apply` to write changes.
 - **Semantic change categorization**: Uses a ChangeCategory enum and infer_change_category function to classify code changes automatically.
 - **Configurable update triggers and freshness requirements**: Allows per-section configuration of triggers (code patterns, change types, magnitude, relevant terms) and minimum documentation freshness level via UpdateTriggers and FreshnessLevel.
 - **Automatic scope-based suggestion filtering**: Loads and applies project documentation scope templates and enables scope-based filtering in suggestion generation, configurable via new `scope_filter` settings.

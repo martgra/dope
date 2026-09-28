@@ -6,14 +6,14 @@ from typing import Annotated
 
 import typer
 
-from dope.cli.common import BranchOption, command_context
+from dope.cli.common import command_context
 from dope.cli.ui import ProgressReporter, info, success, warning
 
 app = typer.Typer(
     help="Scan documentation and code for changes",
     epilog="""
 Examples:
-  # Scan docs in current directory
+    # Scan docs in the configured documentation directory
   $ dope scan docs
 
   # Scan docs with higher concurrency
@@ -34,10 +34,13 @@ DEFAULT_CONCURRENCY = 5
 @app.command()
 def docs(
     docs_root: Annotated[
-        Path, typer.Option("--root", help="Root directory of documentation")
-    ] = Path("."),
+        Path | None,
+        typer.Option(
+            "--root", help="Root directory of documentation (defaults to configured root)"
+        ),
+    ] = None,
     concurrency: Annotated[
-        int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
+        int, typer.Option("--concurrency", "-c", min=1, help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,
     skip_pattern_enrichment: Annotated[
         bool,
@@ -53,7 +56,7 @@ def docs(
         if skip_pattern_enrichment:
             ctx.settings.scope_filter.enable_pattern_enrichment = False
 
-        doc_scanner = ctx.factory.doc_scanner(docs_root, ctx.tracker)
+        doc_scanner = ctx.factory.doc_scanner(docs_root or ctx.docs_root, ctx.tracker)
 
         # Phase 1: Discover files and update state (hashes)
         info("Discovering documentation files...")
@@ -82,11 +85,21 @@ def docs(
 @app.command()
 def code(
     repo_root: Annotated[
-        Path, typer.Option("--root", help="Root directory of code repository")
-    ] = Path("."),
-    branch: BranchOption = None,
+        Path | None,
+        typer.Option(
+            "--root", help="Root directory of code repository (defaults to configured root)"
+        ),
+    ] = None,
+    branch: Annotated[
+        str | None,
+        typer.Option(
+            "--branch",
+            "-b",
+            help="Branch to compare against (defaults to configured branch)",
+        ),
+    ] = None,
     concurrency: Annotated[
-        int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
+        int, typer.Option("--concurrency", "-c", min=1, help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,
     skip_pattern_enrichment: Annotated[
         bool,
@@ -102,7 +115,7 @@ def code(
         if skip_pattern_enrichment:
             ctx.settings.scope_filter.enable_pattern_enrichment = False
 
-        code_scanner = ctx.factory.code_scanner(repo_root, ctx.branch, ctx.tracker)
+        code_scanner = ctx.factory.code_scanner(repo_root or ctx.code_root, ctx.branch, ctx.tracker)
 
         # Phase 1: Discover files, filter, and update state (hashes)
         info(f"Discovering code changes against branch '{ctx.branch}'...")

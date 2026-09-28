@@ -1,30 +1,28 @@
 """All-in-one command to update documentation."""
 
 import asyncio
-from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from dope.cli.apply import _apply_change
-from dope.cli.common import BranchOption, command_context
+from dope.cli.apply import apply_suggestions
+from dope.cli.common import command_context
 from dope.cli.ui import ProgressReporter, StatusFormatter, info, success
-from dope.core.progress import track
 
 app = typer.Typer(
     epilog="""
 Examples:
-  # Run full workflow: scan → suggest → apply
+    # Preview the full workflow
   $ dope update
 
-  # Preview changes without applying
-  $ dope update --dry-run
+    # Apply generated changes
+    $ dope update --apply
 
   # Update using specific branch
   $ dope update --branch develop
 
-  # Preview with higher concurrency
-  $ dope update --dry-run --concurrency 10
+    # Preview with higher concurrency
+    $ dope update --concurrency 10
     """
 )
 
@@ -47,25 +45,36 @@ def _process_pending_files(scanner, work_description: str, concurrency: int) -> 
 @app.callback(invoke_without_command=True)
 def update(
     ctx: typer.Context,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Apply suggestions after showing the workflow result"),
+    ] = False,
     dry_run: Annotated[
         bool,
-        typer.Option("--dry-run", help="Show suggestions without applying changes"),
+        typer.Option("--dry-run", help="Preview suggestions without applying changes (default)"),
     ] = False,
-    branch: BranchOption = None,
+    branch: Annotated[
+        str | None,
+        typer.Option(
+            "--branch",
+            "-b",
+            help="Branch to compare against (defaults to configured branch)",
+        ),
+    ] = None,
     concurrency: Annotated[
-        int, typer.Option("--concurrency", "-c", help="Max parallel LLM calls")
+        int, typer.Option("--concurrency", "-c", min=1, help="Max parallel LLM calls")
     ] = DEFAULT_CONCURRENCY,
 ):
-    """Update documentation: scan docs → scan code → suggest → apply (all-in-one)."""
+    """Scan docs and code, then preview suggestions or apply them with --apply."""
     if ctx.resilient_parsing:
         return
+    if dry_run and apply_changes:
+        raise typer.BadParameter("--dry-run cannot be used with --apply")
 
     with command_context(branch=branch) as cmd_ctx:
-        root_path = Path(".")
-
         # Phase 1: Scan documentation
         info("Scanning documentation...")
-        doc_scanner = cmd_ctx.factory.doc_scanner(root_path, cmd_ctx.tracker)
+        doc_scanner = cmd_ctx.factory.doc_scanner(cmd_ctx.docs_root, cmd_ctx.tracker)
         doc_scanner.scan()
         _process_pending_files(doc_scanner, "files", concurrency)
         doc_scanner.build_term_index()
@@ -73,7 +82,9 @@ def update(
 
         # Phase 2: Scan code
         info(f"Scanning code changes (branch: {cmd_ctx.branch})...")
-        code_scanner = cmd_ctx.factory.code_scanner(root_path, cmd_ctx.branch, cmd_ctx.tracker)
+        code_scanner = cmd_ctx.factory.code_scanner(
+            cmd_ctx.code_root, cmd_ctx.branch, cmd_ctx.tracker
+        )
         code_scanner.scan()
         _process_pending_files(code_scanner, "code changes", concurrency)
         success("Code scan complete")
@@ -90,16 +101,13 @@ def update(
         # Phase 4: Apply or display
         suggest_state = suggester.get_state()
 
-        if dry_run:
+        if dry_run or not apply_changes:
             StatusFormatter.display_dry_run_preview(suggest_state.changes_to_apply)
         else:
             info("Applying changes...")
-            docs_changer = cmd_ctx.factory.docs_changer(root_path, cmd_ctx.branch, cmd_ctx.tracker)
+            docs_changer = cmd_ctx.factory.docs_changer(
+                cmd_ctx.docs_root, cmd_ctx.code_root, cmd_ctx.branch, cmd_ctx.tracker
+            )
 
-            for suggested_change in track(
-                suggest_state.changes_to_apply, description="Applying documentation changes"
-            ):
-                path, content = docs_changer.apply_suggestion(suggested_change)
-                _apply_change(path, content)
-
-            success("All changes applied successfully!")
+            applied_count = apply_suggestions(docs_changer, suggest_state.changes_to_apply)
+            success(f"Applied {applied_count} documentation suggestions.")

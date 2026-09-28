@@ -7,7 +7,7 @@ import questionary
 import typer
 import yaml
 
-from dope.cli.common import BranchOption, command_context
+from dope.cli.common import command_context
 from dope.cli.ui import ProgressReporter, console, error, success
 from dope.models.domain.scope import (
     DocTemplate,
@@ -196,12 +196,19 @@ def create(
     project_size: Annotated[
         str | None, typer.Option(help="Size of the project to create scope for")
     ] = None,
-    branch: BranchOption = None,
+    branch: Annotated[
+        str | None,
+        typer.Option(
+            "--branch",
+            "-b",
+            help="Branch to compare against (defaults to configured branch)",
+        ),
+    ] = None,
 ):
     """Create or suggest a documentation scope and save it to state file."""
     with command_context(branch=branch) as ctx:
         state_path: Path = ctx.settings.scope_path
-        service = ctx.factory.scope_service(Path("."), ctx.branch, ctx.tracker)
+        service = ctx.factory.scope_service(ctx.docs_root, ctx.code_root, ctx.branch, ctx.tracker)
 
         size_enum = _determine_project_size(interactive, project_size, service)
         doc_sections = _determine_doc_sections(interactive, size_enum)
@@ -224,11 +231,22 @@ def create(
 
 @app.command()
 def apply(
-    branch: BranchOption = None,
+    state_file: Annotated[
+        Path | None,
+        typer.Option("--state-file", help="Path to a scope YAML file"),
+    ] = None,
+    branch: Annotated[
+        str | None,
+        typer.Option(
+            "--branch",
+            "-b",
+            help="Branch to compare against (defaults to configured branch)",
+        ),
+    ] = None,
 ):
     """Apply the previously created documentation scope."""
     with command_context(branch=branch) as ctx:
-        state_path: Path = ctx.settings.scope_path
+        state_path = state_file or ctx.settings.scope_path
         if not state_path.is_file():
             error(f"State file not found at {state_path}. Please run 'scope create' first.")
             raise typer.Abort()
@@ -237,7 +255,7 @@ def apply(
             console.print("Aborted.")
             return
 
-        service = ctx.factory.scope_service(Path("."), ctx.branch, ctx.tracker)
+        service = ctx.factory.scope_service(ctx.docs_root, ctx.code_root, ctx.branch, ctx.tracker)
         scope_template = _load_state(state_path)
 
         try:

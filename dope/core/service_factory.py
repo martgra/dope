@@ -133,14 +133,16 @@ class ServiceFactory:
 
     def docs_changer(
         self,
-        root_path: Path,
+        docs_root: Path,
+        code_root: Path,
         branch: str,
         usage_tracker: "UsageTracker | None" = None,
     ) -> "DocsChanger":
         """Create a DocsChanger for applying suggestions.
 
         Args:
-            root_path: Root path for operations
+            docs_root: Root path for documentation files
+            code_root: Root path for the code repository
             branch: Branch to compare against
             usage_tracker: Optional usage tracker
 
@@ -152,11 +154,11 @@ class ServiceFactory:
         from dope.services.changer.changer_service import DocsChanger
 
         docs_consumer = DocConsumer(
-            root_path,
+            docs_root,
             file_type_filter=self.settings.docs.doc_filetypes,
             exclude_dirs=self.settings.docs.exclude_dirs,
         )
-        git_consumer = GitConsumer(root_path, branch)
+        git_consumer = GitConsumer(code_root, branch)
         return DocsChanger(
             docs_consumer=docs_consumer,
             git_consumer=git_consumer,
@@ -165,14 +167,16 @@ class ServiceFactory:
 
     def scope_service(
         self,
-        root_path: Path,
+        docs_root: Path,
+        code_root: Path,
         branch: str,
         usage_tracker: "UsageTracker | None" = None,
     ) -> "ScopeService":
         """Create a ScopeService for documentation scoping.
 
         Args:
-            root_path: Root path for operations
+            docs_root: Root path for documentation files
+            code_root: Root path for the code repository
             branch: Branch to compare against
             usage_tracker: Optional usage tracker
 
@@ -184,11 +188,11 @@ class ServiceFactory:
         from dope.services.scoper.scoper_service import ScopeService
 
         doc_consumer = DocConsumer(
-            root_path,
+            docs_root,
             file_type_filter=self.settings.docs.doc_filetypes,
             exclude_dirs=self.settings.docs.exclude_dirs,
         )
-        git_consumer = GitConsumer(root_path, branch)
+        git_consumer = GitConsumer(code_root, branch)
         return ScopeService(
             doc_consumer=doc_consumer,
             git_consumer=git_consumer,

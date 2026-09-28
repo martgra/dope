@@ -78,16 +78,16 @@ def interactive_setup() -> tuple[Settings, bool]:
 
 @app.command()
 def show(
-    format: Annotated[
-        str, typer.Option(help="Output format: table (default), json, yaml")
+    output_format: Annotated[
+        str, typer.Option("--format", help="Output format: table (default), json, yaml")
     ] = "table",
 ):
     """Display current configuration."""
     settings = require_config()
 
-    if format == "json":
+    if output_format == "json":
         display_config_json(settings)
-    elif format == "yaml":
+    elif output_format == "yaml":
         display_config_yaml(settings)
     else:  # table (default)
         display_config_table(settings)
@@ -99,15 +99,16 @@ def init(
         bool, typer.Option("--interactive", "-i", help="Full interactive setup")
     ] = False,
     force: Annotated[bool, typer.Option("--force", help="Overwrite existing config")] = False,
-    provider: Annotated[
-        Provider, typer.Option(help="Choose LLM provider to use")
-    ] = Provider.OPENAI,
+    provider: Annotated[Provider | None, typer.Option(help="Choose LLM provider to use")] = None,
     base_url: Annotated[
         str | None, typer.Option("--base-url", help="Deployment base URL for Azure")
     ] = None,
 ):
     """Initialize configuration (quickstart by default, --interactive for full setup)."""
-    verify_provider(provider=provider, base_url=base_url)
+    if base_url and provider != Provider.AZURE:
+        raise typer.BadParameter("--base-url requires --provider azure")
+    if provider is not None:
+        verify_provider(provider=provider, base_url=base_url)
 
     local_config_path = locate_local_config_file(CONFIG_FILENAME)
 
@@ -129,12 +130,14 @@ def init(
         console.print("")
 
         # Only ask essential questions
-        provider = prompt_provider()
-        base_url = prompt_deployment_endpoint() if provider == Provider.AZURE else None
+        selected_provider = provider or prompt_provider()
+        selected_base_url = base_url
+        if selected_provider == Provider.AZURE and selected_base_url is None:
+            selected_base_url = prompt_deployment_endpoint()
         token = prompt_token()
 
         # Use smart defaults for everything else
-        new_settings = create_default_settings(provider, base_url, token)
+        new_settings = create_default_settings(selected_provider, selected_base_url, token)
 
         console.print("\n[green]✅ Config created with defaults:[/green]")
         console.print(f"  📁 Docs root: [blue]{new_settings.docs.docs_root}[/blue]")

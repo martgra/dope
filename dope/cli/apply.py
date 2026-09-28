@@ -1,10 +1,12 @@
 """Apply suggested documentation changes."""
 
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
-from dope.cli.common import BranchOption, command_context
+from dope.cli.common import command_context, require_state_files
+from dope.cli.ui import info, success, warning
 from dope.core.progress import track
 
 app = typer.Typer(
@@ -39,24 +41,63 @@ def _apply_change(path: Path, content: str) -> None:
         file.write(content)
 
 
+def apply_suggestions(docs_changer, suggestions: list) -> int:
+    """Materialize and write each documentation suggestion.
+
+    Args:
+        docs_changer: Service that produces updated file content.
+        suggestions: Documentation changes to apply.
+
+    Returns:
+        Number of suggestions applied.
+    """
+    for suggested_change in track(suggestions, description="Applying documentation changes"):
+        path, content = docs_changer.apply_suggestion(suggested_change)
+        _apply_change(path, content)
+    return len(suggestions)
+
+
 @app.callback(invoke_without_command=True)
 def apply(
     ctx: typer.Context,
-    branch: BranchOption = None,
+    branch: Annotated[
+        str | None,
+        typer.Option(
+            "--branch",
+            "-b",
+            help="Branch to compare against (defaults to configured branch)",
+        ),
+    ] = None,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Apply changes without asking for confirmation"),
+    ] = False,
 ):
     """Apply previously generated documentation suggestions to files."""
     if ctx.resilient_parsing:
         return
 
     with command_context(branch=branch) as cmd_ctx:
+        require_state_files(
+            {"suggestions": cmd_ctx.settings.suggestion_state_path},
+            "Run 'dope suggest' or 'dope update' first.",
+        )
+
         # Create services
-        docs_changer = cmd_ctx.factory.docs_changer(Path("."), cmd_ctx.branch, cmd_ctx.tracker)
+        docs_changer = cmd_ctx.factory.docs_changer(
+            cmd_ctx.docs_root, cmd_ctx.code_root, cmd_ctx.branch, cmd_ctx.tracker
+        )
         suggester = cmd_ctx.factory.suggester()
         suggest_state = suggester.get_state()
+        suggestions = suggest_state.changes_to_apply
 
-        # Apply each suggested change
-        for suggested_change in track(
-            suggest_state.changes_to_apply, description="Applying documentation changes"
-        ):
-            path, content = docs_changer.apply_suggestion(suggested_change)
-            _apply_change(path, content)
+        if not suggestions:
+            warning("There are no pending documentation suggestions to apply.")
+            return
+
+        if not yes and not typer.confirm(f"Apply {len(suggestions)} documentation suggestions?"):
+            info("No files were changed.")
+            return
+
+        applied_count = apply_suggestions(docs_changer, suggestions)
+        success(f"Applied {applied_count} documentation suggestions.")

@@ -2,20 +2,11 @@
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Annotated
 
 import typer
 
+from dope.cli.ui import error, info
 from dope.models.settings import Settings
-
-type BranchOption = Annotated[
-    str | None,
-    typer.Option(
-        "--branch",
-        "-b",
-        help="Branch to compare against (defaults to configured branch)",
-    ),
-]
 
 
 def resolve_branch(branch: str | None, settings: Settings) -> str:
@@ -38,22 +29,20 @@ def resolve_branch(branch: str | None, settings: Settings) -> str:
     return branch if branch is not None else settings.git.default_branch
 
 
-def get_state_path(settings: Settings, filename: str) -> Path:
-    """Get full path to a state file.
+def require_state_files(required_files: dict[str, Path], next_step: str) -> None:
+    """Ensure prerequisite state files are available for a command.
 
     Args:
-        settings: Application settings containing state directory
-        filename: Name of the state file
-
-    Returns:
-        Full absolute path to state file
-
-    Example:
-        >>> settings = Settings(state_directory=Path(".dope"))
-        >>> get_state_path(settings, "doc-state.json")
-        Path('.dope/doc-state.json')
+        required_files: Mapping of user-facing state names to their paths.
+        next_step: Command guidance displayed when a prerequisite is missing.
     """
-    return settings.state_directory / filename
+    missing_files = [name for name, path in required_files.items() if not path.is_file()]
+    if not missing_files:
+        return
+
+    error(f"Cannot continue: missing {', '.join(missing_files)}.")
+    info(next_step)
+    raise typer.Exit(1)
 
 
 class CommandContext:
@@ -73,15 +62,8 @@ class CommandContext:
         self.factory = ServiceFactory(settings)
         self.tracker = tracker
         self.branch = resolve_branch(branch, settings)
-
-    def __enter__(self):
-        """Enter context."""
-        return self
-
-    def __exit__(self, _exc_type, _exc_val, _exc_tb):
-        """Exit context and log usage."""
-        self.tracker.log()
-        return False
+        self.docs_root = settings.docs.docs_root or Path(".")
+        self.code_root = settings.git.code_repo_root or Path(".")
 
 
 @contextmanager
@@ -106,7 +88,7 @@ def command_context(branch: str | None = None):
         >>> @app.command()
         >>> def scan_docs(branch: str | None = None):
         >>>     with command_context(branch=branch) as ctx:
-        >>>         scanner = ctx.settings.doc_scanner(Path("."), ctx.tracker)
+    >>>         scanner = ctx.factory.doc_scanner(ctx.docs_root, ctx.tracker)
         >>>         scanner.scan()
         >>>     # Usage is automatically logged on exit
     """
