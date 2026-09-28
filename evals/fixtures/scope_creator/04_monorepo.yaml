@@ -1,0 +1,23 @@
+name: monorepo
+description: |
+  Monorepo with two packages, each with its own README. Scope requests
+  one top-level readme; model must pick the ROOT README, not a package one.
+scope_documents: [readme, contributing]
+doc_structure: |
+  README.md
+  CONTRIBUTING.md
+  packages/
+    frontend/
+      README.md
+    backend/
+      README.md
+code_structure: |
+  packages/
+    frontend/
+      src/
+    backend/
+      src/
+  pyproject.toml
+expected:
+  readme: README.md
+  contributing: CONTRIBUTING.md

@@ -1,0 +1,26 @@
+name: many_docs_one_key
+description: |
+  Repo has an entire docs/api/ subtree with dozens of files, but scope
+  wants a single api_reference doc. Model should pick a canonical
+  landing page rather than an arbitrary interior file.
+scope_documents: [readme, api_reference]
+doc_structure: |
+  README.md
+  docs/
+    api/
+      index.md
+      users.md
+      orders.md
+      auth.md
+      billing.md
+      README.md
+code_structure: |
+  src/
+    api/
+      users.py
+      orders.py
+      auth.py
+      billing.py
+expected:
+  readme: README.md
+  api_reference: [docs/api/index.md, docs/api/README.md, docs/api.md]

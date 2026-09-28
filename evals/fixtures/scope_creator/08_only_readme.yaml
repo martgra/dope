@@ -1,0 +1,23 @@
+name: only_readme
+description: |
+  Repo only has README.md but scope requests five documents. Model
+  must map readme -> README.md and invent reasonable paths for the
+  other four. Tests: doesn't collapse everything into README.
+scope_documents:
+  [readme, quickstart, contributing, changelog, security_compliance]
+doc_structure: |
+  README.md
+code_structure: |
+  src/
+    core.py
+    auth.py
+    api.py
+  tests/
+    test_core.py
+  pyproject.toml
+expected:
+  readme: README.md
+  quickstart: [QUICKSTART.md, docs/quickstart.md]
+  contributing: [CONTRIBUTING.md, docs/contributing.md]
+  changelog: [CHANGELOG.md, docs/changelog.md]
+  security_compliance: [SECURITY.md, docs/security.md, docs/security_compliance.md]

@@ -1,0 +1,25 @@
+name: nonstandard_locations
+description: |
+  Docs live in unusual places (wiki/, .github/, doc/ singular). Tests
+  that the model looks past the conventional docs/ folder.
+scope_documents: [readme, contributing, governance_rfcs, ci_cd_release_notes]
+doc_structure: |
+  README.md
+  .github/
+    CONTRIBUTING.md
+    RELEASE_NOTES.md
+  wiki/
+    governance.md
+    rfcs/
+      001-scoping.md
+code_structure: |
+  src/
+    main.py
+  .github/
+    workflows/
+      release.yaml
+expected:
+  readme: README.md
+  contributing: [.github/CONTRIBUTING.md, CONTRIBUTING.md]
+  governance_rfcs: [wiki/governance.md, wiki/rfcs/001-scoping.md, docs/governance_rfcs.md]
+  ci_cd_release_notes: [.github/RELEASE_NOTES.md, RELEASE_NOTES.md, docs/ci_cd_release_notes.md, CHANGELOG.md]

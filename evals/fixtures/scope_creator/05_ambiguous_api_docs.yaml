@@ -1,0 +1,23 @@
+name: ambiguous_api_docs
+description: |
+  Multiple plausible candidates for api_reference. Both docs/api.md and
+  docs/reference/api.md exist; either is defensible. Tests: does the
+  model pick something valid?
+scope_documents: [readme, api_reference, developer_guide]
+doc_structure: |
+  README.md
+  docs/
+    api.md
+    reference/
+      api.md
+    developer.md
+code_structure: |
+  src/
+    api/
+      routes.py
+      auth.py
+    core/
+expected:
+  readme: README.md
+  api_reference: [docs/api.md, docs/reference/api.md]
+  developer_guide: [docs/developer.md, docs/developer_guide.md]
