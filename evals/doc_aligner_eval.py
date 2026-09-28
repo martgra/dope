@@ -210,21 +210,25 @@ def build_dataset() -> Dataset[DocAlignerInput, None, dict]:
     return Dataset(name="doc_aligner", cases=cases, evaluators=evaluators)
 
 
-def build_doc_aligner_agent(model_name: str | None = None) -> Agent[None, AlignedScope]:
-    """Construct a doc_aligner agent for the given model name."""
-    if model_name is None:
+def build_doc_aligner_agent(
+    model_name: str | None = None, system_prompt: str | None = None
+) -> Agent[None, AlignedScope]:
+    """Construct a doc_aligner agent for the given model name (and optional prompt)."""
+    if model_name is None and system_prompt is None:
         return get_doc_aligner_agent()
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
+    resolved_model = model_name or "gpt-5.6-sol"
+    resolved_prompt = system_prompt or ALIGN_DOC_PROMPT
     agent = Agent(
-        model=get_model(settings.agent.provider, model_name),
+        model=get_model(settings.agent.provider, resolved_model),
         output_type=AlignedScope,
     )
 
     @agent.system_prompt
     def _add_prompt() -> str:
-        return ALIGN_DOC_PROMPT
+        return resolved_prompt
 
     return agent
 
@@ -238,9 +242,9 @@ def _build_user_prompt(inputs: DocAlignerInput) -> str:
     )
 
 
-def make_run_doc_aligner(model_name: str | None = None):
-    """Factory that binds a model to the task wrapper used by evaluate_sync."""
-    agent = build_doc_aligner_agent(model_name)
+def make_run_doc_aligner(model_name: str | None = None, system_prompt: str | None = None):
+    """Factory that binds a model + optional prompt to the task wrapper."""
+    agent = build_doc_aligner_agent(model_name, system_prompt)
 
     async def _run(inputs: DocAlignerInput) -> AlignedScope:
         tracker = UsageTracker()

@@ -260,21 +260,24 @@ def build_dataset() -> Dataset[ChangerInput, None, dict]:
     return Dataset(name="changer", cases=cases, evaluators=evaluators)
 
 
-def build_changer_agent(model_name: str | None = None) -> Agent:
-    """Construct a changer agent for the given model name.
+def build_changer_agent(model_name: str | None = None, system_prompt: str | None = None) -> Agent:
+    """Construct a changer agent for the given model name (and optional prompt).
 
-    Passing ``None`` returns the production factory's agent (currently
-    ``gpt-5.6-sol``); any other model name builds a fresh Agent with the
-    same tool + system prompt but a different underlying model. Used by
-    :mod:`evals.changer_ab` to compare model tiers on the same fixtures.
+    Passing ``None`` for both returns the production factory's agent
+    (currently ``gpt-5.6-sol`` + the production ``CHANGE_DOC_PROMPT``);
+    any override builds a fresh Agent with the requested substitutions.
+    Used by :mod:`evals.changer_ab` (model A/B) and
+    :mod:`evals.changer_prompt_ab` (prompt A/B).
     """
-    if model_name is None:
+    if model_name is None and system_prompt is None:
         return get_changer_agent()
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
+    resolved_model = model_name or "gpt-5.6-sol"
+    resolved_prompt = system_prompt or CHANGE_DOC_PROMPT
     agent = Agent(
-        model=get_model(settings.agent.provider, model_name),
+        model=get_model(settings.agent.provider, resolved_model),
         deps_type=Deps,
     )
 
@@ -285,7 +288,7 @@ def build_changer_agent(model_name: str | None = None) -> Agent:
 
     @agent.system_prompt
     def _add_prompt() -> str:
-        return CHANGE_DOC_PROMPT
+        return resolved_prompt
 
     return agent
 
@@ -309,9 +312,9 @@ def _build_user_prompt(inputs: ChangerInput) -> str:
     return "Return DELETE as the suggestion is to remove the file."
 
 
-def make_run_changer(model_name: str | None = None):
-    """Factory that binds a model to the task wrapper used by evaluate_sync."""
-    agent = build_changer_agent(model_name)
+def make_run_changer(model_name: str | None = None, system_prompt: str | None = None):
+    """Factory that binds a model + optional prompt to the task wrapper."""
+    agent = build_changer_agent(model_name, system_prompt)
 
     async def _run(inputs: ChangerInput) -> str:
         tracker = UsageTracker()

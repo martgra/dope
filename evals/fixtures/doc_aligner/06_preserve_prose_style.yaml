@@ -1,0 +1,38 @@
+name: preserve_prose_style
+description: |
+  File has an established terse voice and specific formatting choices
+  (uppercase headings, no oxford commas). Aligner needs to add a
+  Configuration section but must not rewrite the existing prose in a
+  different style.
+scope_summary: |
+  size: small
+  documentation_structure:
+    readme:
+      description: "Landing page with overview, install, usage, configuration"
+      sections:
+        overview: "One-line project summary"
+        installation: "How to install"
+        usage: "Minimal example of running the tool"
+        configuration: "How to configure"
+filepath: README.md
+file_content: |
+  # DOPE
+
+  ## OVERVIEW
+
+  A CLI that keeps docs and code in sync.
+
+  ## INSTALLATION
+
+  Run `pip install .` from the project root.
+
+  ## USAGE
+
+  Invoke `dope scan code`, `dope suggest` or `dope apply` to iterate.
+must_preserve:
+  - "## OVERVIEW"
+  - "## INSTALLATION"
+  - "## USAGE"
+  - "A CLI that keeps docs and code in sync."
+  - "Run `pip install .` from the project root."
+  - "Invoke `dope scan code`, `dope suggest` or `dope apply` to iterate."

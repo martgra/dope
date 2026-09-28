@@ -1,0 +1,40 @@
+name: add_only_missing_section
+description: |
+  File covers 3 of 4 sections the scope requires. Aligner should ADD
+  ONLY the missing section; existing three must remain byte-identical.
+  Tests: surgical section-add without collateral rewrites.
+scope_summary: |
+  size: small
+  documentation_structure:
+    contributing:
+      description: "Guidelines for contributors"
+      sections:
+        purpose: "Why contributions are welcome"
+        issue_reporting: "How to file bugs and feature requests"
+        pull_request_workflow: "Branching, review, and merge process"
+        code_of_conduct: "Community guidelines"
+filepath: CONTRIBUTING.md
+file_content: |
+  # Contributing to DOPE
+
+  ## Purpose
+
+  Contributions of any size are welcome. Bug reports, docs, tests, and
+  code are all valuable.
+
+  ## Issue reporting
+
+  File bugs and feature requests at github.com/example/dope/issues.
+  Include the dope version and a minimal reproduction when possible.
+
+  ## Pull request workflow
+
+  Branch from `main`, open a PR early for feedback, and squash-merge
+  once at least one reviewer approves.
+must_preserve:
+  - "## Purpose"
+  - "## Issue reporting"
+  - "## Pull request workflow"
+  - "Contributions of any size are welcome. Bug reports, docs, tests, and"
+  - "File bugs and feature requests at github.com/example/dope/issues."
+  - "Branch from `main`, open a PR early for feedback, and squash-merge"

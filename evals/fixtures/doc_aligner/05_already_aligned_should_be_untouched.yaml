@@ -1,0 +1,43 @@
+name: already_aligned_should_be_untouched
+description: |
+  File is already perfectly aligned with the scope. Aligner should
+  return content that is byte-identical (or nearly so). Any material
+  rewrite here is over-change.
+scope_summary: |
+  size: small
+  documentation_structure:
+    quickstart:
+      description: "Prerequisites, installation, first-run"
+      sections:
+        prerequisites: "What you need before you start"
+        installation: "How to install"
+        first_run: "Minimal example of running the tool"
+filepath: QUICKSTART.md
+file_content: |
+  # Quickstart
+
+  ## Prerequisites
+
+  - Python 3.13
+  - Git
+  - An OpenAI API key
+
+  ## Installation
+
+  ```bash
+  pip install .
+  ```
+
+  ## First run
+
+  ```bash
+  dope config init
+  dope update
+  ```
+must_preserve:
+  - "- Python 3.13"
+  - "- Git"
+  - "- An OpenAI API key"
+  - "pip install ."
+  - "dope config init"
+  - "dope update"
