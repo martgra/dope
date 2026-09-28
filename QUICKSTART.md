@@ -4,7 +4,8 @@
 
 - Python 3.13+
 - Git
-- OpenAI or Azure API key set in environment variables (e.g., `OPENAI_API_KEY`)
+- An OpenAI or Azure API key for the primary LLM provider, set in environment variables (for example, `OPENAI_API_KEY`)
+- Optional: `TYPESAFE__API_KEY` for TypeSafe/Jev typed judgments. No TypeSafe API key is required unless you use the TypeSafe provider.
 
 ## Installation
 
@@ -16,6 +17,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install .
 ```
+
+The `pip install .` command installs the package's complete dependency set, including `pydantic-ai[typesafe]`. You do not need to install the TypeSafe extra separately.
 
 ## Initialize Configuration
 

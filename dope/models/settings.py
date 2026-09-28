@@ -45,6 +45,16 @@ class AgentSettings(BaseModel):
         return self
 
 
+class TypeSafeSettings(BaseModel):
+    """Settings for the TypeSafe (Jev) System-One provider.
+
+    Populated from the environment via ``typesafe__API_KEY`` (double-underscore
+    nested delimiter matches the rest of the settings tree).
+    """
+
+    api_key: SecretStr | None = Field(default=None, exclude=True)
+
+
 class ScopeFilterSettings(BaseModel):
     """Settings for scope-based change filtering.
 
@@ -108,6 +118,7 @@ class Settings(BaseSettings):
     docs: DocSettings = DocSettings()
     git: CodeRepoSettings = CodeRepoSettings()
     agent: AgentSettings | None = None
+    typesafe: TypeSafeSettings = TypeSafeSettings()
     scope_filter: ScopeFilterSettings = ScopeFilterSettings()
     model_config = SettingsConfigDict(
         env_file=".env",

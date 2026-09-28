@@ -1,7 +1,5 @@
 """Retry configuration for HTTP clients used with LLM providers."""
 
-from functools import lru_cache
-
 import httpx
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from tenacity import (
@@ -9,6 +7,8 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
+
+from dope.core.loop_cache import loop_scoped_cache
 
 
 def _should_retry_status(response: httpx.Response) -> None:
@@ -24,7 +24,7 @@ def _should_retry_status(response: httpx.Response) -> None:
         response.raise_for_status()
 
 
-@lru_cache(maxsize=1)
+@loop_scoped_cache
 def get_retry_client() -> httpx.AsyncClient:
     """Create an httpx.AsyncClient with smart retry handling.
 

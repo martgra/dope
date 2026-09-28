@@ -1,7 +1,8 @@
-from functools import lru_cache
+"""Pydantic-AI agent that generates structured documentation-update suggestions."""
 
 from pydantic_ai import Agent
 
+from dope.core.loop_cache import loop_scoped_cache
 from dope.exceptions import AgentNotConfiguredError
 from dope.llms.model_factory import get_model
 from dope.models.domain.documentation import DocSuggestions
@@ -9,13 +10,13 @@ from dope.models.settings import get_settings
 from dope.services.suggester.prompts import SYSTEM_PROMPT
 
 
-@lru_cache(maxsize=1)
+@loop_scoped_cache
 def get_suggester_agent() -> Agent[None, DocSuggestions]:
     """Get the suggester agent (lazy-initialized and cached)."""
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
-    model = get_model(settings.agent.provider, "o4-mini")
+    model = get_model(settings.agent.provider, "gpt-5.6-terra")
     agent = Agent(model=model, output_type=DocSuggestions)
 
     @agent.system_prompt

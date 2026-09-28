@@ -97,3 +97,20 @@ def test_multiple_imports_same_cached_instance():
     settings1 = get_settings_import1()
     settings2 = get_settings_import2()
     assert settings1 is settings2
+
+
+def test_settings_typesafe_defaults_to_missing_key():
+    """Typesafe group is always present; api_key is None when unconfigured."""
+    settings = Settings(_env_file=None)
+    assert settings.typesafe.api_key is None
+
+
+def test_settings_loads_typesafe_api_key_from_env(tmp_path):
+    """typesafe__API_KEY in .env populates settings.typesafe.api_key."""
+    dotenv_file = tmp_path / ".env"
+    dotenv_file.write_text("typesafe__API_KEY=ts-test-key\n")
+
+    settings = Settings(_env_file=dotenv_file)
+
+    assert settings.typesafe.api_key is not None
+    assert settings.typesafe.api_key.get_secret_value() == "ts-test-key"

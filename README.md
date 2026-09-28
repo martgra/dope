@@ -4,9 +4,10 @@
 
 ## Project Overview
 
-DOPE is an AI-powered CLI tool for scanning code and documentation, generating structured summaries, and suggesting or applying documentation updates based on code changes. It now supports semantic change categorization via a ChangeCategory enum, configurable update triggers and freshness requirements for documentation sections, and automatic scope-based suggestion filtering.
+DOPE is an AI-powered CLI tool for scanning code and documentation, generating structured summaries, and suggesting or applying documentation updates based on code changes. It supports semantic change categorization via a `ChangeCategory` enum, configurable update triggers and freshness requirements for documentation sections, and automatic scope-based suggestion filtering.
 
-- **Adaptive suggestion formatting:** DOPE now dynamically adjusts the level of detail included in suggestions based on a combined relevance score (scope alignment, term relevance, and priority), pruning low-relevance changes to reduce token usage while preserving critical context.
+- **Adaptive suggestion formatting:** DOPE dynamically adjusts the level of detail included in suggestions based on a combined relevance score (scope alignment, term relevance, and priority), pruning low-relevance changes to reduce token usage while preserving critical context.
+- **Typed diff judgments:** The domain API exposes `DiffJudgment` for typed judgments over code diffs. This optional capability uses TypeSafe/Jev and defaults to the `jev-latest` model.
 
 ## Quick Install
 
@@ -15,7 +16,10 @@ DOPE is an AI-powered CLI tool for scanning code and documentation, generating s
 - Python 3.13 (see `.python-version`)
 - An Azure OpenAI or OpenAI API token (export as `AGENT_TOKEN` or set `OPENAI_API_KEY`)
 - [Git](https://git-scm.com/) for code scanning
-- PyYAML (install via `pip install pyyaml`) for loading and validating scope templates.
+- PyYAML (installed automatically with DOPE) for loading and validating scope templates
+- Optional: a TypeSafe API key for typed System-One/Jev judgments
+
+OpenAI or Azure OpenAI remains required for the normal CLI workflows. TypeSafe is an optional additional provider and does not replace that configuration.
 
 ### Installation
 
@@ -31,6 +35,24 @@ source .venv/bin/activate
 # Install dependencies
 pip install .
 ```
+
+Installation includes Pydantic AI's `typesafe` extra automatically. If you do not use TypeSafe judgments, no TypeSafe credential is required.
+
+### Optional TypeSafe Configuration
+
+Configure TypeSafe with the `TYPESAFE__API_KEY` environment variable:
+
+```bash
+export TYPESAFE__API_KEY="your-typesafe-api-key"
+```
+
+The same nested-settings name can be placed in a project `.env` file:
+
+```dotenv
+TYPESAFE__API_KEY=your-typesafe-api-key
+```
+
+The double underscore is the configured delimiter for nested settings, mapping the variable to `typesafe.api_key`. The key is treated as a secret and excluded from serialization. When TypeSafe/Jev judgment support is used without an explicit model name, it defaults to `jev-latest`.
 
 ## Quick Start
 
@@ -62,7 +84,7 @@ dope status
 # 5. Apply suggested changes
 dope apply
 
-# (NEW) All-in-one step: scan and preview the full update workflow
+# All-in-one step: scan and preview the full update workflow
 dope update --branch <branch-name>
 
 # Apply the generated changes
@@ -85,16 +107,31 @@ scope_filter_settings:
 
 Then rerun:
 
-```
+```bash
 dope suggest --branch <branch>
 ```
 
-> Scanning operations (`dope scan docs` and `dope scan code`) now generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.  
+> Scanning operations (`dope scan docs` and `dope scan code`) generate a documentation term index file named `doc-terms.json` in the configured state directory. This file is automatically used in later commands (`dope suggest`, `dope apply`) to boost the relevance of suggestions and updates based on documentation-term matching.  
 > Both `dope scan docs` and `dope scan code` accept an optional `--concurrency <N>` argument to control the number of simultaneous LLM API calls (default: 5). Increase or decrease as needed for your environment.
 
 > You can inspect and update your configuration at any time using `dope config show`, `dope config validate`, and `dope config set <key> <value>`.
 
 > **Note:** If configuration is missing or invalid, the CLI prints a colored error message and exits with status code 1, allowing automation scripts to detect failures.
+
+### LLM Model Usage
+
+The normal OpenAI-compatible agent workflows currently use these default model identifiers:
+
+| Task | Default model |
+|---|---|
+| Code-change summarization | `gpt-5.6-luna` |
+| Documentation summarization | `gpt-5.6-luna` |
+| Project-complexity classification | `gpt-5.6-luna` |
+| Suggestion generation | `gpt-5.6-terra` |
+| Scope creation | `gpt-5.6-terra` |
+| Documentation changes | `gpt-5.6-sol` |
+| Document alignment | `gpt-5.6-sol` |
+| Optional TypeSafe/Jev typed judgments | `jev-latest` |
 
 ### Command Reference
 
@@ -102,28 +139,28 @@ Note: Most commands accept an optional `--branch <branch>` or `-b <branch>` para
 
 ```bash
 # Configuration Commands
-dope config init              # Quick setup (use -i for interactive mode)
-dope config show              # Display configuration (table format)
+dope config init                # Quick setup (use -i for interactive mode)
+dope config show                # Display configuration (table format)
 dope config show --format json  # Display as JSON
-dope config validate          # Validate configuration
-dope config set KEY VALUE     # Update a single setting
+dope config validate            # Validate configuration
+dope config set KEY VALUE       # Update a single setting
 
 # Scanning Commands
 dope scan docs [--concurrency <N>]                       # Scan documentation files and build a `doc-terms.json` index in the state directory. (default concurrency: 5, controls parallel LLM calls)
 dope scan code [--branch <branch>] [--concurrency <N>]   # Scan code files with intelligent pre-filtering (classification and change-magnitude scoring) and use the `doc-terms.json` index to boost relevance of code-to-doc mappings. (default concurrency: 5, controls parallel LLM calls) (Note: when run on the current branch, the command compares against HEAD and includes any staged or unstaged (uncommitted) changes in the analysis.)
 
 # Documentation Workflow
-dope suggest [--branch <branch>]   # Generate documentation suggestions; suggestions are filtered and targeted based on automatically loaded project scope.
-dope apply -b <branch>               # Apply suggested changes
-dope status                          # Show current processing status
+dope suggest [--branch <branch>]  # Generate documentation suggestions; suggestions are filtered and targeted based on automatically loaded project scope.
+dope apply -b <branch>            # Apply suggested changes
+dope status                       # Show current processing status
 
 # All-in-one Workflow
-dope update --branch <branch-name> [--concurrency <N>]             # Run the full documentation workflow and preview suggested changes.
-dope update --branch <branch-name> --apply [--concurrency <N>]     # Run the workflow and apply suggested changes.
+dope update --branch <branch-name> [--concurrency <N>]          # Run the full documentation workflow and preview suggested changes.
+dope update --branch <branch-name> --apply [--concurrency <N>]  # Run the workflow and apply suggested changes.
 
 # Documentation Structure
-dope scope create                    # Create documentation scope
-dope scope apply                     # Apply documentation scope
+dope scope create  # Create documentation scope
+dope scope apply   # Apply documentation scope
 ```
 
 **Note:** If you run `dope scan code --branch <branch-name>` on the current branch, the tool will compare against HEAD and include any staged or unstaged (uncommitted) changes in its analysis.
@@ -135,7 +172,7 @@ Most commands support the `--branch` or `-b` option to specify which Git branch 
 ```bash
 dope scan code -b develop        # Scan against develop branch
 dope suggest -b feature/new-api  # Generate suggestions for feature branch
-dope apply -b main              # Apply changes for main branch
+dope apply -b main               # Apply changes for main branch
 ```
 
 If omitted, commands use your configured default branch (typically `main`).
@@ -151,13 +188,14 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Intelligent file pre-filtering**: Files are automatically classified (SKIP, NORMAL, HIGH) and quantified by change magnitude to skip trivial changes and prioritize critical files (e.g., README, config, entry points) before invoking LLM processing.
 - **Documentation term indexing**: A `doc-terms.json` index is built during scanning to match code changes to related documentation terms, improving the focus and quality of subsequent suggestions and applies.
 - **All-in-one Workflow**: Use `dope update` to run the complete workflow and preview planned updates. Add `--apply` to write changes.
-- **Semantic change categorization**: Uses a ChangeCategory enum and infer_change_category function to classify code changes automatically.
-- **Configurable update triggers and freshness requirements**: Allows per-section configuration of triggers (code patterns, change types, magnitude, relevant terms) and minimum documentation freshness level via UpdateTriggers and FreshnessLevel.
-- **Automatic scope-based suggestion filtering**: Loads and applies project documentation scope templates and enables scope-based filtering in suggestion generation, configurable via new `scope_filter` settings.
+- **Semantic change categorization**: Uses a `ChangeCategory` enum and `infer_change_category` function to classify code changes automatically.
+- **Configurable update triggers and freshness requirements**: Allows per-section configuration of triggers (code patterns, change types, magnitude, relevant terms) and minimum documentation freshness level via `UpdateTriggers` and `FreshnessLevel`.
+- **Automatic scope-based suggestion filtering**: Loads and applies project documentation scope templates and enables scope-based filtering in suggestion generation, configurable via `scope_filter` settings.
 - **Improved suggestion relevance**: Leverages detailed change metadata (priority, change magnitude, scope relevance, category, and affected docs) in LLM prompting and change processing workflows.
-- **Doc-term-based filtering**: New `DocTermIndex.filter_relevant_docs` method identifies and boosts documentation files most relevant to code changes by matching extracted terms.
-- **Adaptive change formatting**: New `ChangeProcessor.format_changes_adaptive` prunes details for medium/low relevance changes to optimize prompt size.
+- **Doc-term-based filtering**: `DocTermIndex.filter_relevant_docs` identifies and boosts documentation files most relevant to code changes by matching extracted terms.
+- **Adaptive change formatting**: `ChangeProcessor.format_changes_adaptive` prunes details for medium/low relevance changes to optimize prompt size.
 - **Suggestion analytics**: Built-in logging of filtering and token-usage analytics via a private `_log_analytics` method.
+- **Typed diff judgments**: The domain API exports `DiffJudgment` for typed judgments over code diffs. Optional TypeSafe/Jev model creation defaults to `jev-latest`.
 
 ### Configuration
 
@@ -165,7 +203,9 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Interactive Mode**: Full customization with `dope config init -i`
 - **Easy Updates**: Change individual settings with `dope config set`
 - **Validation**: Check configuration health with `dope config validate`
-- **Multi-Provider Support**: Works with OpenAI and Azure OpenAI
+- **OpenAI-Compatible Providers**: Normal CLI workflows support OpenAI and Azure OpenAI
+- **Optional TypeSafe Provider**: Typed System-One/Jev judgments can use `TYPESAFE__API_KEY`; users who do not use this capability do not need to configure it
+- **Secret Handling**: Agent tokens and the optional TypeSafe API key are treated as secrets and excluded from serialization
 
 ### Documentation Management
 

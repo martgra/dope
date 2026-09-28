@@ -1,11 +1,13 @@
+"""Pydantic-AI agents that summarize code diffs and documentation files."""
+
 import logging
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 
 from pydantic_ai import Agent, RunContext
 
 from dope.consumers.git_consumer import GitConsumer
+from dope.core.loop_cache import loop_scoped_cache
 from dope.exceptions import AgentNotConfiguredError, DocumentNotFoundError
 from dope.llms.model_factory import get_model
 from dope.models.domain.code import CodeChanges
@@ -23,14 +25,14 @@ class Deps:
     consumer: GitConsumer
 
 
-@lru_cache(maxsize=1)
+@loop_scoped_cache
 def get_code_change_agent() -> Agent[Deps, CodeChanges]:
     """Get the code change agent (lazy-initialized and cached)."""
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
     agent = Agent(
-        model=get_model(settings.agent.provider, "gpt-4.1-mini"),
+        model=get_model(settings.agent.provider, "gpt-5.6-luna"),
         deps_type=Deps,
         output_type=CodeChanges,
     )
@@ -58,13 +60,13 @@ def get_code_change_agent() -> Agent[Deps, CodeChanges]:
     return agent
 
 
-@lru_cache(maxsize=1)
+@loop_scoped_cache
 def get_doc_summarization_agent() -> Agent[None, DocSummary]:
     """Get the doc summarization agent (lazy-initialized and cached)."""
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
-    agent = Agent(model=get_model(settings.agent.provider, "gpt-4.1-mini"), output_type=DocSummary)
+    agent = Agent(model=get_model(settings.agent.provider, "gpt-5.6-luna"), output_type=DocSummary)
 
     @agent.system_prompt
     def _add_summarization_prompt() -> str:

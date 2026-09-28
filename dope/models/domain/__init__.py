@@ -8,6 +8,7 @@ from dope.models.domain.documentation import (
     DocSummary,
     SuggestedChange,
 )
+from dope.models.domain.judgment import DiffJudgment
 from dope.models.domain.scope import (
     AlignedScope,
     DocSectionTemplate,
@@ -21,22 +22,20 @@ from dope.models.domain.scope import (
 from dope.models.enums import ChangeType
 
 __all__ = [
-    # Code models
+    "AlignedScope",
+    "ChangeSuggestion",
+    "ChangeType",
     "CodeChange",
     "CodeChanges",
     "CodeMetadata",
-    # Documentation models
-    "ChangeSuggestion",
-    "ChangeType",
+    "DiffJudgment",
     "DocSection",
+    "DocSectionTemplate",
     "DocSuggestions",
     "DocSummary",
-    "SuggestedChange",
-    # Scope models
-    "AlignedScope",
-    "DocSectionTemplate",
     "DocTemplate",
-    "ScopeTemplate",
     "ScopeSuggestedChange",
+    "ScopeTemplate",
     "StructureTemplate",
+    "SuggestedChange",
 ]

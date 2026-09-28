@@ -11,6 +11,7 @@ from dope.consumers.base import BaseConsumer
 from dope.core.classification import ChangeMagnitude, FileClassifier, calculate_magnitude_score
 from dope.core.doc_terms import DocTermIndex
 from dope.core.usage import UsageTracker
+from dope.models.settings import get_settings
 from dope.repositories.json_state import JsonStateRepository
 from dope.services.describer.describer_agents import (
     Deps,
@@ -18,6 +19,7 @@ from dope.services.describer.describer_agents import (
     get_doc_summarization_agent,
 )
 from dope.services.describer.prompts import SUMMARIZATION_TEMPLATE
+from dope.services.judge import judge_diff
 
 if TYPE_CHECKING:
     from dope.consumers.git_consumer import GitConsumer
@@ -450,14 +452,34 @@ class CodeDescriberService(DescriberService):
         )
 
     async def _run_agent_async(self, file_path: str, content: bytes) -> dict:
-        """Generate a code-change summary asynchronously with Git context."""
+        """Generate a code-change summary and (optionally) a Jev DiffJudgment.
+
+        When ``settings.typesafe.api_key`` is set, the pydantic-ai summary
+        agent and :func:`judge_diff` run concurrently against the same file
+        and the typed judgment is attached under the ``judgment`` key. If the
+        key is unset the judgment is skipped silently so the pipeline still
+        works for users without TypeSafe.
+        """
         prompt = SUMMARIZATION_TEMPLATE.format(
             file_path=file_path,
             content=content.decode("utf-8", errors="ignore"),
         )
-        result = await get_code_change_agent().run(
+        summary_task = get_code_change_agent().run(
             user_prompt=prompt,
             deps=Deps(consumer=self._git_consumer),
             usage=self._usage_tracker.usage,
         )
-        return result.output.model_dump()
+        if get_settings().typesafe.api_key is None:
+            result = await summary_task
+            return result.output.model_dump()
+
+        diff_bytes = self._git_consumer.get_normalized_diff(Path(file_path))
+        diff_text = diff_bytes.decode("utf-8", errors="ignore")
+        # Jev calls run outside the shared UsageTracker so their per-file
+        # request count (6 agents) doesn't exhaust pydantic-ai's default
+        # per-run request_limit that the OpenAI summary agent inherits.
+        judgment_task = judge_diff(diff_text)
+        result, judgment = await asyncio.gather(summary_task, judgment_task)
+        summary = result.output.model_dump()
+        summary["judgment"] = judgment.model_dump()
+        return summary
