@@ -34,6 +34,7 @@ dope config init --force
 ```
 
 You can configure the new adaptive pruning and term-filtering options using `dope config set`. For example:
+
 ```
 dope config set scope_filter_settings.enable_adaptive_pruning true
 dope config set scope_filter_settings.high_detail_threshold 0.8
@@ -42,6 +43,7 @@ dope config set scope_filter_settings.doc_term_boost_weight 1.0
 dope config set scope_filter_settings.doc_term_match_threshold 3
 dope config set scope_filter_settings.min_docs_threshold 5
 ```
+
 This enables dynamic pruning of low-relevance changes and boosts documents matching code terms.
 
 ## First Run

@@ -35,6 +35,7 @@ pip install .
 ## Quick Start
 
 All commands are exposed under the `dope` CLI entry point. For help:
+
 ```bash
 dope --help
 ```
@@ -71,6 +72,7 @@ dope update --branch <branch-name> --apply
 Commands use the documentation and code roots saved by `dope config init`. The `scan docs --root` and `scan code --root` options override those roots for a single scan.
 
 You can enable adaptive pruning and tune relevance thresholds in your configuration:
+
 ```yaml
 scope_filter_settings:
   enable_adaptive_pruning: true
@@ -80,7 +82,9 @@ scope_filter_settings:
   doc_term_match_threshold: 3
   min_docs_threshold: 5
 ```
+
 Then rerun:
+
 ```
 dope suggest --branch <branch>
 ```
@@ -139,6 +143,7 @@ If omitted, commands use your configured default branch (typically `main`).
 ## Key Features
 
 ### Core Functionality
+
 - **AI-Powered Analysis**: Scan documentation files (`.md`, `.mdx`, `.rst`, etc.) and code changes using LLMs
 - **Smart Suggestions**: Generate human-readable summaries and documentation update suggestions
 - **Automated Updates**: Apply AI-generated suggestions directly to documentation files
@@ -155,6 +160,7 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Suggestion analytics**: Built-in logging of filtering and token-usage analytics via a private `_log_analytics` method.
 
 ### Configuration
+
 - **Quick Setup**: Get started with just 2-3 questions using `dope config init`
 - **Interactive Mode**: Full customization with `dope config init -i`
 - **Easy Updates**: Change individual settings with `dope config set`
@@ -162,6 +168,7 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Multi-Provider Support**: Works with OpenAI and Azure OpenAI
 
 ### Documentation Management
+
 - **Scope Templates**: Define documentation structure by project size
 - **Interactive Scope Creation**: Questionary-based project setup
 - **Tree Visualization**: View file structure with anytree integration
@@ -172,13 +179,16 @@ If omitted, commands use your configured default branch (typically `main`).
 Use the `scope` command group to define or reorganize documentation structure for your project.
 
 - **Create a documentation scope interactively or by specifying options:**
+
   ```bash
   dope scope create                      # interactive mode for project size/sections
   dope scope create --project-size small --output scope.yml
   ```
+
   Walks you through selecting the project size and documentation sections and produces a `scope.yaml` file.
 
 - **Apply a previously generated scope YAML to your docs:**
+
   ```bash
   dope scope apply                       # applies scope.yaml from state directory
   dope scope apply --state-file path/to/scope.yaml
