@@ -1,0 +1,43 @@
+name: add_deprecation_note
+description: |
+  Existing method entry in API docs needs a deprecation note added
+  inline. Tests: can the model annotate existing content without
+  removing the method entry itself?
+existing_doc:
+  path: docs/api.md
+  content: |
+    # API Reference
+
+    ## Repositories
+
+    ### `JsonStateRepository`
+
+    #### `load() -> dict`
+
+    Loads the current state.
+
+    #### `load_legacy() -> dict`
+
+    Loads state from the pre-2024 flat-file format.
+
+    #### `save(state: dict) -> None`
+
+    Persists `state` to disk.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add a "**Deprecated**" callout to the `load_legacy()` entry
+      noting that it now emits a `DeprecationWarning` and will be
+      removed in a future release. Users should migrate to `load()`.
+      Do not remove the `load_legacy` entry itself.
+    code_references: [dope/repositories/json_state.py]
+code_files:
+  dope/repositories/json_state.py: |
+    class JsonStateRepository:
+        def load_legacy(self) -> dict:
+            warnings.warn(
+                "load_legacy is deprecated; use load()",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            ...

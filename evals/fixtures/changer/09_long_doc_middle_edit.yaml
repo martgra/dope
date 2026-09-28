@@ -1,0 +1,49 @@
+name: long_doc_middle_edit
+description: |
+  Longer doc with many sections; suggestion is a targeted change in the
+  middle. Tests: does the model rewrite unrelated sections when only a
+  targeted edit was requested?
+existing_doc:
+  path: docs/architecture.md
+  content: |
+    # Architecture
+
+    ## Overview
+
+    DOPE is a modular CLI split into consumers, services, and repositories.
+
+    ## Consumers
+
+    Consumers wrap file I/O — DocConsumer for markdown, GitConsumer for diffs.
+
+    ## Services
+
+    Services orchestrate LLM calls. The main services are:
+
+    - Describer — turns files into structured summaries.
+    - Suggester — turns summaries into doc suggestions.
+    - Changer — applies suggestions to docs.
+    - Scoper — analyzes project complexity.
+
+    ## Repositories
+
+    Repositories persist state (JSON on disk, currently).
+
+    ## LLM Providers
+
+    OpenAI and Azure are supported. See README for setup.
+
+    ## State Directory
+
+    All persistent state lives under `.dope/` in the project root.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      In the Services section, add a fifth bullet: "Judge — produces
+      typed diff classifications via TypeSafe/Jev." Do not modify any
+      other section.
+    code_references: [dope/services/judge/judge_service.py]
+code_files:
+  dope/services/judge/judge_service.py: |
+    async def judge_diff(diff: str) -> DiffJudgment:
+        ...  # runs six Jev agents in parallel

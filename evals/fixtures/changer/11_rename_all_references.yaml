@@ -1,0 +1,36 @@
+name: rename_all_references
+description: |
+  Doc references `old_command` in multiple places; suggestion asks to
+  rename every occurrence to `new_command`. Tests: consistency of edits
+  across a doc.
+existing_doc:
+  path: docs/cli.md
+  content: |
+    # CLI Reference
+
+    ## The `old_command` command
+
+    Use `old_command` to trigger the workflow.
+
+    ### Examples
+
+    ```bash
+    dope old_command --branch main
+    dope old_command --dry-run
+    ```
+
+    See also: `old_command --help`.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Rename every occurrence of `old_command` to `new_command`,
+      including the heading, prose, and all bash examples. There
+      should be no remaining references to `old_command` after the
+      rewrite.
+    code_references: [dope/cli/main.py]
+code_files:
+  dope/cli/main.py: |
+    @app.command(name="new_command")
+    def new_command(branch: str = "main", dry_run: bool = False):
+        """Run the workflow (formerly `old_command`)."""
+        ...

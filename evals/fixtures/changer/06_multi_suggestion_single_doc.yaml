@@ -1,0 +1,38 @@
+name: multi_suggestion_single_doc
+description: |
+  Two independent suggestions on the same README. Tests: does the model
+  apply BOTH without dropping either?
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE
+
+    An AI-powered CLI for scanning code and docs.
+
+    ## Commands
+
+    - `dope scan`
+    - `dope suggest`
+    - `dope apply`
+
+    ## Configuration
+
+    See `.doperc.yaml` in the project root.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add `dope audit` to the Commands list, positioned after `dope apply`.
+    code_references: [dope/cli/main.py]
+  - suggestion: |
+      Under Configuration, mention the new optional `max_llm_concurrency`
+      key in `.doperc.yaml` that caps parallel LLM calls (default 5).
+    code_references: [dope/models/settings.py]
+code_files:
+  dope/cli/main.py: |
+    @app.command()
+    def audit():
+        """Scan docs for staleness."""
+        ...
+  dope/models/settings.py: |
+    class ScopeFilterSettings(BaseModel):
+        max_llm_concurrency: int = Field(default=5)

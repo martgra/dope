@@ -1,0 +1,33 @@
+name: add_row_to_table
+description: |
+  README has a markdown table of supported providers. Add a new row
+  without breaking table alignment or existing rows. Tests: careful
+  handling of tabular markdown.
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE
+
+    ## Supported LLM Providers
+
+    | Provider | Env var          | Notes                    |
+    |----------|------------------|--------------------------|
+    | OpenAI   | `OPENAI_API_KEY` | Default provider         |
+    | Azure    | `AGENT_TOKEN`    | Requires deployment name |
+
+    ## Installation
+
+    ```bash
+    pip install .
+    ```
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add a new row to the Supported LLM Providers table for TypeSafe:
+      env var `TYPESAFE__API_KEY`, notes "Optional; for typed Jev judgments".
+      Do not modify the OpenAI or Azure rows and keep the table alignment.
+    code_references: [dope/llms/model_factory.py]
+code_files:
+  dope/llms/model_factory.py: |
+    def get_typesafe_model(model_name: TypeSafeModelName = "jev-latest"):
+        return TypeSafeModel(model_name, provider=_get_typesafe_provider())

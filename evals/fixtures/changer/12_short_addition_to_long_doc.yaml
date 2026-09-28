@@ -1,0 +1,63 @@
+name: short_addition_to_long_doc
+description: |
+  Long README that needs one bullet added to one specific list. Tests:
+  does the model over-rewrite when only a small targeted edit was
+  requested? (Common failure mode: model rewrites the whole doc for a
+  tiny suggestion.)
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE
+
+    DOPE is an AI-powered CLI for keeping documentation in sync with code.
+
+    ## Features
+
+    - Automatic doc-code drift detection
+    - Structured suggestions per file
+    - Configurable scope filtering
+    - Cache-aware re-runs
+    - Adaptive prompt formatting
+    - Concurrency-controlled scanning
+
+    ## Prerequisites
+
+    - Python 3.13
+    - Git
+    - An OpenAI or Azure API key
+
+    ## Installation
+
+    ```bash
+    git clone https://github.com/example/dope.git
+    cd dope
+    pip install .
+    ```
+
+    ## Quickstart
+
+    See [QUICKSTART.md](QUICKSTART.md) for a walkthrough.
+
+    ## Configuration
+
+    Configuration lives in `.doperc.yaml`. Run `dope config init` to
+    scaffold a starter file.
+
+    ## Contributing
+
+    See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+    ## License
+
+    MIT.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add one bullet to the Features list: "Typed Jev judgments over
+      code diffs (optional TypeSafe integration)". Keep every other
+      section byte-identical.
+    code_references: [dope/services/judge/judge_service.py]
+code_files:
+  dope/services/judge/judge_service.py: |
+    async def judge_diff(diff: str) -> DiffJudgment:
+        ...

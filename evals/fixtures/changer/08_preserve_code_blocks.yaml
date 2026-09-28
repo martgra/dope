@@ -1,0 +1,39 @@
+name: preserve_code_blocks
+description: |
+  Doc has multiple ```python``` code samples that must remain
+  byte-identical. Suggestion asks to add a NEW sample without touching
+  existing ones. Tests: does the model rewrite unrelated code blocks
+  (a common failure mode)?
+existing_doc:
+  path: docs/examples.md
+  content: |
+    # Examples
+
+    ## Basic usage
+
+    ```python
+    from dope.services.judge import judge_diff
+    result = await judge_diff(diff)
+    print(result.change_category)
+    ```
+
+    ## Custom usage tracker
+
+    ```python
+    from dope.core.usage import UsageTracker
+    tracker = UsageTracker()
+    result = await judge_diff(diff, usage_tracker=tracker)
+    print(tracker.usage.total_tokens)
+    ```
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Add a new subsection at the END called "Batch processing" with
+      a Python example that loops over a list of diffs and calls
+      judge_diff on each. Do NOT modify the two existing code blocks
+      or their surrounding sections.
+    code_references: [dope/services/judge/judge_service.py]
+code_files:
+  dope/services/judge/judge_service.py: |
+    async def judge_diff(diff: str, usage_tracker=None) -> DiffJudgment:
+        ...

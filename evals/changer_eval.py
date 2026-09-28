@@ -36,6 +36,7 @@ import json
 from pathlib import Path
 
 import yaml
+from pydantic import BaseModel
 from pydantic.json import pydantic_encoder
 from pydantic_ai import Agent
 from pydantic_ai.usage import RunUsage
@@ -77,23 +78,23 @@ def _build_judge_model():
     return get_model(settings.agent.provider, JUDGE_MODEL_NAME)
 
 
-class ChangerInput:
-    """Bundle of existing doc + suggestions + fake code-file corpus."""
+class ChangerInput(BaseModel):
+    """Bundle of existing doc + suggestions + fake code-file corpus.
 
-    def __init__(
-        self,
-        existing_doc_path: str,
-        existing_doc_content: str,
-        change_type: ChangeType,
-        suggestions: list[ChangeSuggestion],
-        code_files: dict[str, str],
-    ) -> None:
-        """Store the fixture pieces the changer service consumes."""
-        self.existing_doc_path = existing_doc_path
-        self.existing_doc_content = existing_doc_content
-        self.change_type = change_type
-        self.suggestions = suggestions
-        self.code_files = code_files
+    Modeled as a pydantic ``BaseModel`` rather than a plain class so that
+    :class:`LLMJudge` (with ``include_input=True``) can serialize the
+    original doc and suggestions into the judge prompt as JSON — a plain
+    object would render as ``<ChangerInput object at 0x...>`` and hide
+    the very context the rubrics compare against.
+    """
+
+    existing_doc_path: str
+    existing_doc_content: str
+    change_type: ChangeType
+    suggestions: list[ChangeSuggestion]
+    code_files: dict[str, str]
+
+    model_config = {"arbitrary_types_allowed": True}
 
 
 class _FakeGitConsumer:
@@ -179,6 +180,10 @@ def _load_case(path: Path) -> Case[ChangerInput, None, dict]:
         suggestions=[ChangeSuggestion(**s) for s in data.get("suggestions", [])],
         code_files=data.get("code_files", {}),
     )
+    # Force id() stability for the CostMetrics side channel: the task
+    # wrapper writes _usage_by_case[id(inputs)] and the evaluator reads
+    # by the same key.  With BaseModel, ctx.inputs is the same object
+    # the wrapper received.
     return Case(
         name=data["name"],
         inputs=inputs,

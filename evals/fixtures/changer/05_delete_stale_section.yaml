@@ -1,0 +1,31 @@
+name: delete_stale_section
+description: |
+  Suggestion asks to remove a stale entry from CHANGELOG's Unreleased
+  section. Tests: can the model remove content cleanly without dropping
+  unrelated entries?
+existing_doc:
+  path: CHANGELOG.md
+  content: |
+    # Changelog
+
+    ## [Unreleased]
+
+    ### Added
+    - Support for parallel scanning via `--concurrency` flag.
+    - Experimental `--fast-mode` option (superseded).
+
+    ### Fixed
+    - Doc-scan crashed on symlinked files.
+change_type: change_existing
+suggestions:
+  - suggestion: |
+      Remove the "Experimental `--fast-mode` option (superseded)" bullet
+      from the Unreleased/Added section since it was reverted before
+      release. Keep every other bullet and section intact.
+    code_references: [dope/cli/main.py]
+code_files:
+  dope/cli/main.py: |
+    # --fast-mode was reverted; the flag was removed from the CLI.
+    @app.command()
+    def scan(...):
+        ...
