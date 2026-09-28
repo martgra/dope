@@ -1,0 +1,35 @@
+name: preserve_exact_command_syntax
+description: |
+  Doc has exact CLI invocations with specific flag ordering. Suggestion
+  asks to add a new command. Model must NOT reorder flags, add
+  quoting, "correct" long-form to short-form, or vice versa.
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE
+
+    ## Commands
+
+    - `dope scan code --branch main --concurrency 5`
+    - `dope suggest --branch main`
+    - `dope apply -y --branch main`
+
+    ## Configuration
+
+    Configure via `.doperc.yaml`.
+change_type: change_existing
+must_preserve:
+  - "`dope scan code --branch main --concurrency 5`"
+  - "`dope suggest --branch main`"
+  - "`dope apply -y --branch main`"
+suggestions:
+  - suggestion: |
+      Add one bullet at the end of the Commands list: `dope audit`.
+      Do not touch the syntax or flag ordering of any existing bullet.
+    code_references: [dope/cli/main.py]
+code_files:
+  dope/cli/main.py: |
+    @app.command()
+    def audit():
+        """Scan docs for staleness."""
+        ...

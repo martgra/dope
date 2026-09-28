@@ -1,0 +1,34 @@
+name: preserve_existing_specifics
+description: |
+  File already has specific version numbers and command syntax. Scope
+  asks for a Configuration section to be added. Aligner must scaffold
+  the missing section without rewriting the specifics that ARE there.
+scope_summary: |
+  size: small
+  documentation_structure:
+    quickstart:
+      description: "Quickstart with prerequisites, installation, and configuration"
+      sections:
+        prerequisites: "What you need before you start"
+        installation: "How to install"
+        configuration: "How to configure via .doperc.yaml"
+filepath: QUICKSTART.md
+file_content: |
+  # Quickstart
+
+  ## Prerequisites
+
+  - Python >= 3.13.1
+  - `pydantic-ai` (preview) 2.51.0
+  - Git 2.42.0 or newer
+
+  ## Installation
+
+  ```bash
+  pip install --upgrade "dope[typesafe]==0.4.2rc1"
+  ```
+must_preserve:
+  - "Python >= 3.13.1"
+  - "`pydantic-ai` (preview) 2.51.0"
+  - "Git 2.42.0 or newer"
+  - 'pip install --upgrade "dope[typesafe]==0.4.2rc1"'

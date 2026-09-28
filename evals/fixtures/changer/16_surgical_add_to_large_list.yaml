@@ -1,0 +1,54 @@
+name: surgical_add_to_large_list
+description: |
+  Doc has a long list of 12 bullets in one section. Suggestion asks to
+  add ONE more. Model must not touch the wording or ordering of the
+  existing 12. Tests: character-level surgical edit vs LLM's temptation
+  to "cleanup" long lists.
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE — Features
+
+    ## Current features
+
+    - Scan code diffs and classify by category
+    - Scan documentation files and build a term index
+    - Generate structured doc-update suggestions
+    - Apply suggestions in one command
+    - Preview suggestions with --dry-run
+    - Configure via `.doperc.yaml`
+    - Handle both OpenAI and Azure providers
+    - Cap parallel LLM calls with --concurrency
+    - Persist state under `.dope/` between runs
+    - Auto-detect trivial file changes and skip them
+    - Track token usage per command
+    - Log analytics for optimization decisions
+
+    ## Roadmap
+
+    See ROADMAP.md.
+change_type: change_existing
+must_preserve:
+  - "- Scan code diffs and classify by category"
+  - "- Scan documentation files and build a term index"
+  - "- Generate structured doc-update suggestions"
+  - "- Apply suggestions in one command"
+  - "- Preview suggestions with --dry-run"
+  - "- Configure via `.doperc.yaml`"
+  - "- Handle both OpenAI and Azure providers"
+  - "- Cap parallel LLM calls with --concurrency"
+  - "- Persist state under `.dope/` between runs"
+  - "- Auto-detect trivial file changes and skip them"
+  - "- Track token usage per command"
+  - "- Log analytics for optimization decisions"
+suggestions:
+  - suggestion: |
+      Add one bullet at the end of the Current features list:
+      "Typed Jev judgments over code diffs (optional TypeSafe
+      integration)". Preserve the exact wording and ordering of the
+      existing 12 bullets.
+    code_references: [dope/services/judge/judge_service.py]
+code_files:
+  dope/services/judge/judge_service.py: |
+    async def judge_diff(diff: str) -> DiffJudgment:
+        ...

@@ -27,6 +27,7 @@ and produce valid markdown. Also captures per-case cost/tokens/latency.
 from __future__ import annotations
 
 import argparse
+import difflib
 from pathlib import Path
 
 import yaml
@@ -72,6 +73,9 @@ class DocAlignerInput(BaseModel):
     scope_summary: str
     filepath: str
     file_content: str
+    must_preserve: list[str] = []
+    """Substrings from the existing file that must survive verbatim in
+    the rewrite. Same contract as :class:`ChangerInput.must_preserve`."""
 
 
 class CostMetrics(Evaluator[DocAlignerInput, AlignedScope]):
@@ -99,6 +103,39 @@ class CrossFileChangesCount(Evaluator[DocAlignerInput, AlignedScope]):
     ) -> dict[str, float]:
         """Return the count of cross-file change suggestions."""
         return {"cross_file_changes": float(len(ctx.output.changes_in_other_files))}
+
+
+class ContentSimilarity(Evaluator[DocAlignerInput, AlignedScope]):
+    """Char-level similarity between the existing file and the rewrite.
+
+    ``difflib.SequenceMatcher(input, output.content).ratio()`` — higher
+    means less over-rewriting. See :class:`evals.changer_eval.ContentSimilarity`.
+    """
+
+    def evaluate(
+        self, ctx: EvaluatorContext[DocAlignerInput, AlignedScope, dict]
+    ) -> dict[str, float]:
+        """Return similarity + char-delta ratios."""
+        inp = ctx.inputs.file_content
+        out = ctx.output.content or ""
+        similarity = difflib.SequenceMatcher(None, inp, out).ratio()
+        char_delta = abs(len(out) - len(inp)) / max(len(inp), 1)
+        return {"content_similarity": similarity, "char_delta_ratio": char_delta}
+
+
+class PreservedSpecifics(Evaluator[DocAlignerInput, AlignedScope]):
+    """Fraction of ``must_preserve`` substrings that survive verbatim."""
+
+    def evaluate(
+        self, ctx: EvaluatorContext[DocAlignerInput, AlignedScope, dict]
+    ) -> dict[str, float]:
+        """Return the retention ratio for declared must-preserve tokens."""
+        specifics = ctx.inputs.must_preserve
+        if not specifics:
+            return {"preserved_specifics": 1.0}
+        out = ctx.output.content or ""
+        kept = sum(1 for s in specifics if s in out)
+        return {"preserved_specifics": kept / len(specifics)}
 
 
 _JUDGE_RUBRICS = {
@@ -129,6 +166,17 @@ _JUDGE_RUBRICS = {
         "leaked system-prompt chatter. Score 1 when the output could be "
         "written to disk as-is; 0 for malformed markdown."
     ),
+    "minimal_change": (
+        "Compare the rewritten `output.content` to the ORIGINAL "
+        "`file_content` in the input. The aligner should scaffold "
+        "sections the scope requires when they are missing, and it may "
+        "reorder to match the scope's section order — but it must NOT: "
+        "rephrase unrelated in-scope sentences, expand terse content the "
+        "scope did not ask to expand, invent new subsections beyond what "
+        "the scope specifies, or 'improve' wording that was already fine. "
+        "Score 1 for a minimal alignment; 0 when the model rewrote "
+        "content that the scope did not require touching."
+    ),
 }
 
 
@@ -138,6 +186,7 @@ def _load_case(path: Path) -> Case[DocAlignerInput, None, dict]:
         scope_summary=data["scope_summary"],
         filepath=data["filepath"],
         file_content=data["file_content"],
+        must_preserve=data.get("must_preserve", []),
     )
     return Case(
         name=data["name"],
@@ -155,7 +204,9 @@ def build_dataset() -> Dataset[DocAlignerInput, None, dict]:
         LLMJudge(rubric=rubric, model=judge_model, include_input=True)
         for rubric in _JUDGE_RUBRICS.values()
     ]
-    evaluators.extend([CrossFileChangesCount(), CostMetrics()])
+    evaluators.extend(
+        [CrossFileChangesCount(), ContentSimilarity(), PreservedSpecifics(), CostMetrics()]
+    )
     return Dataset(name="doc_aligner", cases=cases, evaluators=evaluators)
 
 

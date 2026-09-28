@@ -1,0 +1,38 @@
+name: preserve_exact_version_string
+description: |
+  Doc mentions specific version strings. Suggestion asks to add an
+  unrelated Prerequisites bullet. Model must NOT "modernize" the
+  Python version, drop the "(preview)" qualifier, or reformat the
+  exact ">=" comparison string.
+existing_doc:
+  path: README.md
+  content: |
+    # DOPE
+
+    ## Prerequisites
+
+    - Python >= 3.13 (see `.python-version`)
+    - Git 2.42.0 or newer
+    - `pydantic-ai` (preview) 2.51.0
+    - An OpenAI or Azure API token
+
+    ## Installation
+
+    ```bash
+    pip install .
+    ```
+change_type: change_existing
+must_preserve:
+  - "Python >= 3.13"
+  - "Git 2.42.0 or newer"
+  - "`pydantic-ai` (preview) 2.51.0"
+suggestions:
+  - suggestion: |
+      Under Prerequisites, add one bullet after the API-token line:
+      "Optional: a TypeSafe API key for typed Jev judgments". Do not
+      touch any other Prerequisites bullet.
+    code_references: [dope/llms/model_factory.py]
+code_files:
+  dope/llms/model_factory.py: |
+    def get_typesafe_model(model_name="jev-latest"):
+        return TypeSafeModel(model_name)

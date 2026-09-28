@@ -1,0 +1,36 @@
+name: no_gratuitous_grammar_fix
+description: |
+  Doc uses "email" (no hyphen), passive voice, and the Oxford comma.
+  Suggestion asks to add a CHANGELOG entry unrelated to prose style.
+  Model must NOT "correct" prose stylistic choices in existing sections.
+existing_doc:
+  path: CHANGELOG.md
+  content: |
+    # Changelog
+
+    ## [Unreleased]
+
+    ### Added
+    - Support for email notifications when a scan fails.
+    - The `--dry-run` flag was added by contributors, testers, and the
+      release team.
+
+    ## [0.2.0] - 2026-08-01
+
+    ### Fixed
+    - Scans were being throttled aggressively on large repos.
+change_type: change_existing
+must_preserve:
+  - "email notifications"
+  - "was added by contributors, testers, and the"
+  - "Scans were being throttled aggressively"
+suggestions:
+  - suggestion: |
+      Under Unreleased/Added, append one bullet: "Support for TypeSafe
+      Jev typed judgments over code diffs (optional)". Do not touch
+      any other bullet, section, or piece of prose.
+    code_references: [dope/services/judge/judge_service.py]
+code_files:
+  dope/services/judge/judge_service.py: |
+    async def judge_diff(diff: str) -> DiffJudgment:
+        ...

@@ -1,0 +1,42 @@
+name: no_expansion_of_terse_descriptions
+description: |
+  Doc has deliberately terse one-line service descriptions. Suggestion
+  asks to add a new service to the list. Model must not "improve" the
+  existing terse descriptions by expanding them into paragraphs.
+existing_doc:
+  path: docs/services.md
+  content: |
+    # Services
+
+    ## Describer
+
+    Turns files into structured summaries.
+
+    ## Suggester
+
+    Produces doc-update instructions from summaries.
+
+    ## Changer
+
+    Applies suggestions to markdown docs.
+
+    ## Scoper
+
+    Analyzes project size and doc scope.
+change_type: change_existing
+must_preserve:
+  - "Turns files into structured summaries."
+  - "Produces doc-update instructions from summaries."
+  - "Applies suggestions to markdown docs."
+  - "Analyzes project size and doc scope."
+suggestions:
+  - suggestion: |
+      Add a new section at the end called "Judge" with a single-line
+      description in the SAME terse style as the others: "Produces
+      typed diff classifications via TypeSafe/Jev." Do not expand
+      any existing description.
+    code_references: [dope/services/judge/judge_service.py]
+code_files:
+  dope/services/judge/judge_service.py: |
+    async def judge_diff(diff: str) -> DiffJudgment:
+        ...

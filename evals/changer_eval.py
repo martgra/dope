@@ -32,6 +32,7 @@ pattern as the other eval suites.
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 from pathlib import Path
 
@@ -93,6 +94,10 @@ class ChangerInput(BaseModel):
     change_type: ChangeType
     suggestions: list[ChangeSuggestion]
     code_files: dict[str, str]
+    must_preserve: list[str] = []
+    """Substrings from the existing doc that must survive verbatim in the
+    rewrite (exact command syntax, version strings, config keys, etc.).
+    Optional; empty by default. Read by :class:`PreservedSpecifics`."""
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -139,6 +144,45 @@ class CostMetrics(Evaluator[ChangerInput, str]):
         }
 
 
+class ContentSimilarity(Evaluator[ChangerInput, str]):
+    """Char-level similarity between the existing doc and the rewrite.
+
+    ``difflib.SequenceMatcher(input, output).ratio()`` ranges from 0.0
+    (nothing in common) to 1.0 (byte-identical). For a minimal edit we
+    expect this to be high — the fewer chars touched, the smaller the
+    accidental over-rewrite surface. Emitted as observability; no
+    threshold. Also emits ``char_delta_ratio`` = ``abs(len_out - len_in)
+    / max(len_in, 1)`` as a rough "did the model bloat the doc?" signal.
+    """
+
+    def evaluate(self, ctx: EvaluatorContext[ChangerInput, str, dict]) -> dict[str, float]:
+        """Return similarity + char-delta ratios."""
+        inp = ctx.inputs.existing_doc_content
+        out = ctx.output or ""
+        similarity = difflib.SequenceMatcher(None, inp, out).ratio()
+        char_delta = abs(len(out) - len(inp)) / max(len(inp), 1)
+        return {"content_similarity": similarity, "char_delta_ratio": char_delta}
+
+
+class PreservedSpecifics(Evaluator[ChangerInput, str]):
+    """Fraction of ``must_preserve`` substrings that survive verbatim.
+
+    Fixture declares specific tokens that MUST appear byte-identical in
+    the rewrite: exact command syntax, version strings, config keys,
+    stylistic quirks that should not be "corrected". Score is the
+    fraction retained; 1.0 when nothing was declared.
+    """
+
+    def evaluate(self, ctx: EvaluatorContext[ChangerInput, str, dict]) -> dict[str, float]:
+        """Return the retention ratio for declared must-preserve tokens."""
+        specifics = ctx.inputs.must_preserve
+        if not specifics:
+            return {"preserved_specifics": 1.0}
+        out = ctx.output or ""
+        kept = sum(1 for s in specifics if s in out)
+        return {"preserved_specifics": kept / len(specifics)}
+
+
 _JUDGE_RUBRICS = {
     "incorporates_suggestion": (
         "The output must incorporate the change described in the fixture's "
@@ -168,6 +212,17 @@ _JUDGE_RUBRICS = {
         "system-prompt or tool-call chatter. Score 1 when the output could be "
         "written to disk as-is; 0 for malformed markdown."
     ),
+    "minimal_change": (
+        "Compare the rewritten output to the ORIGINAL doc in the input. "
+        "The rewrite must make ONLY the edits explicitly requested by the "
+        "fixture's `suggestions`. It should NOT: rephrase unrelated "
+        "sentences, 'improve' the tone or grammar of untouched paragraphs, "
+        "reorder unrelated bullets, expand terse content that the suggestion "
+        "did not ask to expand, or add explanatory prose beyond what the "
+        "suggestion literally requires. Score 1 for a surgical minimal "
+        "edit; 0 when the model over-rewrites even if the requested change "
+        "was itself applied correctly."
+    ),
 }
 
 
@@ -179,6 +234,7 @@ def _load_case(path: Path) -> Case[ChangerInput, None, dict]:
         change_type=ChangeType(data["change_type"]),
         suggestions=[ChangeSuggestion(**s) for s in data.get("suggestions", [])],
         code_files=data.get("code_files", {}),
+        must_preserve=data.get("must_preserve", []),
     )
     # Force id() stability for the CostMetrics side channel: the task
     # wrapper writes _usage_by_case[id(inputs)] and the evaluator reads
@@ -200,7 +256,7 @@ def build_dataset() -> Dataset[ChangerInput, None, dict]:
         LLMJudge(rubric=rubric, model=judge_model, include_input=True)
         for rubric in _JUDGE_RUBRICS.values()
     ]
-    evaluators.append(CostMetrics())
+    evaluators.extend([ContentSimilarity(), PreservedSpecifics(), CostMetrics()])
     return Dataset(name="changer", cases=cases, evaluators=evaluators)
 
 
