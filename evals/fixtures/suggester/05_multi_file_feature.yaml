@@ -1,0 +1,88 @@
+name: multi_file_feature
+description: |
+  New TypeSafe integration spanning settings, model factory, and a new
+  service module. Should touch README (overview + config), QUICKSTART
+  (prereqs), and CHANGELOG.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: Describes DOPE's capabilities and provider setup (OpenAI/Azure).
+          references: [OPENAI_API_KEY, AGENT_TOKEN]
+        - section_name: Configuration
+          summary: Lists `.doperc.yaml` settings and env-var conventions.
+          references: [dope config init, .doperc.yaml]
+  QUICKSTART.md:
+    hash: q1
+    summary:
+      sections:
+        - section_name: Prerequisites
+          summary: Requires Python 3.13, git, and an OpenAI/Azure API key.
+          references: [OPENAI_API_KEY]
+        - section_name: Installation
+          summary: pip install ., then dope config init.
+          references: [pip install .]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder for pending changes.
+          references: []
+code_change:
+  dope/models/settings.py:
+    hash: s1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.4
+      lines_added: 10
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: TypeSafeSettings
+          summary: New TypeSafeSettings group with api_key SecretStr, populated via typesafe__API_KEY env var.
+      functional_impact:
+        - Users who want typed Jev judgments now configure a TypeSafe API key via .env / env var.
+      programming_language: Python
+  dope/llms/model_factory.py:
+    hash: m1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.5
+      lines_added: 22
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: get_typesafe_model
+          summary: New factory that returns a TypeSafeModel(jev-latest) wired via TypeSafeProvider(api_key from settings.typesafe.api_key).
+      functional_impact:
+        - Public entry point for constructing a TypeSafe/Jev model.
+      programming_language: Python
+  dope/services/judge/judge_service.py:
+    hash: j1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.7
+      lines_added: 55
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: judge_diff
+          summary: New async function that fires six pydantic-ai Agents backed by TypeSafeModel concurrently, returns a typed DiffJudgment.
+      functional_impact:
+        - New public capability - typed judgments over code diffs.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: README.md
+      change_type: change_existing
+    - documentation_file_path: QUICKSTART.md
+      change_type: change_existing
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+      optional: true

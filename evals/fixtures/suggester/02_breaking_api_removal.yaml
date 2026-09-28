@@ -1,0 +1,52 @@
+name: breaking_api_removal
+description: |
+  Public method `load_legacy` deleted. Must land in CHANGELOG (breaking).
+  README's API reference (if present) should also mention removal.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Public API
+          summary: Documents JsonStateRepository.load and load_legacy methods.
+          references: [JsonStateRepository, load, load_legacy]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder for pending changes.
+          references: []
+  docs/api.md:
+    hash: a1
+    summary:
+      sections:
+        - section_name: Repositories
+          summary: API reference for the repositories module including JsonStateRepository.load_legacy which loads the pre-2024 flat file format.
+          references: [JsonStateRepository, load_legacy]
+code_change:
+  dope/repositories/json_state.py:
+    hash: j1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.4
+      lines_added: 0
+      lines_deleted: 13
+    summary:
+      specific_changes:
+        - name: load_legacy
+          summary: Removes the deprecated `load_legacy` public method that supported the pre-2024 flat file format.
+      functional_impact:
+        - Breaking change - external callers of load_legacy will now hit AttributeError.
+        - Callers must migrate to `load` and, for the legacy format, run the migration script.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+    - documentation_file_path: docs/api.md
+      change_type: change_existing
+    - documentation_file_path: README.md
+      change_type: change_existing
+      optional: true

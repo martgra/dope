@@ -1,0 +1,41 @@
+name: internal_refactor_no_docs
+description: |
+  Pure private-helper refactor with no public surface change. Should
+  produce zero suggestions (or an empty list). Any suggestion here is a
+  false positive.
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Overview
+          summary: DOPE is an AI-powered CLI.
+          references: [dope]
+        - section_name: Command Reference
+          summary: Lists available CLI commands.
+          references: [dope scan, dope suggest, dope apply]
+  QUICKSTART.md:
+    hash: q1
+    summary:
+      sections:
+        - section_name: Installation
+          summary: Walks through pip install.
+          references: []
+code_change:
+  dope/core/doc_terms.py:
+    hash: t1
+    priority: NORMAL
+    metadata:
+      classification: NORMAL
+      magnitude: 0.15
+      lines_added: 7
+      lines_deleted: 4
+    summary:
+      specific_changes:
+        - name: _tokenize
+          summary: Extracts a private static helper `_normalize` from `_tokenize`; no behavior change.
+      functional_impact:
+        - Internal reorganization only. Public API unchanged.
+      programming_language: Python
+expected:
+  suggestions: []

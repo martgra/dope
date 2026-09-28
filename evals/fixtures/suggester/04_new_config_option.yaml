@@ -1,0 +1,58 @@
+name: new_config_option
+description: |
+  Adds a new user-facing configuration setting exposed via env var.
+  Must land in README (config section) and QUICKSTART (prerequisites/config).
+docs_change:
+  README.md:
+    hash: r1
+    summary:
+      sections:
+        - section_name: Configuration
+          summary: Lists `.doperc.yaml` settings including scope_filter_settings block.
+          references: [scope_filter_settings, min_relevance_score]
+        - section_name: Environment Variables
+          summary: Lists env vars including AGENT_TOKEN and OPENAI_API_KEY.
+          references: [AGENT_TOKEN, OPENAI_API_KEY]
+  QUICKSTART.md:
+    hash: q1
+    summary:
+      sections:
+        - section_name: Prerequisites
+          summary: Lists Python and OPENAI_API_KEY requirements.
+          references: [OPENAI_API_KEY]
+        - section_name: Configuration
+          summary: Brief pointer to `dope config init` and the .doperc.yaml file.
+          references: [dope config init]
+  CHANGELOG.md:
+    hash: c1
+    summary:
+      sections:
+        - section_name: Unreleased
+          summary: Placeholder for pending changes.
+          references: []
+code_change:
+  dope/models/settings.py:
+    hash: s1
+    priority: HIGH
+    metadata:
+      classification: HIGH
+      magnitude: 0.35
+      lines_added: 4
+      lines_deleted: 0
+    summary:
+      specific_changes:
+        - name: max_llm_concurrency
+          summary: Adds a `max_llm_concurrency` field on ScopeFilterSettings, exposed via env var SCOPE_FILTER__MAX_LLM_CONCURRENCY.
+      functional_impact:
+        - Users can now cap parallel LLM calls per phase via env var or .doperc.yaml.
+      programming_language: Python
+expected:
+  suggestions:
+    - documentation_file_path: README.md
+      change_type: change_existing
+    - documentation_file_path: QUICKSTART.md
+      change_type: change_existing
+      optional: true
+    - documentation_file_path: CHANGELOG.md
+      change_type: change_existing
+      optional: true
