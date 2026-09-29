@@ -35,5 +35,12 @@ code_change:
       functional_impact:
         - Dead-code cleanup. No behavior change.
       programming_language: Python
+      judgment:
+        change_category: refactor
+        change_type: delete
+        is_breaking: false
+        is_user_facing: false
+        needs_docs: false
+        doc_priority: 0
 expected:
   suggestions: []

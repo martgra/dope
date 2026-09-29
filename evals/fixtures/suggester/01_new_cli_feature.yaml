@@ -47,6 +47,13 @@ code_change:
       functional_impact:
         - New CLI command `dope audit` available for users to invoke.
       programming_language: Python
+      judgment:
+        change_category: feature
+        change_type: add
+        is_breaking: false
+        is_user_facing: true
+        needs_docs: true
+        doc_priority: 3
 expected:
   suggestions:
     - documentation_file_path: README.md

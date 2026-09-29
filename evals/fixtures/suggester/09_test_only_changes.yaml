@@ -33,6 +33,13 @@ code_change:
       functional_impact:
         - No production behavior change.
       programming_language: Python
+      judgment:
+        change_category: testing
+        change_type: add
+        is_breaking: false
+        is_user_facing: false
+        needs_docs: false
+        doc_priority: 0
   tests/unit/services/test_edge_case.py:
     hash: t2
     priority: NORMAL
@@ -48,5 +55,12 @@ code_change:
       functional_impact:
         - No production behavior change.
       programming_language: Python
+      judgment:
+        change_category: testing
+        change_type: add
+        is_breaking: false
+        is_user_facing: false
+        needs_docs: false
+        doc_priority: 0
 expected:
   suggestions: []

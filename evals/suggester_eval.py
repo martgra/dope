@@ -200,35 +200,39 @@ def _build_prompt(inputs: SuggesterInput) -> str:
     )
 
 
-def build_suggester_agent(model_name: str | None = None) -> Agent[None, DocSuggestions]:
-    """Construct a suggester agent for the given model name.
+def build_suggester_agent(
+    model_name: str | None = None, system_prompt: str | None = None
+) -> Agent[None, DocSuggestions]:
+    """Construct a suggester agent for the given model name (and optional prompt).
 
-    Passing ``None`` returns the production factory's agent (currently
-    ``gpt-5.6-terra``); any other model name builds a fresh Agent with the
-    same output_type + system prompt but a different underlying model.
-    Used by :mod:`evals.suggester_ab` to A/B compare model tiers on the
-    exact same fixture set.
+    Passing ``None`` for both returns the production factory's agent
+    (currently ``gpt-5.6-luna`` + the production ``suggest.system``
+    prompt); any override builds a fresh Agent with the requested
+    substitutions. Used by :mod:`evals.suggester_ab` (model A/B) and
+    :mod:`evals.suggester_prompt_ab` (prompt A/B).
     """
-    if model_name is None:
+    if model_name is None and system_prompt is None:
         return get_suggester_agent()
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
+    resolved_model = model_name or "gpt-5.6-luna"
+    resolved_prompt = system_prompt or PromptRegistry.get("suggest.system").template
     agent = Agent(
-        model=get_model(settings.agent.provider, model_name),
+        model=get_model(settings.agent.provider, resolved_model),
         output_type=DocSuggestions,
     )
 
     @agent.system_prompt
     def _add_prompt() -> str:
-        return PromptRegistry.get("suggest.system").template
+        return resolved_prompt
 
     return agent
 
 
-def make_run_suggester(model_name: str | None = None):
-    """Factory that binds a model to the task wrapper used by evaluate_sync."""
-    agent = build_suggester_agent(model_name)
+def make_run_suggester(model_name: str | None = None, system_prompt: str | None = None):
+    """Factory that binds a model + optional prompt to the task wrapper."""
+    agent = build_suggester_agent(model_name, system_prompt)
 
     async def _run(inputs: SuggesterInput) -> DocSuggestions:
         tracker = UsageTracker()
