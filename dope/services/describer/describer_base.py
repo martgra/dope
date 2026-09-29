@@ -11,6 +11,7 @@ from dope.consumers.base import BaseConsumer
 from dope.core.classification import ChangeMagnitude, FileClassifier, calculate_magnitude_score
 from dope.core.doc_terms import DocTermIndex
 from dope.core.usage import UsageTracker
+from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.settings import get_settings
 from dope.prompts import PromptRegistry
 from dope.repositories.json_state import JsonStateRepository
@@ -80,6 +81,7 @@ class DescriberService:
             .run_sync(
                 user_prompt=prompt,
                 usage=self._usage_tracker.usage,
+                usage_limits=DEFAULT_USAGE_LIMITS,
             )
             .output.model_dump()
         )
@@ -93,6 +95,7 @@ class DescriberService:
         result = await get_doc_summarization_agent().run(
             user_prompt=prompt,
             usage=self._usage_tracker.usage,
+            usage_limits=DEFAULT_USAGE_LIMITS,
         )
         return result.output.model_dump()
 
@@ -447,6 +450,7 @@ class CodeDescriberService(DescriberService):
                 user_prompt=prompt,
                 deps=Deps(consumer=self._git_consumer),
                 usage=self._usage_tracker.usage,
+                usage_limits=DEFAULT_USAGE_LIMITS,
             )
             .output.model_dump()
         )
@@ -468,6 +472,7 @@ class CodeDescriberService(DescriberService):
             user_prompt=prompt,
             deps=Deps(consumer=self._git_consumer),
             usage=self._usage_tracker.usage,
+            usage_limits=DEFAULT_USAGE_LIMITS,
         )
         if get_settings().typesafe.api_key is None:
             result = await summary_task

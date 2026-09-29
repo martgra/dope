@@ -21,7 +21,7 @@ def test_registry_resolves_explicit_version():
 def test_registry_lists_versions_sorted():
     """list_versions returns all registered versions of a name, sorted."""
     versions = PromptRegistry.list_versions("scope.align_doc")
-    assert versions == ["v1", "v2-minimal"]
+    assert versions == ["v1", "v2-minimal", "v3-diff"]
 
 
 def test_registry_lists_names():

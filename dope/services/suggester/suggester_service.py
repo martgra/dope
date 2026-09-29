@@ -11,6 +11,7 @@ from pydantic_ai.usage import RunUsage
 
 from dope.core.protocols import UsageTrackerProtocol
 from dope.core.usage import UsageTracker
+from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.domain.documentation import DocSuggestions
 from dope.models.domain.scope import ScopeTemplate
 from dope.models.settings import ScopeFilterSettings
@@ -222,6 +223,7 @@ class DocChangeSuggester:
         result = self.agent.run_sync(
             user_prompt=prompt,
             usage=self._usage_tracker.usage,
+            usage_limits=DEFAULT_USAGE_LIMITS,
         )
         suggestions = result.output
 

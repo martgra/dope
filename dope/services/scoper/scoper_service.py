@@ -6,6 +6,7 @@ from dope.consumers.doc_consumer import DocConsumer
 from dope.consumers.git_consumer import GitConsumer
 from dope.core.progress import track
 from dope.core.usage import UsageTracker
+from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.domain.scope import ScopeTemplate, SuggestedChange
 from dope.prompts import PromptRegistry
 from dope.services.scoper.scoper_agents import (
@@ -86,6 +87,7 @@ class ScopeService:
                     structure=repo_structure, metadata=repo_metadata
                 ),
                 usage=self.usage_tracker.usage,
+                usage_limits=DEFAULT_USAGE_LIMITS,
             )
             .output
         )
@@ -123,6 +125,7 @@ class ScopeService:
             .run_sync(
                 user_prompt=prompt,
                 usage=self.usage_tracker.usage,
+                usage_limits=DEFAULT_USAGE_LIMITS,
             )
             .output
         )
@@ -162,6 +165,7 @@ class ScopeService:
             response = get_doc_aligner_agent().run_sync(
                 user_prompt=prompt,
                 usage=self.usage_tracker.usage,
+                usage_limits=DEFAULT_USAGE_LIMITS,
             )
             suggested_structure = response.output
             self._create_file_and_path(
@@ -181,6 +185,7 @@ class ScopeService:
                     doc_content=doc_content,
                 ),
                 usage=self.usage_tracker.usage,
+                usage_limits=DEFAULT_USAGE_LIMITS,
             )
             aligned_doc = response.output
             self._create_file_and_path(Path(change.filepath), aligned_doc.content)

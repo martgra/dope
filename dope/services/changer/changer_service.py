@@ -5,6 +5,7 @@ import json
 from pydantic.json import pydantic_encoder
 
 from dope.core.usage import UsageTracker
+from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.domain.documentation import SuggestedChange
 from dope.prompts import PromptRegistry
 from dope.services.changer.changer_agents import Deps, get_changer_agent
@@ -72,5 +73,6 @@ class DocsChanger:
             user_prompt=prompt,
             deps=Deps(git_consumer=self.git_consumer),
             usage=self.usage_tracker.usage,
+            usage_limits=DEFAULT_USAGE_LIMITS,
         ).output
         return suggested_change.documentation_file_path, content

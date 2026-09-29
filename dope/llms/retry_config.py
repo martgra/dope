@@ -1,7 +1,11 @@
 """Retry configuration for HTTP clients used with LLM providers."""
 
-import httpx
-from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
+import httpx2
+from pydantic_ai.retries import (
+    AsyncHTTPX2TenacityTransport,
+    RetryConfig,
+    wait_retry_after,
+)
 from tenacity import (
     retry_if_exception_type,
     stop_after_attempt,
@@ -11,22 +15,29 @@ from tenacity import (
 from dope.core.loop_cache import loop_scoped_cache
 
 
-def _should_retry_status(response: httpx.Response) -> None:
+def _should_retry_status(response: httpx2.Response) -> None:
     """Raise exceptions for retryable HTTP status codes.
 
     Args:
         response: The HTTP response to validate.
 
     Raises:
-        httpx.HTTPStatusError: For 429 (rate limit) and 5xx (server errors).
+        httpx2.HTTPStatusError: For 429 (rate limit) and 5xx (server errors).
     """
     if response.status_code in (429, 502, 503, 504):
         response.raise_for_status()
 
 
 @loop_scoped_cache
-def get_retry_client() -> httpx.AsyncClient:
-    """Create an httpx.AsyncClient with smart retry handling.
+def get_retry_client() -> httpx2.AsyncClient:
+    """Create an httpx2.AsyncClient with smart retry handling.
+
+    Migrated from ``httpx``/``AsyncTenacityTransport`` to
+    ``httpx2``/``AsyncHTTPX2TenacityTransport`` per pydantic-ai's
+    deprecation notice (both the old client and the old transport are
+    slated for removal in pydantic-ai v3). httpx2 is a wire-compatible
+    fork used internally by pydantic-ai's providers; behavior of the
+    retry policy below is unchanged.
 
     Configured to handle:
     - Connection errors (network issues)
@@ -39,20 +50,20 @@ def get_retry_client() -> httpx.AsyncClient:
     Retry-After headers for intelligent rate limit handling.
 
     Returns:
-        httpx.AsyncClient: Configured client with retry logic.
+        httpx2.AsyncClient: Configured client with retry logic.
     """
-    transport = AsyncTenacityTransport(
+    transport = AsyncHTTPX2TenacityTransport(
         config=RetryConfig(
             # Retry on HTTP errors and connection/timeout issues
             retry=retry_if_exception_type(
                 (
-                    httpx.HTTPStatusError,
-                    httpx.ConnectError,
-                    httpx.TimeoutException,
-                    httpx.ReadError,
-                    httpx.RemoteProtocolError,
-                    httpx.PoolTimeout,
-                    httpx.NetworkError,
+                    httpx2.HTTPStatusError,
+                    httpx2.ConnectError,
+                    httpx2.TimeoutException,
+                    httpx2.ReadError,
+                    httpx2.RemoteProtocolError,
+                    httpx2.PoolTimeout,
+                    httpx2.NetworkError,
                 )
             ),
             # Smart waiting: respects Retry-After headers, falls back to exponential backoff
@@ -67,4 +78,4 @@ def get_retry_client() -> httpx.AsyncClient:
         ),
         validate_response=_should_retry_status,
     )
-    return httpx.AsyncClient(transport=transport, timeout=30.0)
+    return httpx2.AsyncClient(transport=transport, timeout=30.0)
