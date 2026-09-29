@@ -24,12 +24,19 @@ from dope.services.suggester.scope_filter import ScopeAlignmentFilter
 class SuggestionAgent(Protocol):  # pylint: disable=too-few-public-methods
     """Protocol for suggestion generation agents."""
 
-    def run_sync(self, user_prompt: str | None = None, *, usage: RunUsage | None = None) -> Any:
+    def run_sync(
+        self,
+        user_prompt: str | None = None,
+        *,
+        usage: RunUsage | None = None,
+        usage_limits: Any = None,
+    ) -> Any:
         """Run the agent synchronously.
 
         Args:
             user_prompt: Prompt for the agent
             usage: Usage tracking object
+            usage_limits: Optional usage limits for the run
 
         Returns:
             Agent result with .output attribute

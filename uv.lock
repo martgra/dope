@@ -597,7 +597,7 @@ source = { editable = "." }
 dependencies = [
     { name = "anytree" },
     { name = "gitpython" },
-    { name = "httpx" },
+    { name = "httpx2" },
     { name = "platformdirs" },
     { name = "pydantic" },
     { name = "pydantic-ai", extra = ["typesafe"] },
@@ -634,7 +634,7 @@ test = [
 requires-dist = [
     { name = "anytree", specifier = ">=2.13.0" },
     { name = "gitpython", specifier = ">=3.1.44" },
-    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "httpx2", specifier = ">=0.28.1" },
     { name = "platformdirs", specifier = ">=4.3.7" },
     { name = "pydantic", specifier = ">=2.11.3" },
     { name = "pydantic-ai", extras = ["typesafe"], specifier = ">=2.51.0" },

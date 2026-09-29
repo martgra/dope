@@ -26,29 +26,43 @@ from collections.abc import Callable
 from typing import Any, cast
 
 
-def loop_scoped_cache[F: Callable[..., Any]](func: F) -> F:
-    """Memoize ``func`` by ``(loop, *args)``, rebuilding on loop change.
+class _LoopScopedWrapper:
+    """Callable wrapper that memoizes by ``(loop, *args)`` and exposes ``cache_clear``.
 
-    Attaches ``cache_clear()`` for parity with :func:`functools.lru_cache`.
+    Used by :func:`loop_scoped_cache` so that type checkers can resolve both
+    ``__call__`` and ``cache_clear`` without any ``type: ignore`` directives.
     """
-    per_loop: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
-    sync_cache: dict[tuple, Any] = {}
 
-    @functools.wraps(func)
-    def wrapper(*args: Any) -> Any:
+    def __init__(self, func: Callable[..., Any]) -> None:
+        self._func = func
+        self._per_loop: weakref.WeakKeyDictionary[Any, dict[tuple, Any]] = (
+            weakref.WeakKeyDictionary()
+        )
+        self._sync_cache: dict[tuple, Any] = {}
+        functools.update_wrapper(self, func)
+
+    def __call__(self, *args: Any) -> Any:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
 
-        cache = sync_cache if loop is None else per_loop.setdefault(loop, {})
+        cache = self._sync_cache if loop is None else self._per_loop.setdefault(loop, {})
         if args not in cache:
-            cache[args] = func(*args)
+            cache[args] = self._func(*args)
         return cache[args]
 
-    def cache_clear() -> None:
-        per_loop.clear()
-        sync_cache.clear()
+    def cache_clear(self) -> None:
+        """Clear all cached entries (all loops and sync fallback)."""
+        self._per_loop.clear()
+        self._sync_cache.clear()
 
-    wrapper.cache_clear = cache_clear  # type: ignore[attr-defined]
-    return cast(F, wrapper)
+
+def loop_scoped_cache[F: Callable[..., Any]](func: F) -> F:
+    """Memoize ``func`` by ``(loop, *args)``, rebuilding on loop change.
+
+    Returns a :class:`_LoopScopedWrapper` with ``cache_clear()`` for parity
+    with :func:`functools.lru_cache`. Loops are keyed by object identity via
+    :class:`weakref.WeakKeyDictionary` to avoid id-reuse false hits.
+    """
+    return cast(F, _LoopScopedWrapper(func))

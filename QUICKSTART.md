@@ -51,13 +51,13 @@ dope config init --force
 Set `typesafe__API_KEY` in your environment or `.env` file to enable the optional TypeSafe/Jev provider:
 
 ```bash
-export typesafe__API_KEY="your-typesafe-api-key"
+export typesafe__API_KEY="your-typesafe-api-key"  # pragma: allowlist secret
 ```
 
 For example, in `.env`:
 
 ```dotenv
-typesafe__API_KEY=your-typesafe-api-key
+typesafe__API_KEY=your-typesafe-api-key  # pragma: allowlist secret
 ```
 
 TypeSafe is used for typed judgments rather than general free-form generation. It is optional unless you enable or request a TypeSafe model or a TypeSafe-powered feature. If a TypeSafe model is requested without the key configured, Dope displays a clear setup error explaining that `typesafe__API_KEY` must be set.

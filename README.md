@@ -46,13 +46,13 @@ Evaluation tooling is not installed by default. Maintainers can install the `eva
 Configure TypeSafe with the `typesafe__API_KEY` environment variable:
 
 ```bash
-export typesafe__API_KEY="your-typesafe-api-key"
+export typesafe__API_KEY="your-typesafe-api-key"  # pragma: allowlist secret
 ```
 
 The same nested-settings name can be placed in a project `.env` file:
 
 ```dotenv
-typesafe__API_KEY=your-typesafe-api-key
+typesafe__API_KEY=your-typesafe-api-key  # pragma: allowlist secret
 ```
 
 The double underscore is the configured delimiter for nested settings, mapping the variable to `typesafe.api_key`. The key is treated as a secret and excluded from serialization. When TypeSafe/Jev judgment support is used without an explicit model name, it defaults to `jev-latest`.
