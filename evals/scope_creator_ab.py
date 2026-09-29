@@ -12,6 +12,8 @@ Run with::
     uv run python -m evals.scope_creator_ab --baseline gpt-5.6-sol --challenger gpt-5.6-terra
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

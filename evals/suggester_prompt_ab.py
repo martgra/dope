@@ -17,6 +17,8 @@ Run with::
     uv run python -m evals.suggester_prompt_ab --model gpt-5.6-terra
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

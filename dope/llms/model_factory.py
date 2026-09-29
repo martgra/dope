@@ -33,13 +33,13 @@ def _get_openai_provider(provider):
         return AzureProvider(
             azure_endpoint=settings.agent.base_url.unicode_string(),
             api_version=settings.agent.api_version,
-            api_key=settings.agent.token.get_secret_value(),
+            api_key=settings.agent.token.get_secret_value(),  # pylint: disable=no-member
             http_client=http_client,
         )
     else:
         return OpenAIProvider(
             base_url=settings.agent.base_url.unicode_string() if settings.agent.base_url else None,
-            api_key=settings.agent.token.get_secret_value(),
+            api_key=settings.agent.token.get_secret_value(),  # pylint: disable=no-member
             http_client=http_client,
         )
 

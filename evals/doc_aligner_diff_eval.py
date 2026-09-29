@@ -21,6 +21,8 @@ The comparison against the production ``v2-minimal`` full-content
 aligner lives in :mod:`evals.doc_aligner_diff_ab`.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

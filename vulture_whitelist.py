@@ -59,6 +59,9 @@ InvalidConfigError  # dope/exceptions.py
 GitRepositoryNotFoundError  # dope/exceptions.py
 GitBranchNotFoundError  # dope/exceptions.py
 
+# Protocol method parameters - define the contract, never called directly
+usage_limits  # dope/services/suggester/suggester_service.py - SuggestionAgent Protocol
+
 # Repository methods - public API for state management
 _.delete  # dope/repositories/json_state.py
 _.is_file_changed  # dope/repositories/describer_state.py

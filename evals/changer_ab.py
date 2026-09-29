@@ -21,6 +21,8 @@ for sol, ``$0.04`` for terra, ``$0.005`` for luna, plus ``~$0.10`` in
 judge calls.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

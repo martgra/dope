@@ -14,6 +14,8 @@ Requires an OpenAI/Azure token in ``.env``. Full run cost at 15 cases:
 roughly ``$0.09`` for terra + ``$0.003`` for luna at the time of writing.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

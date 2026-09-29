@@ -17,6 +17,8 @@ Run with::
     uv run python -m evals.doc_aligner_narrow_diff_eval
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

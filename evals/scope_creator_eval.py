@@ -29,6 +29,8 @@ Scoring:
 * ``cost_usd`` / ``tokens`` / ``requests`` per case
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

@@ -24,6 +24,8 @@ sections, preserve unrelated existing content, avoid inventing facts,
 and produce valid markdown. Also captures per-case cost/tokens/latency.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

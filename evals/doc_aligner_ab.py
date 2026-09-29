@@ -15,6 +15,8 @@ Run with::
     uv run python -m evals.doc_aligner_ab --baseline gpt-5.6-sol --challenger gpt-5.6-luna
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

@@ -29,6 +29,8 @@ Cost/token/request counts are captured per case in the same side-channel
 pattern as the other eval suites.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

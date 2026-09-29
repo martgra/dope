@@ -19,6 +19,8 @@ Cost/token/request counts are captured per case via a fresh
 input's ``id()``; the :class:`CostMetrics` evaluator reads them back.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -15,6 +15,8 @@ so adding a new candidate is a matter of registering a new version in
 ``dope/prompts/change.py`` — no changes needed here.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

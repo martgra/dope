@@ -18,6 +18,8 @@ Run with::
     uv run python -m evals.doc_aligner_narrow_diff_ab --model gpt-5.6-luna
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 import argparse

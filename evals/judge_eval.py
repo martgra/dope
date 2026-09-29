@@ -20,6 +20,8 @@ module-level dict keyed by diff string; the :class:`CostMetrics`
 evaluator reads them back so the report renders cost alongside accuracy.
 """
 
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 from pathlib import Path
