@@ -7,7 +7,8 @@
 DOPE is an AI-powered CLI tool for scanning code and documentation, generating structured summaries, and suggesting or applying documentation updates based on code changes. It supports semantic change categorization via a `ChangeCategory` enum, configurable update triggers and freshness requirements for documentation sections, and automatic scope-based suggestion filtering.
 
 - **Adaptive suggestion formatting:** DOPE dynamically adjusts the level of detail included in suggestions based on a combined relevance score (scope alignment, term relevance, and priority), pruning low-relevance changes to reduce token usage while preserving critical context.
-- **Typed diff judgments:** The domain API exposes `DiffJudgment` for typed judgments over code diffs. This optional capability uses TypeSafe/Jev and defaults to the `jev-latest` model.
+- **Typed diff judgments:** The optional TypeSafe/Jev integration evaluates code diffs concurrently with typed judgments. A `DiffJudgment` captures change category and type, whether a change is breaking or user-facing, whether it needs documentation, and a documentation-priority score from 0 to 4. TypeSafe/Jev defaults to the `jev-latest` model.
+- **Versioned prompts:** For maintainers, LLM prompts are centrally versioned through `PromptRegistry`. Production prompt versions are selected in `dope/prompts/production.yaml`; notably, production `scope.align_doc` behavior is pinned to `v2-minimal`.
 
 ## Quick Install
 
@@ -36,20 +37,22 @@ source .venv/bin/activate
 pip install .
 ```
 
-Installation includes Pydantic AI's `typesafe` extra automatically. If you do not use TypeSafe judgments, no TypeSafe credential is required.
+Normal installation includes `pydantic-ai[typesafe]>=2.51.0`, so TypeSafe/Jev support is available without installing a separate extra. A TypeSafe credential is required only when you use typed judgments.
+
+Evaluation tooling is not installed by default. Maintainers can install the `evals` dependency group, which provides `pydantic-evals>=2.51.0`, with their dependency manager's dependency-group support (for example, `uv sync --group evals`).
 
 ### Optional TypeSafe Configuration
 
-Configure TypeSafe with the `TYPESAFE__API_KEY` environment variable:
+Configure TypeSafe with the `typesafe__API_KEY` environment variable:
 
 ```bash
-export TYPESAFE__API_KEY="your-typesafe-api-key"
+export typesafe__API_KEY="your-typesafe-api-key"
 ```
 
 The same nested-settings name can be placed in a project `.env` file:
 
 ```dotenv
-TYPESAFE__API_KEY=your-typesafe-api-key
+typesafe__API_KEY=your-typesafe-api-key
 ```
 
 The double underscore is the configured delimiter for nested settings, mapping the variable to `typesafe.api_key`. The key is treated as a secret and excluded from serialization. When TypeSafe/Jev judgment support is used without an explicit model name, it defaults to `jev-latest`.
@@ -127,10 +130,10 @@ The normal OpenAI-compatible agent workflows currently use these default model i
 | Code-change summarization | `gpt-5.6-luna` |
 | Documentation summarization | `gpt-5.6-luna` |
 | Project-complexity classification | `gpt-5.6-luna` |
-| Suggestion generation | `gpt-5.6-terra` |
-| Scope creation | `gpt-5.6-terra` |
-| Documentation changes | `gpt-5.6-sol` |
-| Document alignment | `gpt-5.6-sol` |
+| Suggestion generation | `gpt-5.6-luna` |
+| Scope creation | `gpt-5.6-luna` |
+| Documentation changes | `gpt-5.6-terra` |
+| Document alignment | `gpt-5.6-terra` |
 | Optional TypeSafe/Jev typed judgments | `jev-latest` |
 
 ### Command Reference
@@ -195,7 +198,8 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Doc-term-based filtering**: `DocTermIndex.filter_relevant_docs` identifies and boosts documentation files most relevant to code changes by matching extracted terms.
 - **Adaptive change formatting**: `ChangeProcessor.format_changes_adaptive` prunes details for medium/low relevance changes to optimize prompt size.
 - **Suggestion analytics**: Built-in logging of filtering and token-usage analytics via a private `_log_analytics` method.
-- **Typed diff judgments**: The domain API exports `DiffJudgment` for typed judgments over code diffs. Optional TypeSafe/Jev model creation defaults to `jev-latest`.
+- **Typed diff judgments**: The domain API exports `DiffJudgment` for typed judgments over code diffs. When TypeSafe is configured, Jev evaluates category, change type, breaking and user-facing status, documentation need, and documentation urgency concurrently. The urgency score uses a 0–4 rubric, and the optional TypeSafe/Jev model defaults to `jev-latest`.
+- **Versioned LLM prompts**: `PromptRegistry` centrally manages versioned prompts for agent workflows. Production versions are selected in `dope/prompts/production.yaml`; `scope.align_doc` is currently pinned to the `v2-minimal` production prompt.
 
 ### Configuration
 
@@ -204,7 +208,7 @@ If omitted, commands use your configured default branch (typically `main`).
 - **Easy Updates**: Change individual settings with `dope config set`
 - **Validation**: Check configuration health with `dope config validate`
 - **OpenAI-Compatible Providers**: Normal CLI workflows support OpenAI and Azure OpenAI
-- **Optional TypeSafe Provider**: Typed System-One/Jev judgments can use `TYPESAFE__API_KEY`; users who do not use this capability do not need to configure it
+- **Optional TypeSafe Provider**: Typed System-One/Jev judgments can use `typesafe__API_KEY`; users who do not use this capability do not need to configure it
 - **Secret Handling**: Agent tokens and the optional TypeSafe API key are treated as secrets and excluded from serialization
 
 ### Documentation Management

@@ -40,6 +40,10 @@
 - Updated CLI suggest and update commands to simplify scope usage by removing external --scope-file parameters (dope/cli/suggest.py, dope/cli/update.py).
 - Updated suggestion prompts to leverage detailed change metadata (priority, magnitude, scope relevance, category, and affected docs) for more accurate suggestions (dope/services/suggester/prompts.py).
 - Enhanced metadata output to include scope relevance, category, and affected docs sections for each change (dope/services/suggester/change_processor.py).
+- **Typed Diff Judgments**: Added optional TypeSafe/Jev-based concurrent diff classification covering semantic category, change type, breaking and user-facing status, documentation need, and bounded 0–4 documentation priority. `DiffJudgment` is available as a domain model and package export.
+- **Versioned Prompt Management**: Added a centralized prompt registry with named, versioned prompts selected through `production.yaml` and rendered through a shared interface. Promoted `scope.align_doc` to `v2-minimal` to favor minimal, scope-required documentation edits.
+- **Event-Loop-Scoped Caching**: Providers, agents, and retry clients now use event-loop-scoped caching so loop-bound asynchronous resources such as HTTP clients are not reused across incompatible event loops. Synchronous callers retain fallback memoization.
+- **Dependencies and Evaluation Tooling**: Standard installations now include `pydantic-ai[typesafe]`; `pydantic-evals` is available through the optional `evals` dependency group.
 
 - Introduced DocTermIndex.filter_relevant_docs to score and filter documentation files by term relevance, scope alignment, and priority.
 - Added ChangeProcessor.format_changes_adaptive and helper _prune_summary_by_relevance for dynamic detail pruning of change summaries based on combined relevance scores.
