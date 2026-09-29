@@ -7,7 +7,7 @@ from dope.exceptions import AgentNotConfiguredError
 from dope.llms.model_factory import get_model
 from dope.models.domain.documentation import DocSuggestions
 from dope.models.settings import get_settings
-from dope.services.suggester.prompts import SYSTEM_PROMPT
+from dope.prompts import PromptRegistry
 
 
 @loop_scoped_cache
@@ -21,6 +21,6 @@ def get_suggester_agent() -> Agent[None, DocSuggestions]:
 
     @agent.system_prompt
     def _add_summarization_prompt() -> str:
-        return SYSTEM_PROMPT
+        return PromptRegistry.get("suggest.system").template
 
     return agent

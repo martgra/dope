@@ -33,7 +33,7 @@ from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 from dope.core.usage import UsageTracker
 from dope.models.domain.code import CodeMetadata
 from dope.models.enums import ProjectTier
-from dope.services.scoper.prompts import PROMPT
+from dope.prompts import PromptRegistry
 from dope.services.scoper.scoper_agents import get_project_complexity_agent
 
 FIXTURES = Path(__file__).parent / "fixtures" / "project_complexity"
@@ -146,7 +146,9 @@ async def _run_complexity(inputs: ComplexityInput) -> ProjectTier:
     """Task under evaluation; also stashes per-case usage for CostMetrics."""
     tracker = UsageTracker()
     result = await get_project_complexity_agent().run(
-        user_prompt=PROMPT.format(structure=inputs.structure, metadata=inputs.metadata),
+        user_prompt=PromptRegistry.get("scope.complexity_user_template").render(
+            structure=inputs.structure, metadata=inputs.metadata
+        ),
         usage=tracker.usage,
     )
     _usage_by_case[id(inputs)] = tracker.usage

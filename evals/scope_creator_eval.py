@@ -45,7 +45,7 @@ from dope.core.usage import UsageTracker
 from dope.exceptions import AgentNotConfiguredError
 from dope.llms.model_factory import get_model
 from dope.models.settings import get_settings
-from dope.services.scoper.prompts import CREATE_SCOPE_PROMPT
+from dope.prompts import PromptRegistry
 from dope.services.scoper.scoper_agents import get_scope_creator_agent
 
 FIXTURES = Path(__file__).parent / "fixtures" / "scope_creator"
@@ -166,7 +166,7 @@ def build_scope_creator_agent(model_name: str | None = None) -> Agent[None, dict
 
     @agent.system_prompt
     def _add_prompt() -> str:
-        return CREATE_SCOPE_PROMPT
+        return PromptRegistry.get("scope.creator").template
 
     return agent
 

@@ -1,0 +1,88 @@
+"""Registered prompts (instructions) for the six TypeSafe Jev judge agents."""
+
+from __future__ import annotations
+
+from dope.prompts import Prompt, PromptRegistry
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.change_category",
+        version="v1",
+        description="Jev Choice: what ChangeCategory does this diff belong to?",
+        template=(
+            "Given a git diff, pick the single category that best describes what the "
+            "change is about. Judge by the intent of the change, not by the file path."
+        ),
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.change_type",
+        version="v1",
+        description="Jev Choice: does the diff add / modify / delete behavior?",
+        template=(
+            "Given a git diff, decide whether it primarily adds new behavior, modifies "
+            "existing behavior, or removes behavior. Focus on the net effect for a "
+            "consumer of the code, not on line counts."
+        ),
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.is_breaking",
+        version="v1",
+        description="Jev Noul: does the diff break something users depend on?",
+        template=(
+            "Given a git diff, answer true if it introduces a breaking change for "
+            "someone depending on this code (removed or renamed public API, changed "
+            "signature or return type, changed behavior contract, config or migration "
+            "required). Answer false for internal refactors, tests, and additions."
+        ),
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.is_user_facing",
+        version="v1",
+        description="Jev Noul: would a docs-only reader notice this change?",
+        template=(
+            "Given a git diff, answer true if a user reading only the documentation "
+            "would notice this change. Public CLI, API, configuration, error "
+            "messages, and observable behavior count as user-facing. Internal "
+            "refactors, tests, tooling, and comments do not."
+        ),
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.needs_docs",
+        version="v1",
+        description="Jev Noul: does the diff warrant a documentation update?",
+        template=(
+            "Given a git diff, answer true if the documentation should be updated to "
+            "reflect it. Consider whether existing docs would become misleading, "
+            "incomplete, or outdated if this change shipped without a doc update."
+        ),
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.doc_priority",
+        version="v1",
+        description="Jev Choice over 0-4: documentation urgency rubric.",
+        template=(
+            "Given a git diff, rate how urgent it is to update documentation on a "
+            "0-4 scale:\n"
+            "  0 - No doc update needed (internal, invisible, or fully covered).\n"
+            "  1 - Nice to have; existing docs remain accurate.\n"
+            "  2 - Should be documented; small addition or clarification.\n"
+            "  3 - Important; users will look for information about this change.\n"
+            "  4 - Critical; leaving docs unchanged is misleading or breaks users."
+        ),
+    )
+)

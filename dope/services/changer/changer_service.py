@@ -1,11 +1,13 @@
+"""DocsChanger applies suggested changes to a documentation file via an LLM agent."""
+
 import json
 
 from pydantic.json import pydantic_encoder
 
 from dope.core.usage import UsageTracker
 from dope.models.domain.documentation import SuggestedChange
+from dope.prompts import PromptRegistry
 from dope.services.changer.changer_agents import Deps, get_changer_agent
-from dope.services.changer.prompts import ADD_DOC_USER_PROMPT, CHANGE_DOC_USER_PROMPT
 
 
 class DocsChanger:
@@ -32,7 +34,7 @@ class DocsChanger:
         return self._agent
 
     def _change_prompt(self, docs_content: str, suggested_change: SuggestedChange):
-        return CHANGE_DOC_USER_PROMPT.format(
+        return PromptRegistry.get("change.user_template").render(
             doc_path=suggested_change.documentation_file_path,
             doc_content=docs_content,
             changes_content=json.dumps(
@@ -41,7 +43,7 @@ class DocsChanger:
         )
 
     def _add_prompt(self, suggested_change: SuggestedChange):
-        return ADD_DOC_USER_PROMPT.format(
+        return PromptRegistry.get("change.add_user_template").render(
             doc_path=suggested_change.documentation_file_path,
             changes_content=json.dumps(
                 suggested_change.suggested_changes, indent=2, default=pydantic_encoder

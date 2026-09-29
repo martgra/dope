@@ -1,3 +1,5 @@
+"""ScopeService orchestrates project-complexity, scope creation, and doc alignment."""
+
 from pathlib import Path
 
 from dope.consumers.doc_consumer import DocConsumer
@@ -5,7 +7,7 @@ from dope.consumers.git_consumer import GitConsumer
 from dope.core.progress import track
 from dope.core.usage import UsageTracker
 from dope.models.domain.scope import ScopeTemplate, SuggestedChange
-from dope.services.scoper.prompts import CHANGE_FILE_PROMPT, MOVE_CONTENT_PROMPT, PROMPT
+from dope.prompts import PromptRegistry
 from dope.services.scoper.scoper_agents import (
     get_doc_aligner_agent,
     get_project_complexity_agent,
@@ -80,7 +82,9 @@ class ScopeService:
         complexity = (
             get_project_complexity_agent()
             .run_sync(
-                user_prompt=PROMPT.format(structure=repo_structure, metadata=repo_metadata),
+                user_prompt=PromptRegistry.get("scope.complexity_user_template").render(
+                    structure=repo_structure, metadata=repo_metadata
+                ),
                 usage=self.usage_tracker.usage,
             )
             .output
@@ -150,7 +154,7 @@ class ScopeService:
             content = self._check_and_read_doc(
                 Path(doc.implemented_in_path) if doc.implemented_in_path else Path(".")
             )
-            prompt = CHANGE_FILE_PROMPT.format(
+            prompt = PromptRegistry.get("scope.change_file_user_template").render(
                 scope=scope.model_dump_json(indent=2),
                 filepath=str(doc.implemented_in_path),
                 file_content=content,
@@ -171,7 +175,7 @@ class ScopeService:
         for change in track(changes_to_other_files, description="Moving content between files."):
             doc_content = self._check_and_read_doc(Path(change.filepath))
             response = get_doc_aligner_agent().run_sync(
-                user_prompt=MOVE_CONTENT_PROMPT.format(
+                user_prompt=PromptRegistry.get("scope.move_content_user_template").render(
                     instructions=change.instructions,
                     content=change.content,
                     doc_content=doc_content,

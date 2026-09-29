@@ -48,8 +48,8 @@ from dope.llms.model_factory import get_model
 from dope.models.domain.documentation import DocSuggestions
 from dope.models.enums import ChangeType
 from dope.models.settings import get_settings
+from dope.prompts import PromptRegistry
 from dope.services.suggester import change_processor
-from dope.services.suggester.prompts import SUGGESTION_PROMPT, SYSTEM_PROMPT
 from dope.services.suggester.suggester_agents import get_suggester_agent
 
 FIXTURES = Path(__file__).parent / "fixtures" / "suggester"
@@ -195,7 +195,9 @@ def _build_prompt(inputs: SuggesterInput) -> str:
     code_formatted = change_processor.format_changes_for_prompt(
         inputs.code_change, include_metadata=True
     )
-    return SUGGESTION_PROMPT.format(documentation=docs_formatted, code_changes=code_formatted)
+    return PromptRegistry.get("suggest.user_template").render(
+        documentation=docs_formatted, code_changes=code_formatted
+    )
 
 
 def build_suggester_agent(model_name: str | None = None) -> Agent[None, DocSuggestions]:
@@ -219,7 +221,7 @@ def build_suggester_agent(model_name: str | None = None) -> Agent[None, DocSugge
 
     @agent.system_prompt
     def _add_prompt() -> str:
-        return SYSTEM_PROMPT
+        return PromptRegistry.get("suggest.system").template
 
     return agent
 

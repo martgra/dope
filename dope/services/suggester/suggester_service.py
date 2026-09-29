@@ -14,9 +14,9 @@ from dope.core.usage import UsageTracker
 from dope.models.domain.documentation import DocSuggestions
 from dope.models.domain.scope import ScopeTemplate
 from dope.models.settings import ScopeFilterSettings
+from dope.prompts import PromptRegistry
 from dope.repositories import SuggestionRepository
 from dope.services.suggester import change_processor
-from dope.services.suggester.prompts import SUGGESTION_PROMPT
 from dope.services.suggester.scope_filter import ScopeAlignmentFilter
 
 
@@ -259,7 +259,7 @@ class DocChangeSuggester:
                 include_metadata=True,
             )
 
-        return SUGGESTION_PROMPT.format(
+        return PromptRegistry.get("suggest.user_template").render(
             documentation=change_processor.format_changes_for_prompt(
                 processable_docs,
                 include_metadata=False,

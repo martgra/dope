@@ -12,13 +12,13 @@ from dope.core.classification import ChangeMagnitude, FileClassifier, calculate_
 from dope.core.doc_terms import DocTermIndex
 from dope.core.usage import UsageTracker
 from dope.models.settings import get_settings
+from dope.prompts import PromptRegistry
 from dope.repositories.json_state import JsonStateRepository
 from dope.services.describer.describer_agents import (
     Deps,
     get_code_change_agent,
     get_doc_summarization_agent,
 )
-from dope.services.describer.prompts import SUMMARIZATION_TEMPLATE
 from dope.services.judge import judge_diff
 
 if TYPE_CHECKING:
@@ -71,7 +71,7 @@ class DescriberService:
 
     def _run_agent(self, file_path: str, content: bytes) -> dict:
         """Generate a documentation summary with the configured LLM agent."""
-        prompt = SUMMARIZATION_TEMPLATE.format(
+        prompt = PromptRegistry.get("describe.user_template").render(
             file_path=file_path,
             content=content.decode("utf-8", errors="ignore"),
         )
@@ -86,7 +86,7 @@ class DescriberService:
 
     async def _run_agent_async(self, file_path: str, content: bytes) -> dict:
         """Generate a documentation summary asynchronously."""
-        prompt = SUMMARIZATION_TEMPLATE.format(
+        prompt = PromptRegistry.get("describe.user_template").render(
             file_path=file_path,
             content=content.decode("utf-8", errors="ignore"),
         )
@@ -437,7 +437,7 @@ class CodeDescriberService(DescriberService):
 
     def _run_agent(self, file_path: str, content: bytes) -> dict:
         """Generate a code-change summary with Git context."""
-        prompt = SUMMARIZATION_TEMPLATE.format(
+        prompt = PromptRegistry.get("describe.user_template").render(
             file_path=file_path,
             content=content.decode("utf-8", errors="ignore"),
         )
@@ -460,7 +460,7 @@ class CodeDescriberService(DescriberService):
         key is unset the judgment is skipped silently so the pipeline still
         works for users without TypeSafe.
         """
-        prompt = SUMMARIZATION_TEMPLATE.format(
+        prompt = PromptRegistry.get("describe.user_template").render(
             file_path=file_path,
             content=content.decode("utf-8", errors="ignore"),
         )

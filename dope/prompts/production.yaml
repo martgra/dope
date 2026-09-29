@@ -1,0 +1,40 @@
+# Production prompt version manifest.
+#
+# Each entry pins the version that PromptRegistry.get(name) returns when no
+# explicit version is passed. Update a version here to promote a variant; the
+# git history of THIS file is the audit trail of what was live when.
+#
+# Add new versions by registering them in dope/prompts/<service>.py, then
+# switch the pin below. Removing a version from this file does NOT delete
+# it from the registry — the code still holds it so older evals stay
+# reproducible.
+
+# Describer
+describe.code: v1
+describe.doc: v1
+describe.user_template: v1
+
+# Suggester
+suggest.system: v1
+suggest.user_template: v1
+
+# Changer
+change.system: v1
+change.user_template: v1
+change.add_user_template: v1
+
+# Scoper
+scope.complexity: v1
+scope.creator: v1
+scope.align_doc: v2-minimal  # ← promoted after prompt A/B (see commit d18da00)
+scope.change_file_user_template: v1
+scope.complexity_user_template: v1
+scope.move_content_user_template: v1
+
+# Judge (Jev)
+judge.change_category: v1
+judge.change_type: v1
+judge.is_breaking: v1
+judge.is_user_facing: v1
+judge.needs_docs: v1
+judge.doc_priority: v1

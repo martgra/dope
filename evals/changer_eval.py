@@ -50,12 +50,8 @@ from dope.llms.model_factory import get_model
 from dope.models.domain.documentation import ChangeSuggestion
 from dope.models.enums import ChangeType
 from dope.models.settings import get_settings
+from dope.prompts import PromptRegistry
 from dope.services.changer.changer_agents import Deps, get_changer_agent
-from dope.services.changer.prompts import (
-    ADD_DOC_USER_PROMPT,
-    CHANGE_DOC_PROMPT,
-    CHANGE_DOC_USER_PROMPT,
-)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "changer"
 MAX_CONCURRENCY = 2
@@ -264,7 +260,7 @@ def build_changer_agent(model_name: str | None = None, system_prompt: str | None
     """Construct a changer agent for the given model name (and optional prompt).
 
     Passing ``None`` for both returns the production factory's agent
-    (currently ``gpt-5.6-sol`` + the production ``CHANGE_DOC_PROMPT``);
+    (currently ``gpt-5.6-sol`` + the production ``change.system`` prompt);
     any override builds a fresh Agent with the requested substitutions.
     Used by :mod:`evals.changer_ab` (model A/B) and
     :mod:`evals.changer_prompt_ab` (prompt A/B).
@@ -275,7 +271,7 @@ def build_changer_agent(model_name: str | None = None, system_prompt: str | None
     if settings.agent is None:
         raise AgentNotConfiguredError()
     resolved_model = model_name or "gpt-5.6-sol"
-    resolved_prompt = system_prompt or CHANGE_DOC_PROMPT
+    resolved_prompt = system_prompt or PromptRegistry.get("change.system").template
     agent = Agent(
         model=get_model(settings.agent.provider, resolved_model),
         deps_type=Deps,
@@ -299,13 +295,13 @@ def _build_user_prompt(inputs: ChangerInput) -> str:
         [s.model_dump() for s in inputs.suggestions], indent=2, default=pydantic_encoder
     )
     if inputs.change_type == ChangeType.CHANGE:
-        return CHANGE_DOC_USER_PROMPT.format(
+        return PromptRegistry.get("change.user_template").render(
             doc_path=inputs.existing_doc_path,
             doc_content=inputs.existing_doc_content,
             changes_content=changes_content,
         )
     if inputs.change_type == ChangeType.ADD:
-        return ADD_DOC_USER_PROMPT.format(
+        return PromptRegistry.get("change.add_user_template").render(
             doc_path=inputs.existing_doc_path,
             changes_content=changes_content,
         )

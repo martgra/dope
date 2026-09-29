@@ -1,4 +1,16 @@
-SYSTEM_PROMPT = """
+# ruff: noqa: E501
+"""Registered prompts for the suggester service."""
+
+from __future__ import annotations
+
+from dope.prompts import Prompt, PromptRegistry
+
+PromptRegistry.register(
+    Prompt(
+        name="suggest.system",
+        version="v1",
+        description="System prompt for the DocChangeSuggester agent.",
+        template="""
 Your role is to suggest changes to documentation that needs updating based on code changes.
 
 Your suggestions should reflect:
@@ -16,9 +28,16 @@ suggest modifications to consolidate the information.
 
 4. Prioritize high-relevance changes. Files with higher "Scope Relevance" scores and specific
 "Affects Docs" metadata are more important for documentation updates.
-"""
+""",
+    )
+)
 
-SUGGESTION_PROMPT = """
+PromptRegistry.register(
+    Prompt(
+        name="suggest.user_template",
+        version="v1",
+        description="User-side template that packages current docs + code changes for the suggester.",
+        template="""
 Summarization of the current documentation giving you an overview of the current state and content of the docs.
 <current_documentation>
 {documentation}
@@ -47,4 +66,6 @@ the code change, its metadata, and your understanding of the current documentati
 <code_changes>
 {code_changes}
 </code_changes>
-"""
+""",
+    )
+)

@@ -42,7 +42,7 @@ from dope.exceptions import AgentNotConfiguredError
 from dope.llms.model_factory import get_model
 from dope.models.domain.scope import AlignedScope
 from dope.models.settings import get_settings
-from dope.services.scoper.prompts import ALIGN_DOC_PROMPT, CHANGE_FILE_PROMPT
+from dope.prompts import PromptRegistry
 from dope.services.scoper.scoper_agents import get_doc_aligner_agent
 
 FIXTURES = Path(__file__).parent / "fixtures" / "doc_aligner"
@@ -220,7 +220,7 @@ def build_doc_aligner_agent(
     if settings.agent is None:
         raise AgentNotConfiguredError()
     resolved_model = model_name or "gpt-5.6-sol"
-    resolved_prompt = system_prompt or ALIGN_DOC_PROMPT
+    resolved_prompt = system_prompt or PromptRegistry.get("scope.align_doc").template
     agent = Agent(
         model=get_model(settings.agent.provider, resolved_model),
         output_type=AlignedScope,
@@ -234,8 +234,8 @@ def build_doc_aligner_agent(
 
 
 def _build_user_prompt(inputs: DocAlignerInput) -> str:
-    """Mirror the shape of :class:`ScopeService`'s CHANGE_FILE_PROMPT."""
-    return CHANGE_FILE_PROMPT.format(
+    """Mirror the shape of :class:`ScopeService`'s change_file user template."""
+    return PromptRegistry.get("scope.change_file_user_template").render(
         scope=inputs.scope_summary,
         filepath=inputs.filepath,
         file_content=inputs.file_content,

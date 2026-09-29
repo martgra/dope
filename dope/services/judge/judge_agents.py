@@ -17,14 +17,7 @@ from dope.core.classification import ChangeCategory
 from dope.core.loop_cache import loop_scoped_cache
 from dope.llms.model_factory import get_typesafe_model
 from dope.models.enums import ChangeType
-from dope.services.judge.prompts import (
-    CHANGE_CATEGORY_INSTRUCTIONS,
-    CHANGE_TYPE_INSTRUCTIONS,
-    DOC_PRIORITY_INSTRUCTIONS,
-    IS_BREAKING_INSTRUCTIONS,
-    IS_USER_FACING_INSTRUCTIONS,
-    NEEDS_DOCS_INSTRUCTIONS,
-)
+from dope.prompts import PromptRegistry
 
 
 @loop_scoped_cache
@@ -33,7 +26,7 @@ def get_change_category_agent() -> Agent[None, ChangeCategory]:
     return Agent(
         model=get_typesafe_model(),
         output_type=ChangeCategory,
-        instructions=CHANGE_CATEGORY_INSTRUCTIONS,
+        instructions=PromptRegistry.get("judge.change_category").template,
     )
 
 
@@ -43,7 +36,7 @@ def get_change_type_agent() -> Agent[None, ChangeType]:
     return Agent(
         model=get_typesafe_model(),
         output_type=ChangeType,
-        instructions=CHANGE_TYPE_INSTRUCTIONS,
+        instructions=PromptRegistry.get("judge.change_type").template,
     )
 
 
@@ -53,7 +46,7 @@ def get_is_breaking_agent() -> Agent[None, bool]:
     return Agent(
         model=get_typesafe_model(),
         output_type=bool,
-        instructions=IS_BREAKING_INSTRUCTIONS,
+        instructions=PromptRegistry.get("judge.is_breaking").template,
     )
 
 
@@ -63,7 +56,7 @@ def get_is_user_facing_agent() -> Agent[None, bool]:
     return Agent(
         model=get_typesafe_model(),
         output_type=bool,
-        instructions=IS_USER_FACING_INSTRUCTIONS,
+        instructions=PromptRegistry.get("judge.is_user_facing").template,
     )
 
 
@@ -73,7 +66,7 @@ def get_needs_docs_agent() -> Agent[None, bool]:
     return Agent(
         model=get_typesafe_model(),
         output_type=bool,
-        instructions=NEEDS_DOCS_INSTRUCTIONS,
+        instructions=PromptRegistry.get("judge.needs_docs").template,
     )
 
 
@@ -82,11 +75,11 @@ def get_doc_priority_agent() -> Agent[None, Literal[0, 1, 2, 3, 4]]:
     """Jev Choice over the 0-4 documentation urgency levels.
 
     A bare ``int`` is not a valid TypeSafe output type; the rubric semantics
-    (level meanings) are conveyed through :data:`DOC_PRIORITY_INSTRUCTIONS`
-    rather than through per-level schema descriptions.
+    (level meanings) are conveyed through the ``judge.doc_priority`` prompt
+    template rather than through per-level schema descriptions.
     """
     return Agent(
         model=get_typesafe_model(),
         output_type=Literal[0, 1, 2, 3, 4],
-        instructions=DOC_PRIORITY_INSTRUCTIONS,
+        instructions=PromptRegistry.get("judge.doc_priority").template,
     )

@@ -13,7 +13,7 @@ from dope.llms.model_factory import get_model
 from dope.models.domain.code import CodeChanges
 from dope.models.domain.documentation import DocSummary
 from dope.models.settings import get_settings
-from dope.services.describer.prompts import CODE_DESCRIPTION_PROMPT, DOC_DESCRIPTION_PROMPT
+from dope.prompts import PromptRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def get_code_change_agent() -> Agent[Deps, CodeChanges]:
 
     @agent.system_prompt
     def _add_summarization_prompt() -> str:
-        return CODE_DESCRIPTION_PROMPT
+        return PromptRegistry.get("describe.code").template
 
     @agent.tool
     def get_code_file_content(_ctx: RunContext[Deps], code_filepath: str) -> str:
@@ -70,6 +70,6 @@ def get_doc_summarization_agent() -> Agent[None, DocSummary]:
 
     @agent.system_prompt
     def _add_summarization_prompt() -> str:
-        return DOC_DESCRIPTION_PROMPT
+        return PromptRegistry.get("describe.doc").template
 
     return agent

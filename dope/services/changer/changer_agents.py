@@ -10,7 +10,7 @@ from dope.core.loop_cache import loop_scoped_cache
 from dope.exceptions import AgentNotConfiguredError, DocumentNotFoundError
 from dope.llms.model_factory import get_model
 from dope.models.settings import get_settings
-from dope.services.changer.prompts import CHANGE_DOC_PROMPT
+from dope.prompts import PromptRegistry
 
 
 @dataclass
@@ -49,6 +49,6 @@ def get_changer_agent() -> Agent[Deps, str]:
 
     @agent.system_prompt
     def _add_summarization_prompt() -> str:
-        return CHANGE_DOC_PROMPT
+        return PromptRegistry.get("change.system").template
 
     return agent
