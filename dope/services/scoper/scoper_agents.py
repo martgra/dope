@@ -33,7 +33,7 @@ def get_scope_creator_agent() -> Agent[None, dict[str, str]]:
     if settings.agent is None:
         raise AgentNotConfiguredError()
     agent = Agent(
-        model=get_model(settings.agent.provider, "gpt-5.6-terra"),
+        model=get_model(settings.agent.provider, "gpt-5.6-luna"),
         output_type=dict[str, str],
     )
 
@@ -50,7 +50,10 @@ def get_doc_aligner_agent() -> Agent[None, AlignedScope]:
     settings = get_settings()
     if settings.agent is None:
         raise AgentNotConfiguredError()
-    agent = Agent(model=get_model(settings.agent.provider, "gpt-5.6-sol"), output_type=AlignedScope)
+    agent = Agent(
+        model=get_model(settings.agent.provider, "gpt-5.6-terra"),
+        output_type=AlignedScope,
+    )
 
     @agent.system_prompt
     def _fill_file_prompt() -> str:

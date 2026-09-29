@@ -27,7 +27,7 @@ def get_changer_agent() -> Agent[Deps, str]:
     if settings.agent is None:
         raise AgentNotConfiguredError()
     agent = Agent(
-        model=get_model(settings.agent.provider, "gpt-5.6-sol"),
+        model=get_model(settings.agent.provider, "gpt-5.6-terra"),
         deps_type=Deps,
     )
 
