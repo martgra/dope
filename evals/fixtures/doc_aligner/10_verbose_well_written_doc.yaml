@@ -1,0 +1,85 @@
+name: verbose_well_written_doc
+description: |
+  File is a long, polished architecture doc with well-formed paragraphs.
+  Scope requires ONLY adding a Security Considerations section. The aligner
+  must resist rephrasing the existing paragraphs even though they are long
+  and stylistically "improvable." Over-rewrite temptation: shortening verbose
+  paragraphs, changing passive voice to active, splitting long sentences.
+scope_summary: |
+  size: high
+  documentation_structure:
+    architecture:
+      description: "System architecture covering design, data flow, and security"
+      sections:
+        overview: "High-level system design"
+        data_flow: "How data moves through the system"
+        components: "Key components and their responsibilities"
+        security_considerations: "Security model and threat mitigations"
+filepath: docs/architecture.md
+file_content: |
+  # Architecture
+
+  ## Overview
+
+  The dope system is composed of a command-line interface layer that
+  accepts user commands and translates them into structured requests for
+  the underlying agent pipeline. Each request passes through a series of
+  specialised agents — the describer, the suggester, and the changer —
+  which together produce a set of documentation edits that can be reviewed
+  before being applied to the repository.
+
+  The system is designed to be stateless between runs. All persistent
+  information is stored in a local state directory whose path is
+  configurable via `.doperc.yaml` or the `DOPE_STATE_DIR` environment
+  variable. This design makes it straightforward to run dope in CI
+  pipelines without requiring a persistent service.
+
+  ## Data Flow
+
+  A typical invocation begins when the user runs `dope update`. The CLI
+  reads the current `.doperc.yaml` configuration and the local state
+  directory, then builds a context object that encapsulates the code
+  repository structure, the existing documentation, and the change history
+  since the last successful run.
+
+  This context is handed to the describer agents, which produce structured
+  summaries of the changed files. The summaries are forwarded to the
+  suggester, which determines which documentation sections are affected and
+  generates instructions for the changer. The changer agents then produce
+  the final text that is written to the documentation files on disk.
+
+  ## Components
+
+  **CLI layer** (`dope/cli/`): Parses commands, loads configuration, and
+  invokes the appropriate service. Responsible for progress output and
+  error formatting.
+
+  **Describer service** (`dope/services/describer/`): Produces structured
+  summaries of code and documentation changes using the `describe.code`
+  and `describe.doc` prompt families. Runs concurrently across files.
+
+  **Suggester service** (`dope/services/suggester/`): Accepts describer
+  output, filters by scope relevance and Jev judgment, and produces a
+  ranked list of documentation changes to make. The judgment gate
+  (`enable_judgment_gate`) can be used to drop low-signal changes before
+  the expensive changer call.
+
+  **Changer service** (`dope/services/changer/`): Takes each suggested
+  change and produces the final markdown content to be written to disk.
+  Uses the `gpt-5.6-terra` model tier by default; configurable per
+  deployment.
+
+  **Scoper service** (`dope/services/scoper/`): Manages scope templates
+  that define the expected documentation structure for a project. The
+  doc aligner within this service is responsible for keeping files in
+  alignment with the active scope.
+must_preserve:
+  - "The dope system is composed of a command-line interface layer"
+  - "The system is designed to be stateless between runs."
+  - "A typical invocation begins when the user runs `dope update`."
+  - "This context is handed to the describer agents"
+  - "**CLI layer** (`dope/cli/`)"
+  - "**Describer service** (`dope/services/describer/`)"
+  - "**Suggester service** (`dope/services/suggester/`)"
+  - "**Changer service** (`dope/services/changer/`)"
+  - "**Scoper service** (`dope/services/scoper/`)"

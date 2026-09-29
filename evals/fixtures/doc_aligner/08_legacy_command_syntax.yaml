@@ -1,0 +1,59 @@
+name: legacy_command_syntax
+description: |
+  File uses old-style command syntax that still works but looks dated
+  (e.g. double-dash long flags without equals, explicit python invocation).
+  Scope requires ONLY adding a Troubleshooting section. Aligner must not
+  modernize the command syntax, update flag style, or expand terse steps.
+  Over-rewrite temptation: "improving" commands to shorter modern forms.
+scope_summary: |
+  size: small
+  documentation_structure:
+    operations:
+      description: "Operations guide covering setup, backup, and troubleshooting"
+      sections:
+        setup: "Initial configuration steps"
+        backup: "How to back up state"
+        troubleshooting: "Common problems and fixes"
+filepath: docs/operations.md
+file_content: |
+  # Operations Guide
+
+  ## Setup
+
+  Run the initialisation command:
+
+  ```bash
+  python -m dope init --config-dir /etc/dope --log-level DEBUG
+  ```
+
+  Confirm the agent is reachable:
+
+  ```bash
+  python -m dope health-check --timeout 30 --retry-count 3
+  ```
+
+  Set the state directory:
+
+  ```bash
+  export DOPE_STATE_DIR=/var/lib/dope/state
+  ```
+
+  ## Backup
+
+  Copy the state directory to a timestamped archive:
+
+  ```bash
+  cp --recursive --preserve=all $DOPE_STATE_DIR /backups/dope-$(date +%Y%m%d)
+  ```
+
+  Verify the archive is complete:
+
+  ```bash
+  diff --recursive $DOPE_STATE_DIR /backups/dope-$(date +%Y%m%d)
+  ```
+must_preserve:
+  - "python -m dope init --config-dir /etc/dope --log-level DEBUG"
+  - "python -m dope health-check --timeout 30 --retry-count 3"
+  - "export DOPE_STATE_DIR=/var/lib/dope/state"
+  - "cp --recursive --preserve=all $DOPE_STATE_DIR"
+  - "diff --recursive $DOPE_STATE_DIR"

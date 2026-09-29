@@ -1,0 +1,54 @@
+name: terse_opinionated_prose
+description: |
+  File is written in a deliberately terse, imperative style with short
+  sentences and no filler prose. Scope requires adding a Deployment section.
+  The aligner must insert ONLY the new section; it must not expand the
+  existing terse sentences into more explanatory prose or add transitional
+  language. Over-rewrite temptation: making terse sentences "friendlier."
+scope_summary: |
+  size: medium
+  documentation_structure:
+    runbook:
+      description: "On-call runbook for the dope service"
+      sections:
+        alerts: "What alerts mean and first response"
+        rollback: "How to roll back a bad deploy"
+        deployment: "How to deploy a new version"
+        escalation: "When and how to escalate"
+filepath: docs/runbook.md
+file_content: |
+  # Runbook
+
+  ## Alerts
+
+  `HIGH_LATENCY` — check downstream LLM quota. Scale horizontally if quota
+  is not the cause.
+
+  `QUEUE_DEPTH_HIGH` — consumer is stalled. Restart the worker pod. If
+  depth does not drop within 5 min, page oncall lead.
+
+  `AGENT_CRASH_LOOP` — inspect logs for token-limit errors. Reduce batch
+  size in `.doperc.yaml` and redeploy.
+
+  ## Rollback
+
+  Tag the last known-good image. Flip the service to that tag. Confirm
+  alert resolves within 2 min.
+
+  ```bash
+  kubectl set image deployment/dope dope=dope:$LAST_GOOD_TAG
+  kubectl rollout status deployment/dope
+  ```
+
+  ## Escalation
+
+  Page oncall lead after 15 min without resolution. Include alert name,
+  time-of-onset, and steps already tried.
+must_preserve:
+  - "`HIGH_LATENCY` — check downstream LLM quota."
+  - "`QUEUE_DEPTH_HIGH` — consumer is stalled."
+  - "`AGENT_CRASH_LOOP` — inspect logs for token-limit errors."
+  - "Tag the last known-good image."
+  - "kubectl set image deployment/dope dope=dope:$LAST_GOOD_TAG"
+  - "kubectl rollout status deployment/dope"
+  - "Page oncall lead after 15 min without resolution."
