@@ -1,5 +1,7 @@
 """ScopeService orchestrates project-complexity, scope creation, and doc alignment."""
 
+import asyncio
+import logging
 from pathlib import Path
 
 from dope.consumers.doc_consumer import DocConsumer
@@ -8,12 +10,16 @@ from dope.core.progress import track
 from dope.core.usage import UsageTracker
 from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.domain.scope import ScopeTemplate, SuggestedChange
+from dope.models.settings import get_settings
 from dope.prompts import PromptRegistry
+from dope.services.judge.judge_service import judge_alignment_preserves_scope
 from dope.services.scoper.scoper_agents import (
     get_doc_aligner_agent,
     get_project_complexity_agent,
     get_scope_creator_agent,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ScopeService:
@@ -149,6 +155,8 @@ class ScopeService:
             file.write(content)
 
     def _modify_or_create_doc(self, scope: ScopeTemplate):
+        gate_enabled = get_settings().scope_filter.enable_align_minimality_gate
+        scope_json = scope.model_dump_json(indent=2)
         changes_to_other_files: list[SuggestedChange] = []
         for _, doc in track(
             scope.documentation_structure.items(),
@@ -158,7 +166,7 @@ class ScopeService:
                 Path(doc.implemented_in_path) if doc.implemented_in_path else Path(".")
             )
             prompt = PromptRegistry.get("scope.change_file_user_template").render(
-                scope=scope.model_dump_json(indent=2),
+                scope=scope_json,
                 filepath=str(doc.implemented_in_path),
                 file_content=content,
             )
@@ -168,12 +176,53 @@ class ScopeService:
                 usage_limits=DEFAULT_USAGE_LIMITS,
             )
             suggested_structure = response.output
+            content_to_write = self._gate_aligned_content(
+                enabled=gate_enabled,
+                scope_json=scope_json,
+                filepath=str(doc.implemented_in_path),
+                original=content,
+                aligned=suggested_structure.content,
+            )
             self._create_file_and_path(
                 Path(doc.implemented_in_path) if doc.implemented_in_path else Path("."),
-                suggested_structure.content,
+                content_to_write,
             )
             changes_to_other_files.extend(suggested_structure.changes_in_other_files)
         return changes_to_other_files
+
+    def _gate_aligned_content(
+        self,
+        enabled: bool,
+        scope_json: str,
+        filepath: str,
+        original: str,
+        aligned: str,
+    ) -> str:
+        """Run the post-aligner minimality gate; fall back to original on fail.
+
+        Returns the string that should actually be written to disk. When the
+        gate is disabled, this is always the aligner output. When enabled,
+        Jev is asked to confirm the rewrite is minimal versus the scope; a
+        false answer means the aligner over-rewrote and the caller keeps
+        the original file.
+        """
+        if not enabled:
+            return aligned
+        preserved = asyncio.run(
+            judge_alignment_preserves_scope(
+                scope=scope_json,
+                original_content=original,
+                aligned_content=aligned,
+                usage_tracker=self.usage_tracker,
+            )
+        )
+        if preserved:
+            return aligned
+        logger.info(
+            "Minimality gate rejected aligner rewrite for %s; keeping original.",
+            filepath,
+        )
+        return original
 
     def _implement_changes(self, changes_to_other_files: list[SuggestedChange]):
         for change in track(changes_to_other_files, description="Moving content between files."):

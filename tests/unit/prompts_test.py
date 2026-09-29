@@ -62,3 +62,11 @@ def test_change_system_has_both_versions():
     versions = PromptRegistry.list_versions("change.system")
     assert "v1" in versions
     assert "v2-minimal" in versions
+
+
+def test_align_preserves_scope_prompt_registered():
+    """Post-aligner Jev minimality gate prompt is available in the registry."""
+    p = PromptRegistry.get("judge.align_preserves_scope")
+    assert p.version == "v1"
+    assert "minimality gate" in p.template.lower()
+    assert p.description

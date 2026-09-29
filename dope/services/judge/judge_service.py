@@ -7,6 +7,7 @@ from dope.core.usage import UsageTracker
 from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.domain.judgment import DiffJudgment
 from dope.services.judge.judge_agents import (
+    get_align_minimality_agent,
     get_change_category_agent,
     get_change_type_agent,
     get_doc_priority_agent,
@@ -62,3 +63,51 @@ async def judge_diff(
         needs_docs=needs_docs_r.output,
         doc_priority=priority_r.output,
     )
+
+
+async def judge_alignment_preserves_scope(
+    scope: str,
+    original_content: str,
+    aligned_content: str,
+    usage_tracker: UsageTracker | None = None,
+) -> bool:
+    """Ask Jev whether the aligner's rewrite is minimal versus the scope.
+
+    Returns ``True`` when the rewrite only touches scope-required content
+    (safe to write), ``False`` when the aligner over-rewrote and the caller
+    should keep the original file. When the two contents are byte-identical
+    the gate short-circuits to ``True`` and does not spend a Jev call.
+
+    Args:
+        scope: The scope requirements for this file, as fed to the aligner.
+        original_content: File content before the aligner ran.
+        aligned_content: File content the aligner returned.
+        usage_tracker: Optional tracker for token accounting.
+
+    Returns:
+        True if the rewrite is minimal, False if it over-rewrote.
+    """
+    if original_content == aligned_content:
+        return True
+    if not original_content.strip():
+        # Pure creation — there is nothing to preserve, so any output is
+        # trivially "minimal versus the (nonexistent) original".
+        return True
+    user_prompt = (
+        "<scope>\n"
+        f"{scope}\n"
+        "</scope>\n\n"
+        "<original_content>\n"
+        f"{original_content}\n"
+        "</original_content>\n\n"
+        "<aligned_content>\n"
+        f"{aligned_content}\n"
+        "</aligned_content>"
+    )
+    usage = usage_tracker.usage if usage_tracker else None
+    result = await get_align_minimality_agent().run(
+        user_prompt=user_prompt,
+        usage=usage,
+        usage_limits=DEFAULT_USAGE_LIMITS,
+    )
+    return bool(result.output)

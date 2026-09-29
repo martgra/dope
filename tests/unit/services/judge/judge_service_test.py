@@ -8,7 +8,10 @@ import pytest
 from dope.core.classification import ChangeCategory
 from dope.models.domain.judgment import DiffJudgment
 from dope.models.enums import ChangeType
-from dope.services.judge.judge_service import judge_diff
+from dope.services.judge.judge_service import (
+    judge_alignment_preserves_scope,
+    judge_diff,
+)
 
 DEFAULT_OUTPUTS: dict[str, object] = {
     "get_change_category_agent": ChangeCategory.FEATURE,
@@ -104,3 +107,97 @@ def test_judge_diff_without_tracker_passes_none_usage(patch_agents):
     assert len(calls) == 6
     for kwargs in calls.values():
         assert kwargs["usage"] is None
+
+
+def test_align_gate_short_circuits_on_identical_content():
+    """When original == aligned, the gate returns True without touching Jev."""
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent"
+    ) as get_agent:
+        result = asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="scope",
+                original_content="same",
+                aligned_content="same",
+            )
+        )
+    assert result is True
+    get_agent.assert_not_called()
+
+
+def test_align_gate_short_circuits_on_empty_original():
+    """When the original file is empty, the gate treats it as a pure creation."""
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent"
+    ) as get_agent:
+        result = asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="scope",
+                original_content="   \n\n",
+                aligned_content="# New Doc\n\nBody.\n",
+            )
+        )
+    assert result is True
+    get_agent.assert_not_called()
+
+
+def test_align_gate_returns_true_when_jev_says_minimal():
+    """When contents differ, the gate consults Jev and forwards its bool answer."""
+    calls: dict[str, dict] = {}
+    agent = _make_agent(True, recorder=calls, name="align")
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent",
+        return_value=agent,
+    ):
+        result = asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="scope-json",
+                original_content="original\n",
+                aligned_content="aligned\n",
+            )
+        )
+    assert result is True
+    assert "align" in calls
+    prompt = calls["align"]["user_prompt"]
+    assert "<scope>" in prompt
+    assert "<original_content>" in prompt
+    assert "<aligned_content>" in prompt
+
+
+def test_align_gate_returns_false_when_jev_rejects():
+    """A False Jev answer flags over-rewrite; caller can fall back to original."""
+    agent = _make_agent(False)
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent",
+        return_value=agent,
+    ):
+        result = asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="s",
+                original_content="a",
+                aligned_content="b",
+            )
+        )
+    assert result is False
+
+
+def test_align_gate_forwards_usage_from_tracker():
+    """The tracker's .usage is forwarded to the Jev agent call."""
+    calls: dict[str, dict] = {}
+    agent = _make_agent(True, recorder=calls, name="align")
+    tracker = MagicMock()
+    sentinel = MagicMock(name="usage-sentinel")
+    tracker.usage = sentinel
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent",
+        return_value=agent,
+    ):
+        asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="s",
+                original_content="a",
+                aligned_content="b",
+                usage_tracker=tracker,
+            )
+        )
+    assert calls["align"]["usage"] is sentinel

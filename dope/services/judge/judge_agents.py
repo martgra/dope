@@ -83,3 +83,20 @@ def get_doc_priority_agent() -> Agent[None, Literal[0, 1, 2, 3, 4]]:
         output_type=Literal[0, 1, 2, 3, 4],
         instructions=PromptRegistry.get("judge.doc_priority").template,
     )
+
+
+@loop_scoped_cache
+def get_align_minimality_agent() -> Agent[None, bool]:
+    """Jev Noul: did the aligner preserve everything the scope doesn't touch?
+
+    Post-aligner gate. True means the rewrite is minimal and safe to write;
+    false means the aligner over-rewrote and the caller should fall back to
+    the original file content. See :mod:`dope.services.judge.judge_service`
+    for the wrapper that packages original + aligned + scope into the
+    user prompt.
+    """
+    return Agent(
+        model=get_typesafe_model(),
+        output_type=bool,
+        instructions=PromptRegistry.get("judge.align_preserves_scope").template,
+    )

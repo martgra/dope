@@ -86,3 +86,39 @@ PromptRegistry.register(
         ),
     )
 )
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.align_preserves_scope",
+        version="v1",
+        description=(
+            "Jev Noul post-aligner gate: does the aligned rewrite change only "
+            "content the scope requires, preserving everything else? Answer "
+            "true when the rewrite is minimal (only scope-required lines "
+            "touched), false when the aligner over-rewrote (rephrased, "
+            "reordered, or stylistically edited content the scope does not "
+            "require to change). Ground the judgment in the ``scope`` "
+            "requirements versus the diff between ``original_content`` and "
+            "``aligned_content``. Additions the scope requires and deletions "
+            "of content the scope moves elsewhere are fine; wording changes "
+            "on untouched-by-scope sections are not."
+        ),
+        template=(
+            "You are the minimality gate for a doc-alignment pipeline. Given "
+            "the scope requirements for a file, the original content, and "
+            "the aligner's rewrite, answer whether the rewrite preserves "
+            "everything the scope does not explicitly require to change.\n"
+            "\n"
+            "Answer TRUE when the rewrite is minimal: additions match "
+            "scope-required sections, deletions match content the scope "
+            "moves elsewhere, and every other line is byte-identical to the "
+            "original (or trivially reformatted whitespace).\n"
+            "\n"
+            "Answer FALSE when the aligner over-rewrote: rephrased fine "
+            "sentences, reordered untouched lines, changed heading casing, "
+            "modernized command syntax, expanded terse sections beyond what "
+            "the scope calls for, or otherwise touched content the scope "
+            "does not require."
+        ),
+    )
+)

@@ -119,6 +119,18 @@ class ScopeFilterSettings(BaseModel):
             "zero accuracy loss. Set to false in .doperc.yaml to disable."
         ),
     )
+    enable_align_minimality_gate: bool = Field(
+        default=False,
+        description=(
+            "When true, run a Jev Noul after each doc alignment call: if "
+            "the aligner over-rewrote content the scope did not require to "
+            "change, fall back to the original file contents instead of "
+            "writing the rewrite. Opt-in until eval validates the win. "
+            "Requires TypeSafe to be configured (see typesafe__API_KEY); a "
+            "missing TypeSafe key raises inside the gate call, so keep this "
+            "disabled unless TypeSafe is available."
+        ),
+    )
 
 
 class Settings(BaseSettings):
