@@ -6,6 +6,7 @@ import logging
 from dope.core.usage import UsageTracker
 from dope.llms.usage_limits import DEFAULT_USAGE_LIMITS
 from dope.models.domain.judgment import DiffJudgment
+from dope.models.domain.scope import SuggestedChange
 from dope.services.judge.judge_agents import (
     get_align_minimality_agent,
     get_change_category_agent,
@@ -69,6 +70,7 @@ async def judge_alignment_preserves_scope(
     scope: str,
     original_content: str,
     aligned_content: str,
+    moves: list[SuggestedChange] | None = None,
     usage_tracker: UsageTracker | None = None,
 ) -> bool:
     """Ask Jev whether the aligner's rewrite is minimal versus the scope.
@@ -78,10 +80,16 @@ async def judge_alignment_preserves_scope(
     should keep the original file. When the two contents are byte-identical
     the gate short-circuits to ``True`` and does not spend a Jev call.
 
+    ``moves`` is the aligner's ``changes_in_other_files`` list. Deletions
+    from ``original_content`` whose text appears in a move entry are
+    legitimate relocations, not over-rewrites — the v2-move-aware prompt
+    uses this list to avoid false-rejecting cross-file moves.
+
     Args:
         scope: The scope requirements for this file, as fed to the aligner.
         original_content: File content before the aligner ran.
         aligned_content: File content the aligner returned.
+        moves: The aligner's cross-file change suggestions, if any.
         usage_tracker: Optional tracker for token accounting.
 
     Returns:
@@ -93,6 +101,7 @@ async def judge_alignment_preserves_scope(
         # Pure creation — there is nothing to preserve, so any output is
         # trivially "minimal versus the (nonexistent) original".
         return True
+    moves_block = _format_moves_block(moves or [])
     user_prompt = (
         "<scope>\n"
         f"{scope}\n"
@@ -102,7 +111,8 @@ async def judge_alignment_preserves_scope(
         "</original_content>\n\n"
         "<aligned_content>\n"
         f"{aligned_content}\n"
-        "</aligned_content>"
+        "</aligned_content>\n\n"
+        f"{moves_block}"
     )
     usage = usage_tracker.usage if usage_tracker else None
     result = await get_align_minimality_agent().run(
@@ -111,3 +121,22 @@ async def judge_alignment_preserves_scope(
         usage_limits=DEFAULT_USAGE_LIMITS,
     )
     return bool(result.output)
+
+
+def _format_moves_block(moves: list[SuggestedChange]) -> str:
+    """Serialize cross-file moves as an XML-like block for the Jev prompt.
+
+    An empty list still emits a ``<moves>`` block (with a note) so the
+    model always sees the same prompt shape — this keeps the Jev call
+    calibrated across cases with and without moves.
+    """
+    if not moves:
+        return "<moves>\n(none — the aligner suggested no cross-file relocations)\n</moves>"
+    entries = [
+        f'<move filepath="{m.filepath}">\n'
+        f"<instructions>{m.instructions}</instructions>\n"
+        f"<content>\n{m.content}\n</content>\n"
+        "</move>"
+        for m in moves
+    ]
+    return "<moves>\n" + "\n".join(entries) + "\n</moves>"

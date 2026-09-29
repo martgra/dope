@@ -122,3 +122,45 @@ PromptRegistry.register(
         ),
     )
 )
+
+PromptRegistry.register(
+    Prompt(
+        name="judge.align_preserves_scope",
+        version="v2-move-aware",
+        description=(
+            "Move-aware variant of the post-aligner gate. The v1 prompt "
+            "false-rejected legitimate cross-file moves: if the aligner "
+            "correctly removed out-of-scope content and emitted a "
+            "``changes_in_other_files`` entry to relocate it, v1 saw the "
+            "large deletion as an over-rewrite. v2 receives the aligner's "
+            "``moves`` list explicitly and instructs Jev to treat "
+            "deletions whose content shows up in a move as legitimate."
+        ),
+        template=(
+            "You are the minimality gate for a doc-alignment pipeline. You "
+            "receive four things: the scope requirements for a file, the "
+            "original content, the aligner's rewrite, and the aligner's "
+            "list of MOVES (cross-file relocations it also asked for). "
+            "Answer whether the rewrite preserves everything the scope "
+            "does not explicitly require to change.\n"
+            "\n"
+            "Answer TRUE when the rewrite is minimal:\n"
+            "  - Additions match scope-required sections.\n"
+            "  - Deletions match either content the scope moves elsewhere OR "
+            "content that appears in a MOVE entry — the aligner is allowed "
+            "to remove text from this file when it has already routed that "
+            "text to another file via a move.\n"
+            "  - Every other line is byte-identical to the original (or "
+            "trivially reformatted whitespace).\n"
+            "\n"
+            "Answer FALSE when the aligner over-rewrote:\n"
+            "  - Rephrased fine sentences that neither the scope nor a "
+            "move required to change.\n"
+            "  - Reordered untouched lines.\n"
+            "  - Changed heading casing, modernized command syntax, or "
+            "expanded terse sections beyond what the scope calls for.\n"
+            "  - Deleted content that is neither out-of-scope for this file "
+            "nor accounted for by a move."
+        ),
+    )
+)

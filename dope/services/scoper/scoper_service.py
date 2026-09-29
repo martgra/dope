@@ -182,6 +182,7 @@ class ScopeService:
                 filepath=str(doc.implemented_in_path),
                 original=content,
                 aligned=suggested_structure.content,
+                moves=suggested_structure.changes_in_other_files,
             )
             self._create_file_and_path(
                 Path(doc.implemented_in_path) if doc.implemented_in_path else Path("."),
@@ -197,6 +198,7 @@ class ScopeService:
         filepath: str,
         original: str,
         aligned: str,
+        moves: list[SuggestedChange],
     ) -> str:
         """Run the post-aligner minimality gate; fall back to original on fail.
 
@@ -204,7 +206,9 @@ class ScopeService:
         gate is disabled, this is always the aligner output. When enabled,
         Jev is asked to confirm the rewrite is minimal versus the scope; a
         false answer means the aligner over-rewrote and the caller keeps
-        the original file.
+        the original file. ``moves`` is the aligner's cross-file relocation
+        list — Jev uses it to distinguish legitimate deletions (content
+        moved elsewhere) from over-rewrites.
         """
         if not enabled:
             return aligned
@@ -213,6 +217,7 @@ class ScopeService:
                 scope=scope_json,
                 original_content=original,
                 aligned_content=aligned,
+                moves=moves,
                 usage_tracker=self.usage_tracker,
             )
         )

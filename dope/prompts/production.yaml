@@ -38,4 +38,4 @@ judge.is_breaking: v1
 judge.is_user_facing: v1
 judge.needs_docs: v1
 judge.doc_priority: v1
-judge.align_preserves_scope: v1  # post-aligner minimality gate
+judge.align_preserves_scope: v2-move-aware  # move-aware post-aligner minimality gate

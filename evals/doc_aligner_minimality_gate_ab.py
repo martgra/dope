@@ -60,6 +60,7 @@ def make_run_gated_aligner(model_name: str | None = None):
             scope=inputs.scope_summary,
             original_content=inputs.file_content,
             aligned_content=aligned.content,
+            moves=aligned.changes_in_other_files,
             usage_tracker=tracker,
         )
         _usage_by_case[id(inputs)] = tracker.usage

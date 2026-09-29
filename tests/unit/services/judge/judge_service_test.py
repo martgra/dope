@@ -7,6 +7,7 @@ import pytest
 
 from dope.core.classification import ChangeCategory
 from dope.models.domain.judgment import DiffJudgment
+from dope.models.domain.scope import SuggestedChange
 from dope.models.enums import ChangeType
 from dope.services.judge.judge_service import (
     judge_alignment_preserves_scope,
@@ -179,6 +180,54 @@ def test_align_gate_returns_false_when_jev_rejects():
             )
         )
     assert result is False
+
+
+def test_align_gate_serializes_moves_into_prompt():
+    """A non-empty moves list becomes a <moves> block visible to Jev."""
+    calls: dict[str, dict] = {}
+    agent = _make_agent(True, recorder=calls, name="align")
+    move = SuggestedChange(
+        filepath="docs/other.md",
+        instructions="add background section",
+        content="Background lives here now.",
+    )
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent",
+        return_value=agent,
+    ):
+        asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="s",
+                original_content="original\n",
+                aligned_content="aligned\n",
+                moves=[move],
+            )
+        )
+    prompt = calls["align"]["user_prompt"]
+    assert "<moves>" in prompt
+    assert 'filepath="docs/other.md"' in prompt
+    assert "Background lives here now." in prompt
+
+
+def test_align_gate_marks_empty_moves_block():
+    """Empty moves still produce a <moves> block so prompt shape stays stable."""
+    calls: dict[str, dict] = {}
+    agent = _make_agent(True, recorder=calls, name="align")
+    with patch(
+        "dope.services.judge.judge_service.get_align_minimality_agent",
+        return_value=agent,
+    ):
+        asyncio.run(
+            judge_alignment_preserves_scope(
+                scope="s",
+                original_content="original",
+                aligned_content="aligned",
+                moves=[],
+            )
+        )
+    prompt = calls["align"]["user_prompt"]
+    assert "<moves>" in prompt
+    assert "none" in prompt
 
 
 def test_align_gate_forwards_usage_from_tracker():
