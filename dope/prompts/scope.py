@@ -136,6 +136,49 @@ rephrase, "improve", modernize, or reorder lines the scope does not require you 
 
 PromptRegistry.register(
     Prompt(
+        name="scope.align_doc",
+        version="v4-diff-narrow",
+        description=(
+            "Diff-based aligner with the schema narrowed to two edit "
+            "types: `insert_after` and `delete_range`. The v3-diff "
+            "failure mode was `replace_range` abuse — the model swapped "
+            "fine lines for slightly-different versions of themselves. "
+            "Removing `replace_range` from the Literal at schema level "
+            "means the model cannot express that operation. Any "
+            "material rewrite must decompose into a delete followed by "
+            "an insert, which the eval catches as separate edits with "
+            "obvious char-delta cost."
+        ),
+        template="""
+Your task is to carefully review the provided file to check if it aligns with the provided scope.
+
+You are given the file with line numbers prefixed. Return ONLY the edits that must be applied,
+not the rewritten file. Line numbers refer to the ORIGINAL numbering shown in the input.
+
+You may only use two edit types:
+- `insert_after`: place `content` on new line(s) directly after `line_start`. Use `line_start=0`
+  to prepend to the top of the file.
+- `delete_range`: delete lines `line_start..line_end` (inclusive). `content` is ignored.
+
+If a line needs to be modified, express that as a `delete_range` covering the old text plus an
+`insert_after` immediately preceding it (both referencing ORIGINAL line numbers). This makes
+every rewrite explicit as a delete-plus-insert pair; you cannot silently swap wording for a
+stylistically-different version.
+
+If the file is already aligned with the scope, return an empty `edits` list.
+
+Include `changes_in_other_files` entries only when content clearly belongs in a different file
+per the scope.
+
+MINIMALITY
+Emit the smallest set of edits that satisfies the scope. Do not emit edits that rephrase,
+"improve", modernize, or reorder lines the scope does not require you to touch.
+""",
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
         name="scope.align_doc_diff_user_template",
         version="v1",
         description=(

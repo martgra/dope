@@ -189,8 +189,74 @@ class EditedScope(BaseModel):
     )
 
 
-def apply_edits(source: str, edits: list[LineEdit]) -> str:
+class NarrowLineEdit(BaseModel):
+    """A line-level edit restricted to insert-or-delete.
+
+    The v3-diff aligner's failure mode was ``replace_range`` abuse: the
+    model swapped fine lines for slightly-different versions of
+    themselves, defeating the ``EditedScope`` architecture's whole
+    point. This narrower type removes ``replace_range`` from the mode
+    Literal — any structural rewrite must decompose into an explicit
+    delete followed by an insert, which the eval catches as separate
+    edits with obvious char-delta cost.
+    """
+
+    mode: Literal["insert_after", "delete_range"] = Field(
+        ...,
+        description=(
+            "How this edit modifies the source: `insert_after` puts `content` "
+            "as new line(s) after `line_start` (0 = prepend); `delete_range` "
+            "removes lines `line_start..line_end` inclusive and ignores `content`."
+        ),
+    )
+    line_start: int = Field(
+        ...,
+        ge=0,
+        description=(
+            "1-based line number in the ORIGINAL file. For `insert_after`, "
+            "`0` means insert at the very top of the file."
+        ),
+    )
+    line_end: int | None = Field(
+        default=None,
+        description="Inclusive end line for `delete_range`. Ignored for `insert_after`.",
+    )
+    content: str = Field(
+        default="",
+        description=(
+            "New text for `insert_after`. Should include any needed trailing "
+            "newline. Ignored for `delete_range`."
+        ),
+    )
+
+
+class NarrowEditedScope(BaseModel):
+    """Diff output for the narrow aligner (v4-diff).
+
+    Same shape as :class:`EditedScope` but its edit type is
+    :class:`NarrowLineEdit`, which forbids ``replace_range`` at the
+    schema level.
+    """
+
+    edits: list[NarrowLineEdit] = Field(
+        default_factory=list,
+        description=(
+            "Line-level edits to apply, in ANY order. If empty the file "
+            "is already aligned and should be left untouched."
+        ),
+    )
+    changes_in_other_files: list[SuggestedChange] = Field(
+        default_factory=list,
+        description="Same semantics as on AlignedScope.",
+    )
+
+
+def apply_edits(source: str, edits: list[LineEdit] | list[NarrowLineEdit]) -> str:
     """Return ``source`` with all ``edits`` applied.
+
+    Accepts either :class:`LineEdit` (three modes) or
+    :class:`NarrowLineEdit` (two modes) since both share the same
+    ``mode`` / ``line_start`` / ``line_end`` / ``content`` shape.
 
     Edits are applied in reverse ``line_start`` order so earlier edits
     do not need to know about index shifts caused by later ones. Line
@@ -211,7 +277,7 @@ def apply_edits(source: str, edits: list[LineEdit]) -> str:
     return "".join(lines)
 
 
-def _apply_one(lines: list[str], edit: LineEdit) -> None:
+def _apply_one(lines: list[str], edit: LineEdit | NarrowLineEdit) -> None:
     """In-place application of a single edit to a mutable line buffer."""
     content_lines = edit.content.splitlines(keepends=True) if edit.content else []
     if edit.mode == "insert_after":
