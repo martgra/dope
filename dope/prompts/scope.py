@@ -102,6 +102,71 @@ Make the smallest possible edit that brings the file into alignment with the sco
 
 PromptRegistry.register(
     Prompt(
+        name="scope.align_doc",
+        version="v3-diff",
+        description=(
+            "Diff-based aligner: model outputs line-level edits (LineEdit) "
+            "instead of the full rewritten file. Structurally prevents "
+            "over-rewriting because untouched lines are byte-identical by "
+            "construction; the caller reconstructs content via apply_edits."
+        ),
+        template="""
+Your task is to carefully review the provided file to check if it aligns with the provided scope.
+
+You are given the file with line numbers prefixed. Return ONLY the edits that must be applied,
+not the rewritten file. Line numbers refer to the ORIGINAL numbering shown in the input.
+
+Each edit is one of:
+- `insert_after`: place `content` on new line(s) directly after `line_start`. Use `line_start=0`
+  to prepend to the top of the file.
+- `replace_range`: replace lines `line_start..line_end` (inclusive) with `content`.
+- `delete_range`: delete lines `line_start..line_end` (inclusive). `content` is ignored.
+
+If the file is already aligned with the scope, return an empty `edits` list.
+
+Include `changes_in_other_files` entries only when content clearly belongs in a different file per the scope.
+
+MINIMALITY
+Emit the smallest set of edits that satisfies the scope. Do not emit a `replace_range` edit
+that swaps a line for a stylistically-different version of itself. Do not emit edits that
+rephrase, "improve", modernize, or reorder lines the scope does not require you to touch.
+""",
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
+        name="scope.align_doc_diff_user_template",
+        version="v1",
+        description=(
+            "User-side template for the diff-based aligner. Prefixes every "
+            "source line with its 1-based number so the model can address "
+            "edits by line."
+        ),
+        template="""
+Here is the full scope of our documentation.
+<scope>
+{scope}
+</scope>
+
+Here is the filepath to the file we are aligning.
+<filepath>
+{filepath}
+</filepath>
+
+Here is the current content of the file with 1-based line numbers.
+<file_content>
+{numbered_content}
+</file_content>
+
+Return the smallest set of edits that brings the file into alignment with the scope. If
+no edits are needed, return an empty `edits` list.
+""",
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
         name="scope.change_file_user_template",
         version="v1",
         description="User-side template used by _modify_or_create_doc to align a single file to scope.",
