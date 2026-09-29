@@ -43,6 +43,13 @@ code_change:
         - Backward-compatible additive change. Existing callers unaffected.
         - Enables consumers to load only the state entries they need.
       programming_language: Python
+      judgment:
+        change_category: api
+        change_type: add
+        is_breaking: false
+        is_user_facing: true
+        needs_docs: true
+        doc_priority: 2
 expected:
   suggestions:
     - documentation_file_path: docs/api.md

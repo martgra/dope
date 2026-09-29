@@ -34,5 +34,12 @@ code_change:
       functional_impact:
         - Docs-only wording fix. No code behavior change.
       programming_language: Markdown
+      judgment:
+        change_category: documentation
+        change_type: change_existing
+        is_breaking: false
+        is_user_facing: false
+        needs_docs: false
+        doc_priority: 0
 expected:
   suggestions: []

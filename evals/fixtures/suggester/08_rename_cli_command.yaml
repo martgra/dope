@@ -42,6 +42,13 @@ code_change:
         - Breaking - scripts invoking `dope suggest` now fail.
         - Users must update to `dope propose`.
       programming_language: Python
+      judgment:
+        change_category: cli
+        change_type: change_existing
+        is_breaking: true
+        is_user_facing: true
+        needs_docs: true
+        doc_priority: 4
 expected:
   suggestions:
     - documentation_file_path: README.md

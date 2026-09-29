@@ -39,6 +39,13 @@ code_change:
         - Faster document term-indexing on repos with many docs.
         - No API or behavior change; output is byte-identical.
       programming_language: Python
+      judgment:
+        change_category: refactor
+        change_type: change_existing
+        is_breaking: false
+        is_user_facing: false
+        needs_docs: false
+        doc_priority: 1
 expected:
   suggestions:
     - documentation_file_path: CHANGELOG.md
