@@ -159,6 +159,13 @@ class DocChangeSuggester:
         analytics["processable_code_files"] = len(processable_code)
         analytics["processable_doc_files"] = len(processable_docs)
 
+        # Optionally drop code changes whose Jev DiffJudgment reports
+        # needs_docs=false. Missing judgment is treated as unknown and kept,
+        # so this is a no-op when TypeSafe isn't configured.
+        if self._scope_filter_settings.enable_judgment_gate:
+            processable_code = change_processor.filter_by_judgment_needs_docs(processable_code)
+            analytics["judgment_gated_code_files"] = len(processable_code)
+
         # Apply scope-based filtering if scope available
         if self._scope_filter:
             processable_code, _relevance_map = self._scope_filter.filter_changes(processable_code)

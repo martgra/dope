@@ -106,6 +106,18 @@ class ScopeFilterSettings(BaseModel):
         description="Minimum documentation files to include regardless of filtering",
     )
 
+    # Jev judgment gating
+    enable_judgment_gate: bool = Field(
+        default=False,
+        description=(
+            "When true, drop code changes whose Jev DiffJudgment reports "
+            "needs_docs=false before the suggester runs. Requires TypeSafe "
+            "to be configured (see typesafe__API_KEY). Files without a "
+            "judgment are always kept — this filter only drops on explicit "
+            "false. Defaults to false so the flag is opt-in."
+        ),
+    )
+
 
 class Settings(BaseSettings):
     """Main application settings.

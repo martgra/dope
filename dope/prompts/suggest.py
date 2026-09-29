@@ -34,6 +34,56 @@ suggest modifications to consolidate the information.
 
 PromptRegistry.register(
     Prompt(
+        name="suggest.system",
+        version="v2-judgment",
+        description=(
+            "Extends v1 to reference the Jev DiffJudgment fields "
+            "(Breaking Change, User-Facing, Needs Docs, Doc Priority, "
+            "Jev Category, Jev Change Type) that change_processor now "
+            "surfaces as first-class metadata. Only useful when TypeSafe "
+            "is configured — with no judgment present the model sees the "
+            "old signals and behaves as v1."
+        ),
+        template="""
+Your role is to suggest changes to documentation that needs updating based on code changes.
+
+Your suggestions should reflect:
+
+1. Do not add information irrelevant to the reader. Use your understanding of the code change and
+the assumed impact this will have on the reader. Pay attention to scope relevance scores and
+affected documentation sections provided in the change metadata.
+
+2. Documentation needs to be accurate. If existing doc has a reference thats need updating you
+must suggest to do so.
+
+3. Avoid duplication. Code changes include metadata showing which documentation sections they affect.
+Use this to prevent suggesting duplicate content across files. If you identify potential duplicates,
+suggest modifications to consolidate the information.
+
+4. Prioritize high-relevance changes. Files with higher "Scope Relevance" scores and specific
+"Affects Docs" metadata are more important for documentation updates.
+
+5. Weigh the Jev DiffJudgment metadata when present:
+   - "Breaking Change: yes" ALWAYS merits a CHANGELOG entry and, if the change affects a
+     documented API or CLI, an update to that reference doc. Never omit a breaking change.
+   - "User-Facing: no" means users only see this via internal code paths. Do NOT suggest
+     README/QUICKSTART/user-guide updates for these — they belong in internal notes at most.
+   - "Needs Docs: no" is a strong signal from Jev that no doc update is necessary. Only
+     override it when there is a clearly compelling reason the judgment missed.
+   - "Doc Priority" is a 0-4 ordinal: 0 = no update, 1 = optional mention, 2 = should be
+     documented, 3 = important, 4 = critical. Prefer more detailed suggestions on higher
+     priorities and skip suggestions on 0 unless the model has a specific reason.
+   - "Jev Category" and "Jev Change Type" are richer than path-inferred categories. Trust
+     them when they conflict with the path-based "Category" heuristic.
+
+If none of the code changes are significant enough or have sufficient scope relevance or
+Jev priority, do not suggest a change.
+""",
+    )
+)
+
+PromptRegistry.register(
+    Prompt(
         name="suggest.user_template",
         version="v1",
         description="User-side template that packages current docs + code changes for the suggester.",

@@ -16,6 +16,15 @@ def _get_significance_label(magnitude: float) -> str:
     return "minor"
 
 
+def _judgment(data: dict) -> dict | None:
+    """Return the Jev DiffJudgment on a state entry, if the describer attached one."""
+    summary = data.get("summary") or {}
+    if not isinstance(summary, dict):
+        return None
+    judgment = summary.get("judgment")
+    return judgment if isinstance(judgment, dict) else None
+
+
 def _build_metadata_dict(data: dict) -> dict[str, str]:
     """Extract prompt metadata from a file state entry."""
     result = {"Priority": data.get("priority", "NORMAL")}
@@ -32,16 +41,35 @@ def _build_metadata_dict(data: dict) -> dict[str, str]:
         result["Lines Changed"] = f"+{lines_added} -{lines_deleted}"
 
     scope_alignment = data.get("scope_alignment")
-    if not scope_alignment:
-        return result
-    if scope_alignment.get("max_relevance", 0.0) > 0:
-        result["Scope Relevance"] = f"{scope_alignment['max_relevance']:.2f}"
-    if category := scope_alignment.get("category"):
-        result["Category"] = category
-    if sections := scope_alignment.get("relevant_sections", []):
-        result["Affects Docs"] = ", ".join(
-            f"{section['doc']}.{section['section']}" for section in sections[:3]
-        )
+    if scope_alignment:
+        if scope_alignment.get("max_relevance", 0.0) > 0:
+            result["Scope Relevance"] = f"{scope_alignment['max_relevance']:.2f}"
+        if category := scope_alignment.get("category"):
+            result["Category"] = category
+        if sections := scope_alignment.get("relevant_sections", []):
+            result["Affects Docs"] = ", ".join(
+                f"{section['doc']}.{section['section']}" for section in sections[:3]
+            )
+
+    # Surface Jev's typed judgments as first-class metadata so the suggester
+    # prompt can name them directly. Absent when the describer wasn't wired
+    # to judge_diff (TypeSafe not configured), so keys only appear if the
+    # signal is available — the SUGGESTION_PROMPT v2-judgment references
+    # these exact key names.
+    judgment = _judgment(data)
+    if judgment is not None:
+        if "change_category" in judgment:
+            result["Jev Category"] = str(judgment["change_category"])
+        if "change_type" in judgment:
+            result["Jev Change Type"] = str(judgment["change_type"])
+        if "is_breaking" in judgment:
+            result["Breaking Change"] = "yes" if judgment["is_breaking"] else "no"
+        if "is_user_facing" in judgment:
+            result["User-Facing"] = "yes" if judgment["is_user_facing"] else "no"
+        if "needs_docs" in judgment:
+            result["Needs Docs"] = "yes" if judgment["needs_docs"] else "no"
+        if "doc_priority" in judgment:
+            result["Doc Priority"] = f"{judgment['doc_priority']}/4"
     return result
 
 
@@ -54,15 +82,36 @@ def filter_processable_files(state_dict: dict) -> dict:
     }
 
 
+def filter_by_judgment_needs_docs(state_dict: dict) -> dict:
+    """Drop files whose Jev DiffJudgment says ``needs_docs`` is false.
+
+    A missing judgment (TypeSafe not configured, or older state entries)
+    is treated as "unknown" and kept — this filter never drops files
+    without an explicit ``needs_docs=False`` signal. Enable via
+    :class:`ScopeFilterSettings.enable_judgment_gate`.
+    """
+    kept: dict = {}
+    for file_path, data in state_dict.items():
+        judgment = _judgment(data)
+        if judgment is not None and judgment.get("needs_docs") is False:
+            continue
+        kept[file_path] = data
+    return kept
+
+
+def _sort_key(item: tuple[str, dict]) -> tuple[int, int, float]:
+    """Ranking tuple: HIGH-priority > Jev doc_priority desc > magnitude desc."""
+    _file_path, data = item
+    priority_rank = 0 if data.get("priority", "NORMAL") == "HIGH" else 1
+    judgment = _judgment(data)
+    jev_priority = judgment.get("doc_priority", -1) if judgment else -1
+    magnitude = data.get("metadata", {}).get("magnitude", 0.0)
+    return (priority_rank, -jev_priority, -magnitude)
+
+
 def sort_by_priority(state_dict: dict) -> list[tuple[str, dict]]:
-    """Sort files by HIGH priority first, then descending change magnitude."""
-    return sorted(
-        state_dict.items(),
-        key=lambda item: (
-            0 if item[1].get("priority", "NORMAL") == "HIGH" else 1,
-            -item[1].get("metadata", {}).get("magnitude", 0.0),
-        ),
-    )
+    """Sort files by HIGH priority, then Jev doc_priority, then magnitude."""
+    return sorted(state_dict.items(), key=_sort_key)
 
 
 def format_changes_for_prompt(state_dict: dict, include_metadata: bool = True) -> str:
