@@ -1,5 +1,7 @@
 """Pydantic-AI agents for project scoping: complexity, structure, alignment."""
 
+# pylint: disable=duplicate-code
+
 from pydantic_ai import Agent
 
 from dope.core.loop_cache import loop_scoped_cache

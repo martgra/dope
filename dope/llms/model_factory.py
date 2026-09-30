@@ -67,7 +67,7 @@ def _get_typesafe_provider() -> TypeSafeProvider:
         raise AgentNotConfiguredError(
             "TypeSafe API key not configured. Set typesafe__API_KEY in .env."
         )
-    return TypeSafeProvider(api_key=settings.typesafe.api_key.get_secret_value())
+    return TypeSafeProvider(api_key=settings.typesafe.api_key.get_secret_value())  # pylint: disable=no-member
 
 
 def get_typesafe_model(model_name: TypeSafeModelName = "jev-latest") -> TypeSafeModel:
